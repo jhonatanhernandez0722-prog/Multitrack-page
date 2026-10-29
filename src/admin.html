@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gosen Tracks · Nube</title>
+<link rel="icon" href="/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  /* Tokens compartidos con src/renderer/src/styles/global.css. */
+  :root {
+    --bg: #07080a; --bg-raised: #0e1014; --panel: #13161b; --panel-2: #191d24; --panel-3: #20252e;
+    --line: #232832; --line-strong: #323946;
+    --text: #eef0f4; --text-2: #a7afbd; --text-3: #737c8c;
+    --accent: #ffb224; --accent-strong: #ffc457; --accent-ink: #1c1203; --accent-soft: rgba(255, 178, 36, 0.12);
+    --play: #2ee59d; --danger: #ff4d5e; --paid: #ffb224;
+    --radius-sm: 6px; --radius: 10px; --radius-lg: 16px;
+    --font: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+    --font-label: 'Barlow Condensed', 'Barlow', 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2 { margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+  .hide { display: none !important; }
+  .muted { color: var(--text-2); }
+  .small { font-size: 13px; }
+  .label {
+    font-family: var(--font-label); font-weight: 600; font-size: 13px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2);
+  }
+  svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 40px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+    background: var(--panel-2); color: var(--text);
+    font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap;
+    transition: background 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.05s;
+  }
+  .btn:hover:not(:disabled) { background: var(--panel-3); border-color: #414a5a; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.primary {
+    background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+  }
+  .btn.primary:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); }
+  .btn.danger { color: var(--danger); background: transparent; }
+  .btn.danger:hover:not(:disabled) { border-color: var(--danger); background: rgba(255, 77, 94, 0.1); }
+  .btn.small { min-height: 32px; padding: 0 12px; font-size: 13px; }
+  .btn.lg { min-height: 48px; padding: 0 24px; font-size: 16px; }
+  .btn.icon-only { padding: 0; width: 32px; }
+  .btn:focus-visible, .input:focus-visible, .drop:focus-visible, .nav-item:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .input {
+    min-height: 40px; padding: 8px 12px; width: 100%;
+    border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg);
+    color: var(--text); font: inherit; font-size: 14px; transition: border-color 0.15s var(--ease);
+  }
+  .input:hover { border-color: #414a5a; }
+  .input:focus { border-color: var(--accent); outline: none; }
+  .field > label { display: block; margin-bottom: 6px; }
+  .alert { padding: 12px 16px; border-radius: var(--radius); border: 1px solid; font-size: 14px; }
+  .alert.error { border-color: rgba(255, 77, 94, 0.45); background: rgba(255, 77, 94, 0.08); }
+
+  /* --- Entrada ------------------------------------------------------------- */
+  .auth-screen {
+    display: grid; place-items: center; min-height: 100vh; padding: 20px;
+    background: radial-gradient(700px 420px at 50% 0%, rgba(255, 178, 36, 0.1), transparent 65%), var(--bg);
+  }
+  .auth-card {
+    display: flex; flex-direction: column; gap: 12px; width: min(420px, 100%); padding: 28px 26px;
+    border-radius: var(--radius-lg); border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.95);
+  }
+  .auth-logo { width: 72px; height: 72px; align-self: center; border-radius: 18px; }
+  .auth-card h1 { text-align: center; font-family: var(--font-label); font-size: 26px; letter-spacing: 0.2em; }
+  .auth-card h1 span { color: var(--accent); }
+  .auth-card p { margin: 0; text-align: center; }
+
+  /* --- Panel y navegación como en la app --------------------------------- */
+  .app-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); height: 100vh; }
+  .sidebar {
+    display: flex; flex-direction: column; min-width: 0; padding: 20px 14px 14px;
+    background: var(--bg-raised); border-right: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 26px; }
+  .brand img { width: 40px; height: 40px; border-radius: 10px; }
+  .brand-name { font-family: var(--font-label); font-weight: 700; font-size: 22px; letter-spacing: 0.18em; line-height: 1; }
+  .brand-sub { font-family: var(--font-label); color: var(--accent); font-size: 12px; font-weight: 600; letter-spacing: 0.32em; text-transform: uppercase; margin-top: 3px; }
+  .nav-group-label { padding: 0 14px 8px; color: var(--text-3); font-family: var(--font-label); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+  .nav-list { list-style: none; margin: 0; padding: 0; }
+  .nav-item {
+    position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px; margin-bottom: 2px; padding: 0 14px;
+    border-radius: var(--radius); color: var(--text-2); text-decoration: none; font-weight: 500;
+    transition: background 0.15s var(--ease), color 0.15s var(--ease);
+  }
+  .nav-item:hover { background: var(--panel); color: var(--text); }
+  .nav-item.active { background: var(--accent-soft); color: var(--text); }
+  .nav-item.active::before { content: ''; position: absolute; left: -14px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+  .nav-item.active svg { color: var(--accent); }
+  .sidebar-footer { margin-top: auto; padding: 14px 8px 0; border-top: 1px solid var(--line); }
+  .app-main {
+    min-width: 0; overflow: auto; padding: 28px 36px 40px;
+    background: radial-gradient(1200px 500px at 100% -10%, rgba(255, 178, 36, 0.06), transparent 60%), var(--bg);
+  }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 22px; flex-wrap: wrap; }
+  .topbar h1 { font-family: var(--font-label); font-size: 28px; letter-spacing: 0.02em; }
+  .eyebrow { margin-bottom: 3px; font-family: var(--font-label); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+  .who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .card {
+    border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 18px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .card-head h2 { display: flex; align-items: center; gap: 10px; font-family: var(--font-label); font-size: 20px; letter-spacing: 0.04em; }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  .stat b { display: block; font-family: var(--font-label); font-size: 28px; line-height: 1.1; font-weight: 700; }
+  .stat b.paid { color: var(--paid); }
+  .meter { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--panel-3); }
+  .meter .free { background: linear-gradient(90deg, #d88b11, var(--accent-strong)); }
+  .meter .over { background: linear-gradient(90deg, #d88b11, var(--paid)); }
+  .legend { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+
+  .drop {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer;
+    padding: 34px 20px; border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--bg-raised);
+    transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop svg.i { width: 36px; height: 36px; color: var(--accent); margin-bottom: 4px; }
+
+  .job { padding: 12px 0 0; }
+  .job-top { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+  .job-top span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .job-note { padding-top: 4px; overflow-wrap: anywhere; }
+  .bar { height: 6px; border-radius: 3px; background: var(--panel-3); overflow: hidden; margin-top: 6px; }
+  .bar div { height: 100%; width: 0; background: linear-gradient(90deg, #d88b11, var(--accent-strong)); transition: width 0.2s; }
+  .job.ok .bar div { background: var(--play); }
+  .job.fail .bar div { background: var(--danger); }
+  .job.ok .state { color: var(--play); }
+  .job.fail .state { color: var(--danger); }
+
+  .search { max-width: 240px; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-top: 1px solid var(--line); }
+  .row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+  .track-info { display: flex; flex: 1; flex-direction: column; min-width: 140px; }
+  .track-meta { overflow: hidden; color: var(--text-2); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .row .meta { font-family: var(--mono); font-size: 12px; color: var(--text-2); white-space: nowrap; }
+  .row svg.i { color: var(--accent); }
+  .thumb {
+    width: 44px; height: 44px; flex: none; display: grid; place-items: center; overflow: hidden;
+    border-radius: 8px; background: var(--panel-3); border: 1px solid var(--line);
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .empty { padding: 24px 0 8px; text-align: center; }
+  .metadata-dialog {
+    width: min(520px, calc(100% - 28px)); max-height: min(90vh, 760px); padding: 0;
+    border: 1px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--panel); color: var(--text);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.75);
+  }
+  .metadata-dialog::backdrop { background: rgba(0, 0, 0, 0.72); backdrop-filter: blur(3px); }
+  .metadata-form { display: flex; flex-direction: column; gap: 16px; padding: 22px; }
+  .dialog-head, .dialog-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .dialog-head h2 { font-family: var(--font-label); font-size: 22px; }
+  .metadata-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .metadata-fields .field:first-child, .metadata-fields .field:nth-child(2) { grid-column: span 2; }
+  .metadata-fields .field label { display: block; margin-bottom: 5px; }
+  .dialog-actions { justify-content: flex-end; }
+  .dialog-actions .btn { min-height: 40px; }
+  .metadata-error { margin: 0; }
+
+  @media (max-width: 760px) {
+    .app-shell { grid-template-columns: 72px minmax(0, 1fr); }
+    .sidebar { align-items: center; padding-right: 10px; padding-left: 10px; }
+    .brand { padding: 0 0 24px; }
+    .brand > div, .nav-group-label, .nav-item span:last-child, .sidebar-footer { display: none; }
+    .nav-item { justify-content: center; width: 48px; padding: 0; }
+    .nav-item.active::before { left: -10px; }
+    .app-main { padding: 24px 20px 32px; }
+  }
+  @media (max-width: 600px) {
+    .app-shell { display: block; height: auto; min-height: 100vh; }
+    .sidebar { display: none; }
+    .app-main { min-height: 100vh; overflow: visible; padding: 20px 16px 32px; }
+    .topbar h1 { font-size: 24px; }
+    .card { padding: 18px 16px; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stats .stat:last-child { grid-column: span 2; }
+    .row .date { display: none; }
+    .row { flex-wrap: wrap; }
+    .track-info { flex: 1 1 calc(100% - 60px); }
+    .metadata-fields { grid-template-columns: 1fr; }
+    .metadata-fields .field:first-child, .metadata-fields .field:nth-child(2) { grid-column: auto; }
+    .search { max-width: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="login" class="auth-screen">
+  <form id="loginForm" class="auth-card">
+    <img src="/logo.png" alt="" class="auth-logo" />
+    <h1>GOSEN <span>TRACKS</span></h1>
+    <p class="muted small">Nube · Administrador</p>
+    <div class="field">
+      <label class="label" for="email">Correo</label>
+      <input id="email" class="input" type="email" autocomplete="email" required />
+    </div>
+    <div class="field">
+      <label class="label" for="pass">Contraseña</label>
+      <input id="pass" class="input" type="password" autocomplete="current-password" required />
+    </div>
+    <div id="lerr" class="alert error small hide"></div>
+    <button id="lbtn" class="btn primary lg">Entrar</button>
+    <p class="muted small">Usa la misma cuenta de administrador de la app.</p>
+  </form>
+</div>
+
+<div id="panel" class="app-shell hide">
+  <aside class="sidebar" aria-label="Navegación principal">
+    <div class="brand">
+      <img src="/logo.png" alt="" />
+      <div>
+        <div class="brand-name">GOSEN</div>
+        <div class="brand-sub">Tracks</div>
+      </div>
+    </div>
+    <div class="nav-group-label">Preparar</div>
+    <nav aria-label="Secciones de la nube">
+      <ul class="nav-list">
+        <li><a class="nav-item active" href="#library" aria-current="page"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h4" /></svg><span>Biblioteca</span></a></li>
+        <li><a class="nav-item" href="#upload"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16" /></svg><span>Subir canciones</span></a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="muted small">Biblioteca compartida con la app</span>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Almacenamiento en la nube</div>
+        <h1>Biblioteca</h1>
+      </div>
+      <div class="who">
+        <span id="who" class="muted small"></span>
+        <button id="logout" class="btn small">Salir</button>
+      </div>
+    </header>
+
+    <section id="library" class="card">
+      <div class="card-head">
+        <h2>Almacenamiento</h2>
+        <button id="reload" class="btn small" title="Actualizar"><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></svg> Actualizar</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="used">—</b><span class="label">Usado</span></div>
+        <div class="stat"><b id="count">—</b><span class="label">Multitracks</span></div>
+        <div class="stat"><b id="cost">—</b><span class="label">Costo estimado / mes</span></div>
+      </div>
+      <div class="meter"><div id="mFree" class="free"></div><div id="mOver" class="over"></div></div>
+      <div class="legend">
+        <span id="meterText" class="muted small"></span>
+        <span class="muted small">Gratis hasta 10 GB · luego $0.015 por GB al mes · las descargas no se cobran</span>
+      </div>
+    </section>
+
+    <section id="upload" class="card">
+      <div class="card-head"><h2>Subir multitracks</h2></div>
+      <label id="drop" class="drop" tabindex="0">
+        <input id="file" type="file" accept=".zip" multiple hidden />
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16" /></svg>
+        <b>Arrastra aquí los ZIP o haz clic para elegirlos</b>
+        <span class="muted small">Un ZIP por canción, con pistas WAV o MP3. Se importa song.json si existe; puedes corregir los datos y la portada aquí.</span>
+      </label>
+      <div id="queue"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>En la nube</h2>
+        <input id="q" class="input search" type="search" placeholder="Buscar…" aria-label="Buscar multitracks" />
+      </div>
+      <div id="list"></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="metadataDialog" class="metadata-dialog" aria-labelledby="metadataHeading">
+  <form id="metadataForm" class="metadata-form">
+    <div class="dialog-head">
+      <h2 id="metadataHeading">Editar canción</h2>
+      <button id="closeMetadata" class="btn small icon-only" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div class="metadata-fields">
+      <div class="field">
+        <label class="label" for="metaTitle">Nombre</label>
+        <input id="metaTitle" class="input" type="text" maxlength="160" required />
+      </div>
+      <div class="field">
+        <label class="label" for="metaArtist">Artista</label>
+        <input id="metaArtist" class="input" type="text" maxlength="160" />
+      </div>
+      <div class="field">
+        <label class="label" for="metaDuration">Duración (min:seg)</label>
+        <input id="metaDuration" class="input" type="text" inputmode="decimal" placeholder="3:45" />
+      </div>
+      <div class="field">
+        <label class="label" for="metaBpm">Tempo (BPM)</label>
+        <input id="metaBpm" class="input" type="number" min="20" max="400" step="0.1" />
+      </div>
+      <div class="field">
+        <label class="label" for="metaSignature">Compás</label>
+        <input id="metaSignature" class="input" type="text" placeholder="4/4" />
+      </div>
+      <div class="field">
+        <label class="label" for="metaKey">Tonalidad</label>
+        <input id="metaKey" class="input" type="text" maxlength="32" placeholder="C, F#m, Bb…" />
+      </div>
+    </div>
+    <p class="muted small">Estos datos y la portada se comparten con Gosen Multitrack.</p>
+    <div id="metadataError" class="alert error small metadata-error hide" role="alert"></div>
+    <div class="dialog-actions">
+      <button id="cancelMetadata" class="btn" type="button">Cancelar</button>
+      <button id="saveMetadata" class="btn primary" type="submit">Guardar cambios</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  const PART = 50 * 1024 * 1024
+  const GB = 1024 ** 3
+  const FREE_GB = 10
+  const PRICE_GB = 0.015
+  const ICON = {
+    music: 'M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+    trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+    edit: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z'
+  }
+  const $ = (id) => document.getElementById(id)
+  const enc = encodeURIComponent
+  const icon = (name) => `<svg class="i" viewBox="0 0 24 24"><path d="${ICON[name]}" /></svg>`
+  const fmtGB = (b) => (b / GB < 10 ? (b / GB).toFixed(2) : (b / GB).toFixed(1)) + ' GB'
+  const fmtMB = (b) => (b < 1048576 ? '<1' : Math.round(b / 1048576)) + ' MB'
+
+  // --- Sesión: el JWT dura minutos; con las cookies de Neon Auth se renueva solo. ---
+  const KEY = 'gosen.cloud.session'
+  let session = null
+  try { session = JSON.parse(localStorage.getItem(KEY) || 'null') } catch {}
+  const save = (s) => {
+    session = s
+    try { s ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY) } catch {}
+  }
+  const expiry = (jwt) => {
+    try { return JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000 } catch { return 0 }
+  }
+  async function token() {
+    if (!session) throw new Error('Inicia sesión.')
+    if (expiry(session.jwt) - Date.now() > 60_000) return session.jwt
+    const r = await fetch('/api/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cookies: session.cookies }) })
+    if (!r.ok) { logout('Tu sesión caducó. Entra otra vez.'); throw new Error('Sesión caducada.') }
+    save({ ...session, jwt: (await r.json()).jwt })
+    return session.jwt
+  }
+  async function api(path, opts = {}) {
+    const r = await fetch(path, { ...opts, headers: { authorization: 'Bearer ' + (await token()), ...(opts.headers || {}) } })
+    const d = await r.json().catch(() => ({}))
+    if (r.status === 401) logout('Tu sesión caducó. Entra otra vez.')
+    if (!r.ok) throw new Error(d.error || 'Error ' + r.status)
+    return d
+  }
+
+  function showError(msg) {
+    $('lerr').textContent = msg || ''
+    $('lerr').classList.toggle('hide', !msg)
+  }
+  function logout(msg) {
+    save(null)
+    $('panel').classList.add('hide')
+    $('login').classList.remove('hide')
+    showError(msg)
+  }
+
+  $('loginForm').onsubmit = async (e) => {
+    e.preventDefault()
+    showError('')
+    $('lbtn').disabled = true
+    try {
+      const r = await fetch('/api/login', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: $('email').value, password: $('pass').value }) })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(d.error || 'No se pudo iniciar sesión.')
+      save({ jwt: d.jwt, cookies: d.cookies })
+      $('pass').value = ''
+      await start()
+    } catch (err) { showError(err.message) }
+    $('lbtn').disabled = false
+  }
+  $('logout').onclick = () => logout('')
+
+  async function start() {
+    try {
+      const me = await api('/api/me')
+      if (!me.admin) return logout('Esta cuenta no es de administrador.')
+      $('who').textContent = me.email
+      $('login').classList.add('hide')
+      $('panel').classList.remove('hide')
+      await refresh()
+    } catch (err) { logout(err.message) }
+  }
+
+  // --- Almacenamiento y lista ------------------------------------------------
+  let items = []
+  async function refresh() {
+    items = await api('/api/tracks')
+    items.sort((a, b) => String(b.uploaded).localeCompare(String(a.uploaded)))
+    const used = items.reduce((s, o) => s + o.size, 0)
+    const usedGB = used / GB
+    const paidGB = Math.max(0, Math.ceil(usedGB - FREE_GB))
+    $('used').textContent = fmtGB(used)
+    $('count').textContent = items.length
+    $('cost').textContent = '$' + (paidGB * PRICE_GB).toFixed(2)
+    $('cost').classList.toggle('paid', paidGB > 0)
+    const scale = Math.max(FREE_GB, usedGB)
+    $('mFree').style.width = (Math.min(usedGB, FREE_GB) / scale) * 100 + '%'
+    $('mOver').style.width = (Math.max(0, usedGB - FREE_GB) / scale) * 100 + '%'
+    $('meterText').textContent = usedGB <= FREE_GB
+      ? `${fmtGB(used)} de ${FREE_GB} GB gratis`
+      : `${FREE_GB} GB gratis + ${(usedGB - FREE_GB).toFixed(2)} GB de pago`
+    renderList()
+  }
+
+  function renderList() {
+    const q = $('q').value.trim().toLowerCase()
+    const shown = items.filter((o) => o.name.toLowerCase().includes(q))
+    const list = $('list')
+    list.innerHTML = ''
+    if (!shown.length) {
+      list.innerHTML = '<p class="muted empty"></p>'
+      list.firstChild.textContent = items.length ? 'Ninguno coincide con la búsqueda.' : 'Todavía no hay multitracks en la nube.'
+      return
+    }
+    for (const o of shown) {
+      const row = document.createElement('div')
+      row.className = 'row'
+      row.innerHTML = `<span class="thumb">${icon('music')}</span><span class="track-info"><span class="name"></span><span class="track-meta"></span></span><span class="meta date"></span><span class="meta size"></span>
+        <button class="btn small cover-btn" title="Elegir la portada que verán los músicos"></button>
+        <button class="btn small edit-btn" title="Editar nombre y metadatos"></button>
+        <button class="btn small icon-only danger" title="Borrar" aria-label="Borrar">${icon('trash')}</button>`
+      row.querySelector('.name').textContent = o.title || o.name.replace(/\.zip$/i, '')
+      const details = []
+      if (o.artist) details.push(o.artist)
+      if (o.duration > 0) details.push(`${Math.floor(o.duration / 60)}:${String(Math.floor(o.duration % 60)).padStart(2, '0')}`)
+      if (o.bpm) details.push(`${o.bpm} BPM`)
+      if (o.timeSignature) details.push(`${o.timeSignature.num}/${o.timeSignature.den}`)
+      if (o.keySignature) details.push(o.keySignature)
+      row.querySelector('.track-meta').textContent = details.join(' · ') || 'Sin metadatos todavía'
+      row.querySelector('.date').textContent = new Date(o.uploaded).toLocaleDateString('es')
+      row.querySelector('.size').textContent = fmtMB(o.size)
+      if (o.cover) showCover(row.querySelector('.thumb'), o.key)
+      const coverBtn = row.querySelector('.cover-btn')
+      coverBtn.textContent = o.cover ? 'Cambiar portada' : 'Poner portada'
+      coverBtn.onclick = () => pickCover(o, coverBtn)
+      const editBtn = row.querySelector('.edit-btn')
+      editBtn.innerHTML = `${icon('edit')} Editar`
+      editBtn.onclick = () => openMetadata(o)
+      row.querySelector('.danger').onclick = async () => {
+        if (!confirm(`¿Borrar "${o.name}" de la nube?\nDesaparecerá de los equipos de todos los músicos.`)) return
+        try { await api('/api/file/' + enc(o.key), { method: 'DELETE' }); await refresh() } catch (err) { alert(err.message) }
+      }
+      list.appendChild(row)
+    }
+  }
+
+  let editingMetadata = null
+  function openMetadata(o) {
+    editingMetadata = o
+    $('metaTitle').value = o.title || o.name.replace(/\.zip$/i, '')
+    $('metaArtist').value = o.artist || ''
+    $('metaDuration').value = o.duration > 0
+      ? `${Math.floor(o.duration / 60)}:${String(Math.floor(o.duration % 60)).padStart(2, '0')}`
+      : ''
+    $('metaBpm').value = o.bpm ?? ''
+    $('metaSignature').value = o.timeSignature ? `${o.timeSignature.num}/${o.timeSignature.den}` : ''
+    $('metaKey').value = o.keySignature || ''
+    $('metadataError').textContent = ''
+    $('metadataError').classList.add('hide')
+    $('metadataDialog').showModal()
+  }
+  function metadataError(message) {
+    $('metadataError').textContent = message
+    $('metadataError').classList.toggle('hide', !message)
+  }
+  $('closeMetadata').onclick = () => $('metadataDialog').close()
+  $('cancelMetadata').onclick = () => $('metadataDialog').close()
+  $('metadataForm').onsubmit = async (e) => {
+    e.preventDefault()
+    if (!editingMetadata) return
+    const durationText = $('metaDuration').value.trim()
+    let duration = null
+    if (durationText) {
+      const time = durationText.match(/^(\d{1,4}):([0-5]?\d)$/)
+      duration = time ? Number(time[1]) * 60 + Number(time[2]) : Number(durationText)
+      if (!Number.isFinite(duration) || duration <= 0 || duration > 86400) {
+        metadataError('Escribe la duración como min:seg (por ejemplo, 3:45) o en segundos.')
+        return
+      }
+    }
+    const bpmText = $('metaBpm').value.trim()
+    const bpm = bpmText ? Number(bpmText) : null
+    if (bpm !== null && (!Number.isFinite(bpm) || bpm < 20 || bpm > 400)) {
+      metadataError('El tempo debe estar entre 20 y 400 BPM.')
+      return
+    }
+    const signatureText = $('metaSignature').value.trim()
+    let timeSignature = null
+    if (signatureText) {
+      const signature = signatureText.match(/^(\d{1,2})\s*\/\s*(1|2|4|8|16)$/)
+      if (!signature || Number(signature[1]) < 1 || Number(signature[1]) > 12) {
+        metadataError('El compás debe tener formato válido, como 4/4 o 6/8.')
+        return
+      }
+      timeSignature = { num: Number(signature[1]), den: Number(signature[2]) }
+    }
+    const title = $('metaTitle').value.trim()
+    if (!title) {
+      metadataError('El nombre de la canción es obligatorio.')
+      return
+    }
+    const button = $('saveMetadata')
+    button.disabled = true
+    metadataError('')
+    try {
+      await api('/api/metadata/' + enc(editingMetadata.key), {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          artist: $('metaArtist').value.trim() || null,
+          duration,
+          bpm,
+          key: $('metaKey').value.trim() || null,
+          timeSignature
+        })
+      })
+      $('metadataDialog').close()
+      try { await refresh() } catch (err) { alert('Se guardaron los metadatos, pero no se pudo actualizar la lista: ' + err.message) }
+    } catch (err) {
+      metadataError(err.message)
+    } finally {
+      button.disabled = false
+    }
+  }
+
+  // --- Portadas: se guardan en la nube y los músicos las ven sin descargar la canción ---
+  const coverCache = new Map()
+  async function showCover(el, key) {
+    try {
+      let url = coverCache.get(key)
+      if (!url) {
+        const r = await fetch('/api/cover/' + enc(key), { headers: { authorization: 'Bearer ' + (await token()) } })
+        if (!r.ok) return
+        url = URL.createObjectURL(await r.blob())
+        coverCache.set(key, url)
+      }
+      el.innerHTML = '<img alt="" />'
+      el.firstChild.src = url
+    } catch {}
+  }
+
+  /** Reduce la imagen a 800 px como máximo y la convierte en JPEG (pesa poco y carga rápido). */
+  async function shrinkImage(file) {
+    const img = await createImageBitmap(file)
+    const scale = Math.min(1, 800 / Math.max(img.width, img.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(img.width * scale)
+    canvas.height = Math.round(img.height * scale)
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+    return new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No se pudo leer la imagen'))), 'image/jpeg', 0.85))
+  }
+
+  function pickCover(o, btn) {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/jpeg,image/png,image/webp'
+    input.onchange = async () => {
+      const file = input.files[0]
+      if (!file) return
+      btn.disabled = true
+      btn.textContent = 'Subiendo…'
+      try {
+        const blob = await shrinkImage(file)
+        await api('/api/cover/' + enc(o.key), { method: 'PUT', headers: { 'content-type': 'image/jpeg' }, body: blob })
+        coverCache.delete(o.key)
+        await refresh()
+      } catch (err) {
+        alert('No se pudo subir la portada: ' + err.message)
+        btn.disabled = false
+        btn.textContent = o.cover ? 'Cambiar portada' : 'Poner portada'
+      }
+    }
+    input.click()
+  }
+  $('q').oninput = renderList
+  $('reload').onclick = () => refresh().catch((err) => alert(err.message))
+
+  // --- Subida en trozos de 50 MB (sirve para ZIP grandes) ----------------------
+  function putPart(path, blob, onProgress) {
+    return token().then((jwt) => new Promise((resolve, reject) => {
+      const x = new XMLHttpRequest()
+      x.open('PUT', path)
+      x.setRequestHeader('authorization', 'Bearer ' + jwt)
+      x.upload.onprogress = (e) => onProgress(e.loaded)
+      x.onload = () => {
+        let d = {}
+        try { d = JSON.parse(x.responseText) } catch {}
+        x.status === 200 ? resolve(d) : reject(new Error(d.error || 'Error ' + x.status))
+      }
+      x.onerror = () => reject(new Error('Sin conexión'))
+      x.send(blob)
+    }))
+  }
+  async function retry(fn) {
+    for (let i = 1; ; i++) {
+      try { return await fn() } catch (err) {
+        if (i >= 3) throw err
+        await new Promise((r) => setTimeout(r, 2000 * i))
+      }
+    }
+  }
+
+  async function extractSongMetadata(file) {
+    const tailOffset = Math.max(0, file.size - 65_557)
+    const tail = await file.slice(tailOffset).arrayBuffer()
+    const tailView = new DataView(tail)
+    let endOffset = -1
+    for (let i = tail.byteLength - 22; i >= 0; i--) {
+      if (tailView.getUint32(i, true) === 0x06054b50 && i + 22 + tailView.getUint16(i + 20, true) === tail.byteLength) {
+        endOffset = i
+        break
+      }
+    }
+    if (endOffset < 0) return null
+    const count = tailView.getUint16(endOffset + 10, true)
+    const directorySize = tailView.getUint32(endOffset + 12, true)
+    const directoryOffset = tailView.getUint32(endOffset + 16, true)
+    if (count > 5000 || directorySize > 16 * 1024 * 1024 || directoryOffset + directorySize > file.size) {
+      throw new Error('El índice del ZIP excede el límite permitido.')
+    }
+    const directoryBuffer = await file.slice(directoryOffset, directoryOffset + directorySize).arrayBuffer()
+    const directory = new DataView(directoryBuffer)
+    const decoder = new TextDecoder()
+    let offset = 0
+    let metadataEntry = null
+    for (let i = 0; i < count; i++) {
+      if (offset + 46 > directory.byteLength || directory.getUint32(offset, true) !== 0x02014b50) {
+        throw new Error('El índice del ZIP está dañado.')
+      }
+      const flags = directory.getUint16(offset + 8, true)
+      const method = directory.getUint16(offset + 10, true)
+      const compressedSize = directory.getUint32(offset + 20, true)
+      const uncompressedSize = directory.getUint32(offset + 24, true)
+      const nameLength = directory.getUint16(offset + 28, true)
+      const extraLength = directory.getUint16(offset + 30, true)
+      const commentLength = directory.getUint16(offset + 32, true)
+      const localOffset = directory.getUint32(offset + 42, true)
+      const nameStart = offset + 46
+      const next = nameStart + nameLength + extraLength + commentLength
+      if (next > directory.byteLength) throw new Error('El índice del ZIP está incompleto.')
+      const name = decoder.decode(new Uint8Array(directoryBuffer, nameStart, nameLength))
+      if (name.split('/').pop().toLowerCase() === 'song.json') {
+        metadataEntry = { flags, method, compressedSize, uncompressedSize, localOffset }
+        break
+      }
+      offset = next
+    }
+    if (!metadataEntry) return null
+    if ((metadataEntry.flags & 1) !== 0 || metadataEntry.uncompressedSize > 1024 * 1024 || metadataEntry.compressedSize > 1024 * 1024) {
+      throw new Error('La ficha del ZIP está cifrada o supera 1 MB.')
+    }
+    const localHeader = await file.slice(metadataEntry.localOffset, metadataEntry.localOffset + 30).arrayBuffer()
+    const local = new DataView(localHeader)
+    if (local.byteLength < 30 || local.getUint32(0, true) !== 0x04034b50) throw new Error('La ficha del ZIP está dañada.')
+    const dataOffset = metadataEntry.localOffset + 30 + local.getUint16(26, true) + local.getUint16(28, true)
+    const compressed = await file.slice(dataOffset, dataOffset + metadataEntry.compressedSize).arrayBuffer()
+    let contents
+    if (metadataEntry.method === 0) contents = compressed
+    else if (metadataEntry.method === 8 && typeof DecompressionStream === 'function') {
+      const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
+      contents = await new Response(stream).arrayBuffer()
+    } else {
+      throw new Error('Este navegador no puede leer la compresión de la ficha del ZIP.')
+    }
+    if (contents.byteLength > 1024 * 1024) throw new Error('La ficha descomprimida supera 1 MB.')
+    const source = JSON.parse(decoder.decode(contents))
+    const timeSignature = source.timeSignature
+    const validSignature = timeSignature &&
+      Number.isInteger(timeSignature.num) && timeSignature.num >= 1 && timeSignature.num <= 12 &&
+      [1, 2, 4, 8, 16].includes(timeSignature.den)
+      ? { num: timeSignature.num, den: timeSignature.den }
+      : null
+    return {
+      title: typeof source.name === 'string' && source.name.trim() ? source.name.trim() : file.name.replace(/\.zip$/i, ''),
+      artist: typeof source.artist === 'string' && source.artist.trim() ? source.artist.trim() : null,
+      duration: typeof source.duration === 'number' && source.duration > 0 && source.duration <= 86400 ? source.duration : null,
+      bpm: typeof source.bpm === 'number' && source.bpm >= 20 && source.bpm <= 400 ? source.bpm : null,
+      key: typeof source.key === 'string' && source.key.trim() ? source.key.trim() : null,
+      timeSignature: validSignature
+    }
+  }
+
+  function addJob(name) {
+    const el = document.createElement('div')
+    el.className = 'job'
+    el.innerHTML = '<div class="job-top"><span></span><span class="state muted small">En cola</span></div><div class="bar"><div></div></div><div class="job-note muted small"></div>'
+    el.querySelector('span').textContent = name
+    $('queue').prepend(el)
+    return {
+      progress: (f) => {
+        el.querySelector('.bar div').style.width = f * 100 + '%'
+        el.querySelector('.state').textContent = Math.floor(f * 100) + '%'
+      },
+      done: (ok, msg, title = '') => {
+        el.classList.add(ok ? 'ok' : 'fail')
+        el.querySelector('.bar div').style.width = '100%'
+        el.querySelector('.state').textContent = msg
+        el.querySelector('.state').title = title
+        el.querySelector('.job-note').textContent = title
+      }
+    }
+  }
+
+  async function uploadOne(f, job) {
+    let metadata = null
+    let metadataWarning = ''
+    try {
+      metadata = await extractSongMetadata(f)
+      if (!metadata) metadataWarning = 'El ZIP no trae song.json; podrás completar los datos o analizarlos desde la app.'
+    } catch (err) {
+      metadataWarning = `No se pudo leer song.json: ${err.message}`
+    }
+    const { key, uploadId } = await api(`/api/upload/start?name=${enc(f.name)}&size=${f.size}`, { method: 'POST' })
+    const qs = `key=${enc(key)}&uploadId=${enc(uploadId)}`
+    try {
+      const parts = []
+      for (let n = 1, off = 0; off < f.size; n++, off += PART) {
+        const blob = f.slice(off, off + PART)
+        parts.push(await retry(() => putPart(`/api/upload/part?${qs}&n=${n}`, blob, (sent) => job.progress((off + sent) / f.size))))
+      }
+      await api(`/api/upload/done?${qs}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ parts }) })
+      if (metadata) {
+        try {
+          await api('/api/metadata/' + enc(key), {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(metadata)
+          })
+        } catch (err) {
+          metadataWarning = `El ZIP se subió, pero no se guardó su ficha: ${err.message}`
+        }
+      }
+    } catch (err) {
+      api(`/api/upload/abort?${qs}`, { method: 'POST' }).catch(() => {})
+      throw err
+    }
+    return metadataWarning
+  }
+
+  let busy = Promise.resolve()
+  function upload(files) {
+    for (const f of files) {
+      const job = addJob(f.name)
+      if (!/\.zip$/i.test(f.name)) { job.done(false, 'No es un .zip'); continue }
+      busy = busy.then(async () => {
+        try {
+          const warning = await uploadOne(f, job)
+          job.done(true, warning ? 'Subido · ficha pendiente' : 'Subido ✓', warning)
+        } catch (err) { job.done(false, err.message) }
+        await refresh().catch(() => {})
+      })
+    }
+  }
+  window.addEventListener('beforeunload', (e) => {
+    if ($('queue').querySelector('.job:not(.ok):not(.fail)')) e.preventDefault()
+  })
+
+  const drop = $('drop')
+  $('file').onchange = () => { upload([...$('file').files]); $('file').value = '' }
+  drop.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click() } }
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('over') }
+  drop.ondragleave = () => drop.classList.remove('over')
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('over'); upload([...e.dataTransfer.files]) }
+
+  if (session) start()
+</script>
+</body>
+</html>

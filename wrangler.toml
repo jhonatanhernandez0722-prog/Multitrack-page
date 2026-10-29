@@ -1,0 +1,15 @@
+name = "gosen-tracks"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+rules = [{ type = "Data", globs = ["**/*.png"], fallthrough = true }]
+
+[[r2_buckets]]
+binding = "TRACKS"
+bucket_name = "gosen-tracks"
+
+[vars]
+AUTH_URL = "https://ep-super-hat-b49w78vs.neonauth.c-6.us-east-2.aws.neon.tech/neondb/auth"
+DATA_API_URL = "https://ep-super-hat-b49w78vs.apirest.c-6.us-east-2.aws.neon.tech/neondb/rest/v1"
+# Límites en bytes. MAX_TOTAL_BYTES = "0" → sin tope (se paga lo que pase de 10 GB).
+MAX_TOTAL_BYTES = "0"
+MAX_FILE_BYTES = "2147483648"
