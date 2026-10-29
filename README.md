@@ -30,5 +30,6 @@ El archivo `wrangler.toml` define el nombre del Worker, la vinculación al bucke
 - Los multitracks se almacenan como ZIP en R2.
 - Las portadas y los metadatos de canción se guardan como objetos adicionales en el mismo bucket.
 - La app obtiene el catálogo desde el Worker. Los metadatos incluyen nombre, artista, duración, tempo, tonalidad y compás.
+- El panel permite migrar metadatos de ZIP existentes. La migración lee únicamente los rangos necesarios de `song.json`, no vuelve a subir ni descarga el ZIP completo y nunca reemplaza una ficha que ya exista.
 
 No guardes contraseñas, tokens ni archivos `.dev.vars` en Git.

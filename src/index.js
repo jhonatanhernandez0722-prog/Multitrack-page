@@ -1,5 +1,6 @@
 import ADMIN_HTML from './admin.html'
 import LOGO from './logo.png'
+import { extractSongJson } from './zipMetadata.js'
 
 /**
  * Gosen Tracks en la nube: página del admin (/) y API.
@@ -12,8 +13,9 @@ import LOGO from './logo.png'
  * GET  /api/tracks                     → lista (músicos y admin)
  * GET  /api/file/<key>                 → descarga (músicos y admin)
  * GET  /api/cover/<key>                → portada de la canción (si tiene)
- * Solo admin: subida multiparte (para archivos grandes), portadas y borrado.
+ * Solo admin: subida multiparte (para archivos grandes), portadas, migración y borrado.
  * PUT/POST /api/metadata/<key>          → ficha compartida (nombre, artista y datos musicales)
+ * POST /api/migrate-metadata/<key>      → importar song.json del ZIP si aún no hay ficha
  * PUT    /api/cover/<key> (cuerpo: imagen JPEG/PNG/WebP, máx. 2 MB)
  * DELETE /api/cover/<key>
  * POST   /api/upload/start?name=&size= → {key, uploadId}
@@ -87,7 +89,7 @@ async function listAll(env) {
     it.cover = !!cover
     it.coverUpdated = cover?.uploaded?.toISOString() || null
     it.size += (cover?.size || 0) + (sidecar?.size || 0)
-    it.hasMetadata = !!data
+    it.hasMetadata = !!sidecar
     it.title = data?.title ?? null
     it.artist = data?.artist ?? null
     it.duration = data?.duration ?? null
@@ -176,6 +178,50 @@ export default {
     }
 
     if (!me.admin) return json({ error: 'Solo el administrador' }, 403)
+
+    if (p.startsWith('/api/migrate-metadata/') && req.method === 'POST') {
+      const key = decodeURIComponent(p.slice('/api/migrate-metadata/'.length))
+      const zip = await env.TRACKS.head(key)
+      if (!zip) return json({ error: 'Ese multitrack no existe.' }, 404)
+      const metadataKey = METADATA + key
+      if (await env.TRACKS.head(metadataKey)) return json({ status: 'exists' })
+      let source
+      try {
+        source = await extractSongJson(env.TRACKS, key)
+      } catch (err) {
+        return json({ error: err.message || 'No se pudo leer song.json.' }, 422)
+      }
+      if (!source || typeof source !== 'object' || Array.isArray(source)) {
+        return json({ status: 'missing' })
+      }
+      let metadata
+      try {
+        const fallbackTitle = (zip.customMetadata?.name || key).replace(/\.zip$/i, '')
+        const signature = source.timeSignature
+        const validSignature = signature &&
+          Number.isInteger(signature.num) && signature.num >= 1 && signature.num <= 12 &&
+          [1, 2, 4, 8, 16].includes(signature.den)
+          ? { num: signature.num, den: signature.den }
+          : null
+        metadata = normalizeMetadata({
+          title: (typeof source.name === 'string' && source.name.trim() ? source.name.trim() : fallbackTitle).slice(0, 160),
+          artist: typeof source.artist === 'string' && source.artist.trim().length <= 160 ? source.artist : null,
+          duration: typeof source.duration === 'number' && source.duration > 0 && source.duration <= 86400 ? source.duration : null,
+          bpm: typeof source.bpm === 'number' && source.bpm >= 20 && source.bpm <= 400 ? source.bpm : null,
+          key: typeof source.key === 'string' && source.key.trim().length <= 32 ? source.key : null,
+          timeSignature: validSignature
+        })
+      } catch (err) {
+        return json({ error: `song.json no contiene datos válidos: ${err.message}` }, 422)
+      }
+      const data = JSON.stringify(metadata)
+      const saved = await env.TRACKS.put(metadataKey, data, {
+        onlyIf: { etagDoesNotMatch: '*' },
+        httpMetadata: { contentType: 'application/json' },
+        customMetadata: { data }
+      })
+      return saved ? json({ status: 'migrated' }) : json({ status: 'exists' })
+    }
 
     if (p.startsWith('/api/metadata/') && (req.method === 'PUT' || req.method === 'POST')) {
       const key = decodeURIComponent(p.slice(14))

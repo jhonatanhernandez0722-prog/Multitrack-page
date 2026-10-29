@@ -159,6 +159,8 @@
   .job.fail .state { color: var(--danger); }
 
   .search { max-width: 240px; }
+  .library-actions { display: flex; align-items: center; gap: 10px; }
+  #migrationSummary:empty, #migrationStatus:empty { display: none; }
   .row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-top: 1px solid var(--line); }
   .row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
   .track-info { display: flex; flex: 1; flex-direction: column; min-width: 140px; }
@@ -210,6 +212,8 @@
     .metadata-fields { grid-template-columns: 1fr; }
     .metadata-fields .field:first-child, .metadata-fields .field:nth-child(2) { grid-column: auto; }
     .search { max-width: none; }
+    .library-actions { width: 100%; flex-wrap: wrap; }
+    .library-actions .search { flex: 1 1 100%; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
@@ -300,8 +304,13 @@
     <section class="card">
       <div class="card-head">
         <h2>En la nube</h2>
-        <input id="q" class="input search" type="search" placeholder="Buscar…" aria-label="Buscar multitracks" />
+        <div class="library-actions">
+          <input id="q" class="input search" type="search" placeholder="Buscar…" aria-label="Buscar multitracks" />
+          <button id="migrateMetadata" class="btn small" type="button">Migrar metadatos existentes</button>
+        </div>
       </div>
+      <p id="migrationSummary" class="muted small"></p>
+      <p id="migrationStatus" class="muted small" role="status" aria-live="polite"></p>
       <div id="list"></div>
     </section>
   </main>
@@ -440,6 +449,9 @@
     const paidGB = Math.max(0, Math.ceil(usedGB - FREE_GB))
     $('used').textContent = fmtGB(used)
     $('count').textContent = items.length
+    const withMetadata = items.filter((item) => item.hasMetadata).length
+    $('migrationSummary').textContent =
+      `${withMetadata} con metadatos · ${items.length - withMetadata} sin ficha para migrar`
     $('cost').textContent = '$' + (paidGB * PRICE_GB).toFixed(2)
     $('cost').classList.toggle('paid', paidGB > 0)
     const scale = Math.max(FREE_GB, usedGB)
@@ -491,6 +503,59 @@
       }
       list.appendChild(row)
     }
+  }
+
+  let migratingMetadata = false
+  $('migrateMetadata').onclick = async () => {
+    if (migratingMetadata) return
+    const candidates = items.filter((item) => !item.hasMetadata)
+    if (!candidates.length) {
+      $('migrationStatus').textContent = 'Todas las canciones ya tienen metadatos guardados.'
+      return
+    }
+    if (!confirm(`Se revisarán ${candidates.length} ZIP sin ficha. Solo se leerá song.json desde la nube; no se descargarán los ZIP completos y no se reemplazarán metadatos existentes. ¿Continuar?`)) return
+
+    migratingMetadata = true
+    const button = $('migrateMetadata')
+    button.disabled = true
+    let migrated = 0
+    let missing = 0
+    let existing = 0
+    let failed = 0
+    let interrupted = false
+    const errors = []
+    try {
+      for (let i = 0; i < candidates.length; i++) {
+        const item = candidates[i]
+        $('migrationStatus').textContent = `Revisando ${i + 1} de ${candidates.length}: ${item.name}`
+        try {
+          const result = await api('/api/migrate-metadata/' + enc(item.key), { method: 'POST' })
+          if (result.status === 'migrated') migrated++
+          else if (result.status === 'missing') missing++
+          else if (result.status === 'exists') existing++
+          else throw new Error('Respuesta inesperada del servidor.')
+        } catch (err) {
+          failed++
+          errors.push(`${item.name}: ${err.message}`)
+          if (!session) {
+            interrupted = true
+            break
+          }
+          console.error(`No se pudieron migrar los metadatos de ${item.name}:`, err)
+        }
+      }
+    } finally {
+      migratingMetadata = false
+      button.disabled = false
+    }
+    if (session) {
+      try { await refresh() } catch (err) { console.error('No se pudo actualizar la biblioteca tras la migración:', err) }
+    }
+    const notProcessed = candidates.length - migrated - missing - existing - failed
+    const prefix = interrupted ? 'Proceso detenido porque caducó la sesión' : 'Migración finalizada'
+    const errorDetail = errors.length ? ` Primer error: ${errors[0]}` : ''
+    $('migrationStatus').textContent =
+      `${prefix}: ${migrated} importadas, ${missing} sin song.json, ${existing} ya protegidas, ${failed} con error${notProcessed ? ` y ${notProcessed} sin revisar` : ''}.${errorDetail}`
   }
 
   let editingMetadata = null
