@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Gosen Multitrack",
+  "short_name": "Gosen",
+  "description": "Reproductor multipista de Gosen",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#11100d",
+  "theme_color": "#11100d",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

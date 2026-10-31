@@ -1,30 +1,57 @@
 import ADMIN_HTML from './admin.html'
 import LOGO from './logo.png'
+import { CATEGORIES, FAMILIES, guessTrack, isAudioFile } from './catalog.js'
 import { extractSongJson } from './zipMetadata.js'
+import {
+  INDEX,
+  METADATA,
+  TRACK_FILES,
+  deleteOrphanTrackFiles,
+  normalizeTracks,
+  readSheet,
+  songFields,
+  songManifest,
+  trackPrefix,
+  writeSheet,
+  zipTrackIndex
+} from './songs.js'
 
 /**
- * Gosen Tracks en la nube: página del admin (/) y API.
- * La sesión es el mismo JWT de Neon Auth que usa la app; Neon dice si el correo
- * está autorizado y si es admin (rpc gosen_my_access).
+ * Gosen Tracks en la nube: página del admin (/), la app para iPhone (/iphone/, archivos estáticos)
+ * y la API. La sesión es el mismo JWT de Neon Auth que usa la app; Neon dice si el correo está
+ * autorizado y si es admin (rpc gosen_my_access).
+ *
+ * La ficha de cada canción (metadata/<clave>) es la FUENTE ÚNICA de sus datos: nombre, artista,
+ * tonalidad, compás y sus pistas (nombre, categoría y orden). La app solo detecta BPM y duración.
  *
  * POST /api/login {email,password}     → {jwt, cookies}
  * POST /api/refresh {cookies}          → {jwt} (el JWT dura minutos; las subidas largas lo renuevan)
+ * POST /api/proxy {url,method,…}       → petición a Neon (solo sus dominios) para la app de iPhone
+ * GET  /api/categories                 → catálogo de categorías instrumentales
+ * GET  /api/guess?file=                → nombre y categoría sugeridos para un archivo de audio
  * GET  /api/me                         → acceso, y los límites si es admin
- * GET  /api/tracks                     → lista (músicos y admin)
- * GET  /api/file/<key>                 → descarga (músicos y admin)
+ * GET  /api/tracks                     → lista de canciones (con `rev`, que cambia si cambia algo)
+ * GET  /api/song/<key>                 → ficha completa: datos y pistas con su versión
+ * GET  /api/file/<key>                 → ZIP o pista suelta; admite Range (bytes=a-b) y ETag
  * GET  /api/cover/<key>                → portada de la canción (si tiene)
- * Solo admin: subida multiparte (para archivos grandes), portadas, migración y borrado.
- * PUT/POST /api/metadata/<key>          → ficha compartida (nombre, artista y datos musicales)
+ * POST /api/detected/<key> {bpm,duration} → lo que detectó la app (el admin), sin tocar lo demás
+ * Solo admin: subida multiparte (ZIP o, con ?song=, una pista suelta), portadas, fichas y borrado.
+ * PUT/POST /api/metadata/<key>          → datos de la canción (se conservan sus pistas)
+ * PUT    /api/song/<key>/tracks {tracks} → pistas: nombre, categoría, orden y archivo
  * POST /api/migrate-metadata/<key>      → importar song.json del ZIP si aún no hay ficha
  * PUT    /api/cover/<key> (cuerpo: imagen JPEG/PNG/WebP, máx. 2 MB)
  * DELETE /api/cover/<key>
- * POST   /api/upload/start?name=&size= → {key, uploadId}
+ * POST   /api/upload/start?name=&size=[&song=] → {key, uploadId}
  * PUT    /api/upload/part?key=&uploadId=&n= (cuerpo: trozo de 50 MB) → {partNumber, etag}
  * POST   /api/upload/done?key=&uploadId= {parts}
  * POST   /api/upload/abort?key=&uploadId=
  * DELETE /api/file/<key>
  */
-const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type' }
+const CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-headers': 'authorization, content-type, range, if-none-match',
+  'access-control-expose-headers': 'content-range, content-length, etag, accept-ranges'
+}
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json', ...CORS } })
 
@@ -60,15 +87,57 @@ async function login(req, env) {
   return jwt ? json({ jwt, cookies }) : json({ error: 'No se pudo iniciar sesión.' }, 502)
 }
 
-const COVERS = 'covers/'
-const METADATA = 'metadata/'
-const MAX_COVER_BYTES = 2 * 1024 * 1024
+/**
+ * La app de iPhone (Safari) no puede hablar directamente con Neon por CORS: el Worker hace de puente,
+ * solo hacia los dominios de Neon configurados y solo con las cabeceras que usa la app. Responde con
+ * la misma forma que el puente de red de escritorio (status, setCookies, headers, body).
+ */
+const PROXY_HEADERS = new Set(['content-type', 'cookie', 'authorization', 'origin', 'accept', 'prefer'])
+async function proxy(req, env) {
+  const fail = (status, message) => json({ status, setCookies: [], headers: {}, body: JSON.stringify({ message }) })
+  let input
+  try {
+    const text = await req.text()
+    if (text.length > 64 * 1024) return fail(413, 'Petición demasiado grande')
+    input = JSON.parse(text)
+  } catch {
+    return fail(400, 'Petición no válida')
+  }
+  let url
+  try {
+    url = new URL(String(input?.url))
+  } catch {
+    return fail(400, 'URL inválida')
+  }
+  const allowed = [new URL(env.AUTH_URL).origin, new URL(env.DATA_API_URL).origin]
+  if (url.protocol !== 'https:' || !allowed.includes(url.origin)) return fail(403, 'Servidor no permitido')
+  const method = ['GET', 'POST', 'DELETE', 'PATCH'].includes(input.method) ? input.method : 'GET'
+  const headers = {}
+  for (const [k, v] of Object.entries(input.headers ?? {})) if (PROXY_HEADERS.has(k.toLowerCase()) && typeof v === 'string') headers[k] = v
+  try {
+    const r = await fetch(url, { method, headers, body: method === 'GET' ? undefined : input.body })
+    const out = {}
+    for (const k of ['content-type', 'set-auth-jwt', 'set-auth-token']) {
+      const v = r.headers.get(k)
+      if (v) out[k] = v
+    }
+    return json({ status: r.status, setCookies: r.headers.getSetCookie(), headers: out, body: await r.text() })
+  } catch {
+    return json({ status: 0, setCookies: [], headers: {}, body: '' })
+  }
+}
 
-/** Multitracks del bucket; `size` incluye ZIP, portada y ficha compartida. */
+const COVERS = 'covers/'
+const MAX_COVER_BYTES = 2 * 1024 * 1024
+/** Objetos del bucket que no son canciones. */
+const isAuxiliary = (key) => [COVERS, METADATA, INDEX, TRACK_FILES].some((prefix) => key.startsWith(prefix))
+
+/** Canciones del bucket; `size` incluye ZIP, pistas sueltas, portada y ficha. */
 async function listAll(env) {
   const items = []
   const covers = new Map()
   const metadata = new Map()
+  const extraBytes = new Map()
   let cursor
   do {
     const page = await env.TRACKS.list({ cursor, include: ['customMetadata'] })
@@ -76,9 +145,13 @@ async function listAll(env) {
       if (o.key.startsWith(COVERS)) covers.set(o.key.slice(COVERS.length), o)
       else if (o.key.startsWith(METADATA)) {
         const data = o.customMetadata?.data
-        if (data) metadata.set(o.key.slice(METADATA.length), { data: JSON.parse(data), size: o.size })
+        metadata.set(o.key.slice(METADATA.length), { data: data ? JSON.parse(data) : {}, size: o.size, etag: o.etag })
+      } else if (o.key.startsWith(TRACK_FILES)) {
+        const song = o.key.slice(TRACK_FILES.length).split('/')[0]
+        extraBytes.set(song, (extraBytes.get(song) || 0) + o.size)
+      } else if (!isAuxiliary(o.key)) {
+        items.push({ key: o.key, name: o.customMetadata?.name || o.key, size: o.size, uploaded: o.uploaded, etag: o.etag })
       }
-      else items.push({ key: o.key, name: o.customMetadata?.name || o.key, size: o.size, uploaded: o.uploaded })
     }
     cursor = page.truncated ? page.cursor : undefined
   } while (cursor)
@@ -88,7 +161,7 @@ async function listAll(env) {
     const data = sidecar?.data
     it.cover = !!cover
     it.coverUpdated = cover?.uploaded?.toISOString() || null
-    it.size += (cover?.size || 0) + (sidecar?.size || 0)
+    it.size += (cover?.size || 0) + (sidecar?.size || 0) + (extraBytes.get(it.key) || 0)
     it.hasMetadata = !!sidecar
     it.title = data?.title ?? null
     it.artist = data?.artist ?? null
@@ -96,6 +169,9 @@ async function listAll(env) {
     it.bpm = data?.bpm ?? null
     it.keySignature = data?.key ?? null
     it.timeSignature = data?.timeSignature ?? null
+    // Cambia si cambia el ZIP o la ficha (datos o pistas): la app solo vuelve a mirar entonces.
+    it.rev = `${it.etag}:${sidecar?.etag ?? '-'}`
+    delete it.etag
   }
   return items
 }
@@ -139,6 +215,47 @@ function normalizeMetadata(raw) {
   }
 }
 
+/** Descarga de un ZIP o pista suelta, completa o por rango ("bytes=a-b"), con su ETag. */
+async function serveFile(req, env, key) {
+  const head = await env.TRACKS.head(key)
+  if (!head) return json({ error: 'No existe' }, 404)
+  const base = { ...CORS, 'accept-ranges': 'bytes', etag: head.httpEtag }
+  if (req.headers.get('if-none-match') === head.httpEtag) return new Response(null, { status: 304, headers: base })
+  const range = /^bytes=(\d+)-(\d*)$/.exec(req.headers.get('range') || '')
+  if (range) {
+    const start = Number(range[1])
+    const end = range[2] ? Math.min(Number(range[2]), head.size - 1) : head.size - 1
+    if (start > end || start >= head.size) {
+      return new Response(null, { status: 416, headers: { ...base, 'content-range': `bytes */${head.size}` } })
+    }
+    const obj = await env.TRACKS.get(key, { range: { offset: start, length: end - start + 1 } })
+    return new Response(obj.body, {
+      status: 206,
+      headers: {
+        ...base,
+        'content-type': 'application/octet-stream',
+        'content-length': String(end - start + 1),
+        'content-range': `bytes ${start}-${end}/${head.size}`
+      }
+    })
+  }
+  const obj = await env.TRACKS.get(key)
+  return new Response(obj.body, {
+    headers: { ...base, 'content-type': isAudioFile(key) ? 'application/octet-stream' : 'application/zip', 'content-length': String(head.size) }
+  })
+}
+
+/** Ficha para guardar: los datos de la canción nuevos, conservando sus pistas. */
+async function saveSongFields(env, key, fields) {
+  const sheet = await readSheet(env.TRACKS, key)
+  const doc = { ...(sheet?.doc ?? {}), ...fields }
+  if (Object.values(songFields(doc)).every((value) => value === null) && !doc.tracks) {
+    await env.TRACKS.delete(METADATA + key)
+  } else {
+    await writeSheet(env.TRACKS, key, doc)
+  }
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url)
@@ -148,6 +265,10 @@ export default {
     if (p === '/') return new Response(ADMIN_HTML, { headers: { 'content-type': 'text/html; charset=utf-8' } })
     if (p === '/logo.png') return new Response(LOGO, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } })
     if (p === '/api/login' && req.method === 'POST') return login(req, env)
+    if (p === '/api/proxy' && req.method === 'POST') return proxy(req, env)
+    if (p === '/api/categories') return json({ categories: CATEGORIES, families: FAMILIES })
+    // Nombre y categoría sugeridos para un archivo (mismas reglas que al migrar un ZIP).
+    if (p === '/api/guess') return json(guessTrack(q('file') || ''))
     if (p === '/api/refresh' && req.method === 'POST') {
       const { cookies } = await req.json().catch(() => ({}))
       const jwt = cookies ? await jwtFromCookies(env, String(cookies)) : null
@@ -161,13 +282,16 @@ export default {
       return json(me.admin ? { ...me, maxTotalBytes: Number(env.MAX_TOTAL_BYTES), maxFileBytes: Number(env.MAX_FILE_BYTES) } : me)
     if (p === '/api/tracks') return json(await listAll(env))
 
-    if (p.startsWith('/api/file/') && req.method === 'GET') {
-      const obj = await env.TRACKS.get(decodeURIComponent(p.slice(10)))
-      if (!obj) return json({ error: 'No existe' }, 404)
-      return new Response(obj.body, {
-        headers: { ...CORS, 'content-type': 'application/zip', 'content-length': String(obj.size) }
-      })
+    if (p.startsWith('/api/song/') && req.method === 'GET') {
+      try {
+        const manifest = await songManifest(env.TRACKS, decodeURIComponent(p.slice(10)))
+        return manifest ? json(manifest) : json({ error: 'No existe' }, 404)
+      } catch (err) {
+        return json({ error: err.message || 'No se pudo leer la canción.' }, 422)
+      }
     }
+
+    if (p.startsWith('/api/file/') && req.method === 'GET') return serveFile(req, env, decodeURIComponent(p.slice(10)))
 
     if (p.startsWith('/api/cover/') && req.method === 'GET') {
       const obj = await env.TRACKS.get(COVERS + decodeURIComponent(p.slice(11)))
@@ -178,6 +302,42 @@ export default {
     }
 
     if (!me.admin) return json({ error: 'Solo el administrador' }, 403)
+
+    // Lo que la app detecta al analizar el audio (tempo y duración): solo esos dos datos.
+    if (p.startsWith('/api/detected/') && req.method === 'POST') {
+      const key = decodeURIComponent(p.slice(14))
+      if (!(await env.TRACKS.head(key))) return json({ error: 'Ese multitrack no existe' }, 404)
+      const body = await req.json().catch(() => ({}))
+      let detected
+      try {
+        const n = normalizeMetadata({ bpm: body.bpm ?? null, duration: body.duration ?? null })
+        detected = { bpm: n.bpm, duration: n.duration }
+      } catch (err) {
+        return json({ error: err.message }, 400)
+      }
+      const sheet = await readSheet(env.TRACKS, key)
+      const doc = sheet?.doc ?? {}
+      if (doc.bpm === detected.bpm && doc.duration === detected.duration) return json({ ok: true })
+      await writeSheet(env.TRACKS, key, { ...doc, ...detected })
+      return json({ ok: true })
+    }
+
+    if (p.startsWith('/api/song/') && p.endsWith('/tracks') && req.method === 'PUT') {
+      const key = decodeURIComponent(p.slice(10, -7))
+      const idx = await zipTrackIndex(env.TRACKS, key).catch((err) => ({ error: err }))
+      if (!idx) return json({ error: 'Ese multitrack no existe' }, 404)
+      if (idx.error) return json({ error: idx.error.message || 'No se pudo leer el ZIP.' }, 422)
+      let tracks
+      try {
+        tracks = await normalizeTracks(env.TRACKS, key, (await req.json().catch(() => ({}))).tracks, idx)
+      } catch (err) {
+        return json({ error: err.message }, 400)
+      }
+      const sheet = await readSheet(env.TRACKS, key)
+      await writeSheet(env.TRACKS, key, { ...(sheet?.doc ?? {}), tracks })
+      await deleteOrphanTrackFiles(env.TRACKS, key, tracks)
+      return json({ ok: true, manifest: await songManifest(env.TRACKS, key) })
+    }
 
     if (p.startsWith('/api/migrate-metadata/') && req.method === 'POST') {
       const key = decodeURIComponent(p.slice('/api/migrate-metadata/'.length))
@@ -214,12 +374,7 @@ export default {
       } catch (err) {
         return json({ error: `song.json no contiene datos válidos: ${err.message}` }, 422)
       }
-      const data = JSON.stringify(metadata)
-      const saved = await env.TRACKS.put(metadataKey, data, {
-        onlyIf: { etagDoesNotMatch: '*' },
-        httpMetadata: { contentType: 'application/json' },
-        customMetadata: { data }
-      })
+      const saved = await writeSheet(env.TRACKS, key, metadata, { etagDoesNotMatch: '*' })
       return saved ? json({ status: 'migrated' }) : json({ status: 'exists' })
     }
 
@@ -232,22 +387,20 @@ export default {
       } catch (err) {
         return json({ error: err.message || 'La ficha no es válida.' }, 400)
       }
-      const metadataKey = METADATA + key
-      if (Object.values(metadata).every((value) => value === null)) {
-        await env.TRACKS.delete(metadataKey)
-      } else {
-        const data = JSON.stringify(metadata)
-        await env.TRACKS.put(metadataKey, data, {
-          httpMetadata: { contentType: 'application/json' },
-          customMetadata: { data }
-        })
-      }
+      await saveSongFields(env, key, metadata)
       return json({ ok: true })
     }
 
     if (p.startsWith('/api/file/') && req.method === 'DELETE') {
       const key = decodeURIComponent(p.slice(10))
-      await env.TRACKS.delete([key, COVERS + key, METADATA + key])
+      const extra = []
+      let cursor
+      do {
+        const page = await env.TRACKS.list({ prefix: trackPrefix(key), cursor })
+        extra.push(...page.objects.map((o) => o.key))
+        cursor = page.truncated ? page.cursor : undefined
+      } while (cursor)
+      await env.TRACKS.delete([key, COVERS + key, METADATA + key, INDEX + key, ...extra])
       return json({ ok: true })
     }
     if (p.startsWith('/api/cover/') && req.method === 'PUT') {
@@ -267,15 +420,21 @@ export default {
     if (p === '/api/upload/start' && req.method === 'POST') {
       const name = q('name') || ''
       const size = Number(q('size') || 0)
-      if (!/\.zip$/i.test(name)) return json({ error: 'Solo se pueden subir archivos .zip' }, 400)
+      const song = q('song')
+      if (song ? !isAudioFile(name) : !/\.zip$/i.test(name)) {
+        return json({ error: song ? 'La pista debe ser WAV o MP3' : 'Solo se pueden subir archivos .zip' }, 400)
+      }
       if (!(size > 0)) return json({ error: 'El archivo está vacío' }, 400)
       if (size > Number(env.MAX_FILE_BYTES)) return json({ error: 'Archivo demasiado grande' }, 413)
+      if (song && (isAuxiliary(song) || !(await env.TRACKS.head(song)))) return json({ error: 'Ese multitrack no existe' }, 404)
       const max = Number(env.MAX_TOTAL_BYTES)
       if (max > 0) {
         const used = (await listAll(env)).reduce((s, o) => s + o.size, 0)
         if (used + size > max) return json({ error: 'Se alcanzó el límite de almacenamiento' }, 507)
       }
-      const key = `${Date.now()}-${name.replace(/[^\w.\- ]/g, '_')}`
+      const safe = name.replace(/[^\w.\- ]/g, '_')
+      // Pista suelta: dentro de la carpeta de su canción, con un nombre que no se repite.
+      const key = song ? `${trackPrefix(song)}${crypto.randomUUID()}${safe.slice(safe.lastIndexOf('.')).toLowerCase()}` : `${Date.now()}-${safe}`
       const up = await env.TRACKS.createMultipartUpload(key, { customMetadata: { name } })
       return json({ key, uploadId: up.uploadId })
     }

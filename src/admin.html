@@ -174,7 +174,7 @@
   .thumb img { width: 100%; height: 100%; object-fit: cover; }
   .empty { padding: 24px 0 8px; text-align: center; }
   .metadata-dialog {
-    width: min(520px, calc(100% - 28px)); max-height: min(90vh, 760px); padding: 0;
+    width: min(760px, calc(100% - 28px)); max-height: min(92vh, 860px); padding: 0;
     border: 1px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--panel); color: var(--text);
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.75);
   }
@@ -188,6 +188,23 @@
   .dialog-actions { justify-content: flex-end; }
   .dialog-actions .btn { min-height: 40px; }
   .metadata-error { margin: 0; }
+  .metadata-fields input[readonly] { color: var(--text-2); background: var(--bg); cursor: default; }
+  .tracks-editor { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .tracks-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .tracks-head h3 { font-family: var(--font-label); font-size: 18px; letter-spacing: 0.04em; }
+  .track-rows { display: flex; flex-direction: column; gap: 6px; }
+  .track-row { display: grid; grid-template-columns: auto minmax(0, 1fr) 190px auto auto; align-items: center; gap: 8px;
+    padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-raised); }
+  .track-row.changed { border-color: var(--accent); }
+  .track-order { display: flex; flex-direction: column; gap: 2px; }
+  .track-order .btn { min-height: 20px; height: 20px; padding: 0 6px; font-size: 11px; }
+  .track-row .input { min-height: 36px; }
+  .track-file { grid-column: 2 / -1; font-size: 12px; color: var(--accent); overflow-wrap: anywhere; }
+  .track-row select.input { width: 100%; }
+  @media (max-width: 600px) {
+    .track-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .track-row select.input { grid-column: 2 / -1; }
+  }
 
   @media (max-width: 760px) {
     .app-shell { grid-template-columns: 72px minmax(0, 1fr); }
@@ -332,12 +349,12 @@
         <input id="metaArtist" class="input" type="text" maxlength="160" />
       </div>
       <div class="field">
-        <label class="label" for="metaDuration">Duración (min:seg)</label>
-        <input id="metaDuration" class="input" type="text" inputmode="decimal" placeholder="3:45" />
+        <label class="label" for="metaDuration">Duración · la detecta la app</label>
+        <input id="metaDuration" class="input" type="text" readonly placeholder="—" />
       </div>
       <div class="field">
-        <label class="label" for="metaBpm">Tempo (BPM)</label>
-        <input id="metaBpm" class="input" type="number" min="20" max="400" step="0.1" />
+        <label class="label" for="metaBpm">Tempo (BPM) · lo detecta la app</label>
+        <input id="metaBpm" class="input" type="text" readonly placeholder="—" />
       </div>
       <div class="field">
         <label class="label" for="metaSignature">Compás</label>
@@ -348,7 +365,16 @@
         <input id="metaKey" class="input" type="text" maxlength="32" placeholder="C, F#m, Bb…" />
       </div>
     </div>
-    <p class="muted small">Estos datos y la portada se comparten con Gosen Multitrack.</p>
+    <section class="tracks-editor" aria-labelledby="tracksHeading">
+      <div class="tracks-head">
+        <h3 id="tracksHeading">Pistas</h3>
+        <button id="addTrack" class="btn small" type="button">+ Añadir pista</button>
+      </div>
+      <p class="muted small">Nombre, categoría y orden de cada pista. Para cambiar el audio de una sola pista, usa «Reemplazar»: la app descarga solo esa pista y conserva las demás.</p>
+      <div id="trackRows" class="track-rows"></div>
+      <input id="trackFile" class="hide" type="file" accept=".wav,.mp3,audio/wav,audio/x-wav,audio/mpeg" />
+    </section>
+    <p class="muted small">Gosen Tracks Web es la fuente de estos datos: la app los recibe tal cual y no los cambia.</p>
     <div id="metadataError" class="alert error small metadata-error hide" role="alert"></div>
     <div class="dialog-actions">
       <button id="cancelMetadata" class="btn" type="button">Cancelar</button>
@@ -567,6 +593,7 @@
       ? `${Math.floor(o.duration / 60)}:${String(Math.floor(o.duration % 60)).padStart(2, '0')}`
       : ''
     $('metaBpm').value = o.bpm ?? ''
+    loadTracks(o)
     $('metaSignature').value = o.timeSignature ? `${o.timeSignature.num}/${o.timeSignature.den}` : ''
     $('metaKey').value = o.keySignature || ''
     $('metadataError').textContent = ''
@@ -582,22 +609,6 @@
   $('metadataForm').onsubmit = async (e) => {
     e.preventDefault()
     if (!editingMetadata) return
-    const durationText = $('metaDuration').value.trim()
-    let duration = null
-    if (durationText) {
-      const time = durationText.match(/^(\d{1,4}):([0-5]?\d)$/)
-      duration = time ? Number(time[1]) * 60 + Number(time[2]) : Number(durationText)
-      if (!Number.isFinite(duration) || duration <= 0 || duration > 86400) {
-        metadataError('Escribe la duración como min:seg (por ejemplo, 3:45) o en segundos.')
-        return
-      }
-    }
-    const bpmText = $('metaBpm').value.trim()
-    const bpm = bpmText ? Number(bpmText) : null
-    if (bpm !== null && (!Number.isFinite(bpm) || bpm < 20 || bpm > 400)) {
-      metadataError('El tempo debe estar entre 20 y 400 BPM.')
-      return
-    }
     const signatureText = $('metaSignature').value.trim()
     let timeSignature = null
     if (signatureText) {
@@ -613,6 +624,10 @@
       metadataError('El nombre de la canción es obligatorio.')
       return
     }
+    if (trackDraft && trackDraft.some((t) => !t.name.trim())) {
+      metadataError('Cada pista necesita un nombre.')
+      return
+    }
     const button = $('saveMetadata')
     button.disabled = true
     metadataError('')
@@ -623,19 +638,160 @@
         body: JSON.stringify({
           title,
           artist: $('metaArtist').value.trim() || null,
-          duration,
-          bpm,
+          // Tempo y duración los detecta la app: se conservan tal cual.
+          duration: editingMetadata.duration ?? null,
+          bpm: editingMetadata.bpm ?? null,
           key: $('metaKey').value.trim() || null,
           timeSignature
         })
       })
+      if (tracksChanged()) await saveTracks(editingMetadata.key, (text) => { button.textContent = text })
       $('metadataDialog').close()
       try { await refresh() } catch (err) { alert('Se guardaron los metadatos, pero no se pudo actualizar la lista: ' + err.message) }
     } catch (err) {
       metadataError(err.message)
     } finally {
       button.disabled = false
+      button.textContent = 'Guardar cambios'
     }
+  }
+
+  // --- Pistas de la canción: nombre, categoría, orden y archivo ---------------------------------
+  // El catálogo de categorías lo sirve el Worker (mismos ids que usa la app para cada pista).
+  let catalog = null
+  let trackDraft = null
+  let trackOriginal = ''
+  const loadCatalog = async () => (catalog ??= await api('/api/categories'))
+  const draftKey = (list) => JSON.stringify(list.map((t) => [t.id, t.name.trim(), t.category, !!t.replace]))
+  const tracksChanged = () => !!trackDraft && draftKey(trackDraft) !== trackOriginal
+
+  async function loadTracks(o) {
+    trackDraft = null
+    const rows = $('trackRows')
+    rows.innerHTML = '<p class="muted small">Leyendo las pistas…</p>'
+    try {
+      const [, song] = await Promise.all([loadCatalog(), api('/api/song/' + enc(o.key))])
+      if (editingMetadata !== o) return
+      trackDraft = song.tracks.map((t) => ({
+        id: t.id,
+        name: t.name,
+        category: t.category,
+        source: t.range ? 'zip' : { object: t.file, sha256: t.sha256 },
+        replace: null
+      }))
+      trackOriginal = draftKey(trackDraft)
+      renderTracks()
+    } catch (err) {
+      rows.innerHTML = '<p class="alert error small"></p>'
+      rows.firstChild.textContent = 'No se pudieron leer las pistas: ' + err.message
+    }
+  }
+
+  function categorySelect(value) {
+    const select = document.createElement('select')
+    select.className = 'input'
+    select.setAttribute('aria-label', 'Categoría')
+    for (const family of catalog.families) {
+      const group = document.createElement('optgroup')
+      group.label = family.label
+      for (const id of family.ids) {
+        const c = catalog.categories.find((x) => x.id === id)
+        group.appendChild(new Option(c.label, c.id, false, c.id === value))
+      }
+      select.appendChild(group)
+    }
+    return select
+  }
+
+  function renderTracks() {
+    const rows = $('trackRows')
+    rows.innerHTML = ''
+    if (!trackDraft.length) {
+      rows.innerHTML = '<p class="muted small">Esta canción no tiene pistas de audio.</p>'
+      return
+    }
+    trackDraft.forEach((t, i) => {
+      const row = document.createElement('div')
+      row.className = 'track-row' + (t.replace ? ' changed' : '')
+      row.innerHTML = `<div class="track-order">
+          <button class="btn small up" type="button" aria-label="Subir">▲</button>
+          <button class="btn small down" type="button" aria-label="Bajar">▼</button>
+        </div>
+        <input class="input name" type="text" maxlength="80" aria-label="Nombre de la pista" />
+        <span class="cat"></span>
+        <button class="btn small replace" type="button">Reemplazar</button>
+        <button class="btn small icon-only danger remove" type="button" aria-label="Quitar pista">${icon('trash')}</button>`
+      const name = row.querySelector('.name')
+      name.value = t.name
+      name.oninput = () => { t.name = name.value }
+      const select = categorySelect(t.category)
+      select.onchange = () => { t.category = select.value }
+      row.querySelector('.cat').replaceWith(select)
+      row.querySelector('.up').disabled = i === 0
+      row.querySelector('.down').disabled = i === trackDraft.length - 1
+      row.querySelector('.up').onclick = () => { trackDraft.splice(i - 1, 0, trackDraft.splice(i, 1)[0]); renderTracks() }
+      row.querySelector('.down').onclick = () => { trackDraft.splice(i + 1, 0, trackDraft.splice(i, 1)[0]); renderTracks() }
+      row.querySelector('.replace').onclick = () => pickTrackFile((file) => { t.replace = file; renderTracks() })
+      row.querySelector('.remove').onclick = () => {
+        if (trackDraft.length === 1) return alert('La canción necesita al menos una pista.')
+        if (confirm(`¿Quitar "${t.name}" de la canción?`)) { trackDraft.splice(i, 1); renderTracks() }
+      }
+      if (t.replace) {
+        const note = document.createElement('div')
+        note.className = 'track-file'
+        note.textContent = `Audio nuevo: ${t.replace.name} (${fmtMB(t.replace.size)}) · se sube al guardar`
+        row.appendChild(note)
+      }
+      rows.appendChild(row)
+    })
+  }
+
+  function pickTrackFile(done) {
+    const input = $('trackFile')
+    input.value = ''
+    input.onchange = () => {
+      const file = input.files[0]
+      if (!file) return
+      if (!/\.(wav|mp3)$/i.test(file.name)) return alert('La pista debe ser WAV o MP3.')
+      done(file)
+    }
+    input.click()
+  }
+
+  $('addTrack').onclick = () => {
+    if (!trackDraft) return
+    pickTrackFile(async (file) => {
+      let guess = { name: file.name.replace(/\.[^.]+$/, ''), category: 'other' }
+      try { guess = await api('/api/guess?file=' + enc(file.name)) } catch {}
+      trackDraft.push({ id: 'a-' + crypto.randomUUID(), name: guess.name, category: guess.category, source: null, replace: file })
+      renderTracks()
+    })
+  }
+
+  /** Huella SHA-256 del archivo: la app comprueba con ella que la pista llegó entera. */
+  async function sha256(file) {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+  }
+
+  async function saveTracks(songKey, progress) {
+    const uploads = trackDraft.filter((t) => t.replace)
+    for (const [i, t] of uploads.entries()) {
+      const label = `pista ${i + 1} de ${uploads.length}`
+      progress(`Preparando ${label}…`)
+      const hash = await sha256(t.replace)
+      const object = await uploadMultipart(t.replace, `&song=${enc(songKey)}`, (f) => progress(`Subiendo ${label}: ${Math.floor(f * 100)}%`))
+      t.source = { object, sha256: hash }
+      t.replace = null
+    }
+    progress('Guardando pistas…')
+    await api('/api/song/' + enc(songKey) + '/tracks', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        tracks: trackDraft.map((t) => ({ id: t.id, name: t.name.trim(), category: t.category, ...(t.source && t.source !== 'zip' ? { source: t.source } : {}) }))
+      })
+    })
   }
 
   // --- Portadas: se guardan en la nube y los músicos las ven sin descargar la canción ---
@@ -826,31 +982,37 @@
     } catch (err) {
       metadataWarning = `No se pudo leer song.json: ${err.message}`
     }
-    const { key, uploadId } = await api(`/api/upload/start?name=${enc(f.name)}&size=${f.size}`, { method: 'POST' })
+    const key = await uploadMultipart(f, '', job.progress)
+    if (metadata) {
+      try {
+        await api('/api/metadata/' + enc(key), {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(metadata)
+        })
+      } catch (err) {
+        metadataWarning = `El ZIP se subió, pero no se guardó su ficha: ${err.message}`
+      }
+    }
+    return metadataWarning
+  }
+
+  /** Sube un archivo en trozos de 50 MB (con reintentos). `extra`: p. ej. "&song=<clave>" para una pista suelta. */
+  async function uploadMultipart(f, extra, onProgress) {
+    const { key, uploadId } = await api(`/api/upload/start?name=${enc(f.name)}&size=${f.size}${extra}`, { method: 'POST' })
     const qs = `key=${enc(key)}&uploadId=${enc(uploadId)}`
     try {
       const parts = []
       for (let n = 1, off = 0; off < f.size; n++, off += PART) {
         const blob = f.slice(off, off + PART)
-        parts.push(await retry(() => putPart(`/api/upload/part?${qs}&n=${n}`, blob, (sent) => job.progress((off + sent) / f.size))))
+        parts.push(await retry(() => putPart(`/api/upload/part?${qs}&n=${n}`, blob, (sent) => onProgress((off + sent) / f.size))))
       }
       await api(`/api/upload/done?${qs}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ parts }) })
-      if (metadata) {
-        try {
-          await api('/api/metadata/' + enc(key), {
-            method: 'PUT',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(metadata)
-          })
-        } catch (err) {
-          metadataWarning = `El ZIP se subió, pero no se guardó su ficha: ${err.message}`
-        }
-      }
+      return key
     } catch (err) {
       api(`/api/upload/abort?${qs}`, { method: 'POST' }).catch(() => {})
       throw err
     }
-    return metadataWarning
   }
 
   let busy = Promise.resolve()

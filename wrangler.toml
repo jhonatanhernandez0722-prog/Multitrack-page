@@ -13,3 +13,8 @@ DATA_API_URL = "https://ep-super-hat-b49w78vs.apirest.c-6.us-east-2.aws.neon.tec
 # Límites en bytes. MAX_TOTAL_BYTES = "0" → sin tope (se paga lo que pase de 10 GB).
 MAX_TOTAL_BYTES = "0"
 MAX_FILE_BYTES = "2147483648"
+
+# App para iPhone (PWA) en /iphone/: archivos estáticos generados con `npm run dist:iphone` en la app.
+# El panel (/) y la API (/api/…) los atiende el Worker.
+[assets]
+directory = "./public"
