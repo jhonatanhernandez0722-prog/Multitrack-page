@@ -29,9 +29,13 @@ const env = {
 }
 let isAdmin = true
 const proxied = []
+let accessChecks = 0
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url)
-  if (u.endsWith('/rpc/gosen_my_access')) return new Response(JSON.stringify({ allowed: true, admin: isAdmin }))
+  if (u.endsWith('/rpc/gosen_my_access')) {
+    accessChecks++
+    return new Response(JSON.stringify({ allowed: true, admin: isAdmin }))
+  }
   proxied.push({ url: u, init })
   return new Response('{"ok":true}', { headers: { 'set-cookie': 'session=abc; Path=/', 'set-auth-jwt': 'jwt123' } })
 }
@@ -174,6 +178,20 @@ console.log('\nPuente para iPhone (/api/proxy)')
   ok(!('x-evil' in (proxied.at(-1).init.headers ?? {})), 'solo pasa las cabeceras permitidas')
   const blocked = await (await call('POST', '/api/proxy', { headers: { authorization: '' }, body: { url: 'https://example.com/x', method: 'GET' } })).json()
   ok(blocked.status === 403, 'no sirve de puente hacia otros servidores')
+}
+
+console.log('\nAcceso comprobado una vez por sesión (descargas por trozos más rápidas)')
+{
+  const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+  const jwt = (exp) => `${b64({ alg: 'none' })}.${b64({ sub: 'u', exp })}.firma`
+  const live = jwt(Math.floor(Date.now() / 1000) + 600)
+  const before = accessChecks
+  for (let i = 0; i < 5; i++) await call('GET', '/api/tracks', { headers: { authorization: `Bearer ${live}` } })
+  ok(accessChecks - before === 1, `5 peticiones seguidas con el mismo JWT: Neon se consulta ${accessChecks - before} vez`)
+  const expired = jwt(Math.floor(Date.now() / 1000) - 10)
+  const b2 = accessChecks
+  for (let i = 0; i < 2; i++) await call('GET', '/api/tracks', { headers: { authorization: `Bearer ${expired}` } })
+  ok(accessChecks - b2 === 2, 'un JWT caducado no se guarda (Neon decide cada vez)')
 }
 
 console.log('\nBorrar una canción')

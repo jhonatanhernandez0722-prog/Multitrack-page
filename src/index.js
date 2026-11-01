@@ -55,9 +55,29 @@ const CORS = {
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json', ...CORS } })
 
+/**
+ * Acceso ya comprobado por JWT (en la memoria de este Worker, como mucho 60 s y nunca más allá de
+ * que caduque el JWT). Una descarga pide muchos trozos seguidos: así Neon se consulta una vez y no
+ * en cada trozo (las descargas van más rápido). Quitar el acceso a alguien tarda como mucho 60 s.
+ */
+const ACCESS_TTL_MS = 60_000
+const accessCache = new Map()
+
+function jwtExpiry(jwt) {
+  try {
+    const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : 0
+  } catch {
+    return 0
+  }
+}
+
 async function access(req, env) {
   const jwt = (req.headers.get('authorization') || '').replace(/^Bearer /, '')
   if (!jwt) return null
+  const now = Date.now()
+  const hit = accessCache.get(jwt)
+  if (hit && hit.until > now) return hit.access
   const r = await fetch(`${env.DATA_API_URL}/rpc/gosen_my_access`, {
     method: 'POST',
     headers: { authorization: `Bearer ${jwt}`, 'content-type': 'application/json' },
@@ -65,7 +85,13 @@ async function access(req, env) {
   })
   if (!r.ok) return null
   const a = await r.json()
-  return a && a.allowed ? a : null
+  const ok = a && a.allowed ? a : null
+  const exp = jwtExpiry(jwt)
+  if (ok && exp > now) {
+    if (accessCache.size > 500) for (const [k, v] of accessCache) if (v.until <= now || accessCache.size > 400) accessCache.delete(k)
+    accessCache.set(jwt, { access: ok, until: Math.min(now + ACCESS_TTL_MS, exp) })
+  }
+  return ok
 }
 
 async function jwtFromCookies(env, cookies) {
