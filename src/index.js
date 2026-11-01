@@ -42,7 +42,8 @@ import {
  * POST /api/migrate-metadata/<key>      → importar song.json del ZIP si aún no hay ficha
  * PUT    /api/cover/<key> (cuerpo: imagen JPEG/PNG/WebP, máx. 2 MB)
  * DELETE /api/cover/<key>
- * POST   /api/upload/start?name=&size=[&song=] → {key, uploadId}
+ * POST   /api/upload/start?name=&size=[&song=][&optimized=1] → {key, uploadId} (optimized: versión M4A)
+ * POST   /api/optimized/<key> {track, file, size, sha256, aac, source} → registra la versión AAC de una pista
  * PUT    /api/upload/part?key=&uploadId=&n= (cuerpo: trozo de 50 MB) → {partNumber, etag}
  * POST   /api/upload/done?key=&uploadId= {parts}
  * POST   /api/upload/abort?key=&uploadId=
@@ -376,6 +377,41 @@ export default {
       return json({ ok: true })
     }
 
+    // Versión AAC (M4A) de una pista, hecha por la app del admin a partir del WAV maestro.
+    if (p.startsWith('/api/optimized/') && req.method === 'POST') {
+      const key = decodeURIComponent(p.slice(15))
+      if (isAuxiliary(key) || !(await env.TRACKS.head(key))) return json({ error: 'Ese multitrack no existe' }, 404)
+      const b = await req.json().catch(() => ({}))
+      const a = b.aac ?? {}
+      const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max
+      const valid =
+        typeof b.track === 'string' &&
+        typeof b.file === 'string' &&
+        b.file.startsWith(trackPrefix(key)) &&
+        /\.m4a$/i.test(b.file) &&
+        int(b.size, 1, Number(env.MAX_FILE_BYTES)) &&
+        typeof b.sha256 === 'string' &&
+        /^[0-9a-f]{64}$/.test(b.sha256) &&
+        typeof b.source === 'string' &&
+        int(a.frames, 1, 2 ** 40) &&
+        int(a.rate, 8000, 192000) &&
+        int(a.channels, 1, 2) &&
+        int(a.delay, 0, 1 << 16) &&
+        int(a.packets, 1, 2 ** 32) &&
+        int(a.bitrate, 32000, 512000)
+      if (!valid) return json({ error: 'La versión optimizada no es válida.' }, 400)
+      const head = await env.TRACKS.head(b.file)
+      if (!head || head.size !== b.size) return json({ error: 'El archivo optimizado no está subido completo.' }, 400)
+      const sheet = await readSheet(env.TRACKS, key)
+      const doc = sheet?.doc ?? {}
+      const optimized = { ...(doc.optimized ?? {}) }
+      const old = optimized[b.track]?.file
+      optimized[b.track] = { file: b.file, size: b.size, sha256: b.sha256, source: b.source, aac: { frames: a.frames, rate: a.rate, channels: a.channels, delay: a.delay, packets: a.packets, bitrate: a.bitrate } }
+      await writeSheet(env.TRACKS, key, { ...doc, optimized })
+      if (old && old !== b.file) await env.TRACKS.delete(old)
+      return json({ ok: true })
+    }
+
     if (p.startsWith('/api/song/') && p.endsWith('/tracks') && req.method === 'PUT') {
       const key = decodeURIComponent(p.slice(10, -7))
       const idx = await zipTrackIndex(env.TRACKS, key).catch((err) => ({ error: err }))
@@ -389,7 +425,9 @@ export default {
       }
       const sheet = await readSheet(env.TRACKS, key)
       await writeSheet(env.TRACKS, key, { ...(sheet?.doc ?? {}), tracks })
-      await deleteOrphanTrackFiles(env.TRACKS, key, tracks)
+      // Las versiones optimizadas (M4A) de las pistas siguen en uso: no se borran.
+      const optFiles = Object.values(sheet?.doc?.optimized ?? {}).map((o) => o?.file).filter(Boolean)
+      await deleteOrphanTrackFiles(env.TRACKS, key, tracks, optFiles)
       return json({ ok: true, manifest: await songManifest(env.TRACKS, key) })
     }
 
@@ -475,7 +513,8 @@ export default {
       const name = q('name') || ''
       const size = Number(q('size') || 0)
       const song = q('song')
-      if (song ? !isAudioFile(name) : !/\.zip$/i.test(name)) {
+      const optimized = !!song && q('optimized') === '1'
+      if (optimized ? !/\.m4a$/i.test(name) : song ? !isAudioFile(name) : !/\.zip$/i.test(name)) {
         return json({ error: song ? 'La pista debe ser WAV o MP3' : 'Solo se pueden subir archivos .zip' }, 400)
       }
       if (!(size > 0)) return json({ error: 'El archivo está vacío' }, 400)
@@ -488,7 +527,9 @@ export default {
       }
       const safe = name.replace(/[^\w.\- ]/g, '_')
       // Pista suelta: dentro de la carpeta de su canción, con un nombre que no se repite.
-      const key = song ? `${trackPrefix(song)}${crypto.randomUUID()}${safe.slice(safe.lastIndexOf('.')).toLowerCase()}` : `${Date.now()}-${safe}`
+      const key = song
+        ? `${trackPrefix(song)}${optimized ? 'opt-' : ''}${crypto.randomUUID()}${safe.slice(safe.lastIndexOf('.')).toLowerCase()}`
+        : `${Date.now()}-${safe}`
       const up = await env.TRACKS.createMultipartUpload(key, { customMetadata: { name } })
       return json({ key, uploadId: up.uploadId })
     }

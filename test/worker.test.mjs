@@ -178,6 +178,49 @@ console.log('\nReemplazar solo el saxofón')
   ok(bogus.status === 400, 'no deja apuntar a archivos de otra canción')
 }
 
+console.log('\nVersiones optimizadas (AAC-LC en M4A) hechas por la app del admin')
+{
+  const enc = encodeURIComponent('1-Eres.zip')
+  const before = await getJson(`/api/song/${enc}`)
+  const bajo = before.tracks.find((t) => t.id.endsWith('Bajo.wav'))
+  const m4a = audio(17, 3000)
+  ok((await call('POST', `/api/upload/start?name=x.m4a&size=${m4a.length}&song=${enc}`)).status === 400, 'una pista normal no se puede subir como .m4a (solo como versión optimizada)')
+  const st = await (await call('POST', `/api/upload/start?name=${encodeURIComponent('Bajo.m4a')}&size=${m4a.length}&song=${enc}&optimized=1`)).json()
+  ok(st.key.startsWith('tracks/1-Eres.zip/opt-') && st.key.endsWith('.m4a'), `la versión optimizada se guarda junto a su canción (${st.key.slice(0, 32)}…)`)
+  const q2 = `key=${encodeURIComponent(st.key)}&uploadId=${st.uploadId}`
+  const pt = await (await call('PUT', `/api/upload/part?${q2}&n=1`, { body: new Uint8Array(m4a) })).json()
+  await call('POST', `/api/upload/done?${q2}`, { body: { parts: [pt] } })
+  const sha = createHash('sha256').update(m4a).digest('hex')
+  const aac = { frames: 441000, rate: 44100, channels: 1, delay: 1024, packets: 432, bitrate: 128000 }
+  const reg = await call('POST', `/api/optimized/${enc}`, { body: { track: bajo.id, file: st.key, size: m4a.length, sha256: sha, aac, source: bajo.version } })
+  const m = await getJson(`/api/song/${enc}`)
+  const t = m.tracks.find((x) => x.id === bajo.id)
+  ok(reg.status === 200 && t.file === st.key && t.version === `a${sha}` && t.sha256 === sha && t.aac.delay === 1024 && t.master === bajo.version && !t.range, 'la ficha entrega la versión AAC (con su retardo del codificador) en lugar del WAV')
+  ok(m.tracks.filter((x) => x.id !== bajo.id).every((x) => before.tracks.find((o) => o.id === x.id).version === x.version), 'las demás pistas siguen igual')
+  ok(env.TRACKS.objects.has('1-Eres.zip') && env.TRACKS.objects.get('1-Eres.zip').size === zip1.length, 'el WAV maestro (en el ZIP) no se toca')
+  const stale = await call('POST', `/api/optimized/${enc}`, { body: { track: bajo.id, file: st.key, size: m4a.length + 1, sha256: sha, aac, source: bajo.version } })
+  ok(stale.status === 400, 'no se registra un archivo optimizado incompleto')
+  ok((await call('POST', `/api/optimized/${enc}`, { body: { track: bajo.id, file: 'tracks/otra/x.m4a', size: 1, sha256: sha, aac, source: bajo.version } })).status === 400, 'ni uno de otra canción')
+  // Si el admin cambia el audio maestro, la versión vieja deja de servir: vuelve el WAV hasta re-optimizarlo.
+  const doc = JSON.parse(await (await env.TRACKS.get('metadata/1-Eres.zip')).text())
+  doc.optimized[bajo.id].source = 'zviejo-1'
+  await env.TRACKS.put('metadata/1-Eres.zip', JSON.stringify(doc))
+  const m2 = await getJson(`/api/song/${enc}`)
+  ok(m2.tracks.find((x) => x.id === bajo.id).version === bajo.version, 'si cambió el audio maestro, se vuelve a entregar el WAV (nunca un AAC desactualizado)')
+  doc.optimized[bajo.id].source = bajo.version
+  await env.TRACKS.put('metadata/1-Eres.zip', JSON.stringify(doc))
+  // Editar las pistas no borra las versiones optimizadas.
+  const cur = await getJson(`/api/song/${enc}`)
+  const sheetTracks = JSON.parse(await (await env.TRACKS.get('metadata/1-Eres.zip')).text()).tracks
+  await call('PUT', `/api/song/${enc}/tracks`, { body: { tracks: sheetTracks.map((x) => (x.id === bajo.id ? { ...x, name: 'Bajo eléctrico' } : x)) } })
+  ok(env.TRACKS.objects.has(st.key) && (await getJson(`/api/song/${enc}`)).tracks.find((x) => x.id === bajo.id).version === `a${sha}`, 'renombrar pistas no borra ni invalida la versión optimizada')
+  void cur
+  isAdmin = false
+  const deny = await call('POST', `/api/optimized/${enc}`, { body: { track: bajo.id, file: st.key, size: m4a.length, sha256: sha, aac, source: bajo.version } })
+  isAdmin = true
+  ok(deny.status === 403, 'solo el admin registra versiones optimizadas')
+}
+
 console.log('\nPermisos')
 {
   isAdmin = false

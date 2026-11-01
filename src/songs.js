@@ -159,6 +159,15 @@ export async function songManifest(bucket, key) {
       range: { offset: e.dataOffset, length: e.compressedSize, method: e.method, crc32: e.crc32 }
     })
   }
+  // Versión optimizada (AAC-LC en M4A) de cada pista, si la hay y corresponde al audio maestro
+  // actual: es la que se descarga (mucho más liviana). Los WAV maestros siguen en R2 sin tocar.
+  const opt = doc.optimized && typeof doc.optimized === 'object' ? doc.optimized : {}
+  for (let i = 0; i < tracks.length; i++) {
+    const t = tracks[i]
+    const o = opt[t.id]
+    if (!o || o.source !== t.version) continue
+    tracks[i] = { id: t.id, name: t.name, category: t.category, file: o.file, size: o.size, sha256: o.sha256, version: `a${o.sha256}`, aac: o.aac, master: t.version }
+  }
   return {
     key,
     rev: `${idx.etag}:${sheet?.etag ?? '-'}`,
@@ -208,8 +217,8 @@ export async function normalizeTracks(bucket, key, raw, idx) {
 }
 
 /** Borra las pistas sueltas que ya no usa ninguna pista de la ficha (p. ej. tras reemplazarla otra vez). */
-export async function deleteOrphanTrackFiles(bucket, key, tracks) {
-  const used = new Set(tracks.flatMap((t) => (t.source && typeof t.source === 'object' ? [t.source.object] : [])))
+export async function deleteOrphanTrackFiles(bucket, key, tracks, keep = []) {
+  const used = new Set([...keep, ...tracks.flatMap((t) => (t.source && typeof t.source === 'object' ? [t.source.object] : []))])
   const orphans = []
   let cursor
   do {
