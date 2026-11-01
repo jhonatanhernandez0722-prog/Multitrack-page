@@ -128,6 +128,21 @@ console.log('\nEditar pistas en la web (fuente única)')
   const det = await call('POST', `/api/detected/${encodeURIComponent('1-Eres.zip')}`, { body: { bpm: 96, duration: 245.5 } })
   const m = await getJson(`/api/song/${encodeURIComponent('1-Eres.zip')}`)
   ok(det.status === 200 && m.bpm === 96 && m.duration === 245.5 && m.artist === 'Gosen' && m.keySignature === 'G' && m.timeSignature.num === 6, 'lo detectado por la app (BPM y duración) no pisa lo que puso el admin')
+  // Secciones del admin: quedan en la ficha y las reciben todos.
+  const revS = (await getJson('/api/tracks')).find((s) => s.key === '1-Eres.zip').rev
+  const secs = [{ id: 'b', label: 'Coro 1', time: 30.456 }, { id: 'a', label: 'Intro', time: 0, end: 12 }]
+  const ps = await call('POST', `/api/detected/${encodeURIComponent('1-Eres.zip')}`, { body: { bpm: 96, duration: 245.5, sections: secs } })
+  const ms = await getJson(`/api/song/${encodeURIComponent('1-Eres.zip')}`)
+  ok(ps.status === 200 && ms.sections.map((x) => `${x.label}@${x.time}`).join(',') === 'Intro@0,Coro 1@30.46' && ms.bpm === 96, `las secciones del admin quedan en la ficha (${ms.sections.map((x) => x.label).join(', ')})`)
+  ok((await getJson('/api/tracks')).find((s) => s.key === '1-Eres.zip').rev !== revS, 'y cambia el `rev`: las apps de los músicos se ponen al día')
+  const badSecs = await call('POST', `/api/detected/${encodeURIComponent('1-Eres.zip')}`, { body: { bpm: 96, sections: [{ id: 'x', label: '', time: -1 }] } })
+  ok(badSecs.status === 400, 'secciones mal formadas se rechazan')
+  const keep = await call('POST', `/api/detected/${encodeURIComponent('1-Eres.zip')}`, { body: { bpm: 97, duration: 245.5 } })
+  ok(keep.status === 200 && (await getJson(`/api/song/${encodeURIComponent('1-Eres.zip')}`)).sections.length === 2, 'mandar solo el BPM no borra las secciones')
+  isAdmin = false
+  const denied = await call('POST', `/api/detected/${encodeURIComponent('1-Eres.zip')}`, { body: { bpm: 96, sections: [] } })
+  isAdmin = true
+  ok(denied.status === 403, 'un músico no puede cambiar las secciones de la nube')
 }
 
 console.log('\nReemplazar solo el saxofón')

@@ -168,6 +168,7 @@ export async function songManifest(bucket, key) {
     timeSignature: doc.timeSignature ?? null,
     bpm: doc.bpm ?? null,
     duration: doc.duration ?? null,
+    sections: Array.isArray(doc.sections) ? doc.sections : null,
     tracks
   }
 }

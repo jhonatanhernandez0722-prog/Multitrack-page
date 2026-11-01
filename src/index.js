@@ -34,7 +34,8 @@ import {
  * GET  /api/song/<key>                 → ficha completa: datos y pistas con su versión
  * GET  /api/file/<key>                 → ZIP o pista suelta; admite Range (bytes=a-b) y ETag
  * GET  /api/cover/<key>                → portada de la canción (si tiene)
- * POST /api/detected/<key> {bpm,duration} → lo que detectó la app (el admin), sin tocar lo demás
+ * POST /api/detected/<key> {bpm,duration,sections?} → lo que detectó o marcó la app (el admin): tempo,
+ *                                       duración y secciones (las ven todos), sin tocar lo demás
  * Solo admin: subida multiparte (ZIP o, con ?song=, una pista suelta), portadas, fichas y borrado.
  * PUT/POST /api/metadata/<key>          → datos de la canción (se conservan sus pistas)
  * PUT    /api/song/<key>/tracks {tracks} → pistas: nombre, categoría, orden y archivo
@@ -92,6 +93,30 @@ async function access(req, env) {
     accessCache.set(jwt, { access: ok, until: Math.min(now + ACCESS_TTL_MS, exp) })
   }
   return ok
+}
+
+/** Secciones que marca el admin (Intro, Verso, Coro…): validadas antes de guardarlas en la ficha. */
+function normalizeSections(raw) {
+  if (raw === null) return null
+  if (!Array.isArray(raw) || raw.length > 64) throw new Error('Las secciones no son válidas.')
+  const out = []
+  for (const s of raw) {
+    const ok =
+      s &&
+      typeof s.id === 'string' &&
+      s.id.length <= 64 &&
+      typeof s.label === 'string' &&
+      s.label.trim() &&
+      s.label.length <= 40 &&
+      typeof s.time === 'number' &&
+      Number.isFinite(s.time) &&
+      s.time >= 0 &&
+      s.time < 36000 &&
+      (s.end === undefined || (typeof s.end === 'number' && Number.isFinite(s.end) && s.end > s.time && s.end < 36000))
+    if (!ok) throw new Error('Las secciones no son válidas.')
+    out.push({ id: s.id, label: s.label.trim(), time: Math.round(s.time * 100) / 100, ...(s.end !== undefined ? { end: Math.round(s.end * 100) / 100 } : {}) })
+  }
+  return out.sort((a, b) => a.time - b.time)
 }
 
 async function jwtFromCookies(env, cookies) {
@@ -329,7 +354,7 @@ export default {
 
     if (!me.admin) return json({ error: 'Solo el administrador' }, 403)
 
-    // Lo que la app detecta al analizar el audio (tempo y duración): solo esos dos datos.
+    // Lo que la app detecta al analizar el audio (tempo y duración) y las secciones que marca el admin.
     if (p.startsWith('/api/detected/') && req.method === 'POST') {
       const key = decodeURIComponent(p.slice(14))
       if (!(await env.TRACKS.head(key))) return json({ error: 'Ese multitrack no existe' }, 404)
@@ -338,12 +363,15 @@ export default {
       try {
         const n = normalizeMetadata({ bpm: body.bpm ?? null, duration: body.duration ?? null })
         detected = { bpm: n.bpm, duration: n.duration }
+        if (body.sections !== undefined) detected.sections = normalizeSections(body.sections)
       } catch (err) {
         return json({ error: err.message }, 400)
       }
       const sheet = await readSheet(env.TRACKS, key)
       const doc = sheet?.doc ?? {}
-      if (doc.bpm === detected.bpm && doc.duration === detected.duration) return json({ ok: true })
+      if (doc.bpm === detected.bpm && doc.duration === detected.duration && (!('sections' in detected) || JSON.stringify(doc.sections ?? null) === JSON.stringify(detected.sections))) {
+        return json({ ok: true })
+      }
       await writeSheet(env.TRACKS, key, { ...doc, ...detected })
       return json({ ok: true })
     }
