@@ -30,6 +30,7 @@ import {
  * GET  /api/categories                 → catálogo de categorías instrumentales
  * GET  /api/guess?file=                → nombre y categoría sugeridos para un archivo de audio
  * GET  /api/me                         → acceso, y los límites si es admin
+ * GET  /api/live?token=                 → WebSocket: control en vivo entre los dispositivos del admin
  * GET  /api/tracks                     → lista de canciones (con `rev`, que cambia si cambia algo)
  * GET  /api/song/<key>                 → ficha completa: datos y pistas con su versión
  * GET  /api/file/<key>                 → ZIP o pista suelta; admite Range (bytes=a-b) y ETag
@@ -308,6 +309,8 @@ async function saveSongFields(env, key, fields) {
   }
 }
 
+export { LiveRoom } from './live.js'
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url)
@@ -325,6 +328,19 @@ export default {
       const { cookies } = await req.json().catch(() => ({}))
       const jwt = cookies ? await jwtFromCookies(env, String(cookies)) : null
       return jwt ? json({ jwt }) : json({ error: 'Sesión caducada' }, 401)
+    }
+
+    // Control en vivo entre los dispositivos de la cuenta del admin (WebSocket; el navegador no puede
+    // mandar cabeceras al abrirlo, así que el JWT va en la dirección).
+    if (p === '/api/live') {
+      const token = q('token') || ''
+      if (!token) return json({ error: 'Inicia sesión' }, 401)
+      const who = await access(new Request(req.url, { headers: { authorization: `Bearer ${token}` } }), env)
+      if (!who) return json({ error: 'Inicia sesión' }, 401)
+      if (!who.admin) return json({ error: 'Solo el administrador' }, 403)
+      if (!env.LIVE) return json({ error: 'El control en vivo no está activado en la nube' }, 503)
+      const room = env.LIVE.get(env.LIVE.idFromName(String(who.email || token.split('.')[1] || 'admin')))
+      return room.fetch(req)
     }
 
     const me = await access(req, env)

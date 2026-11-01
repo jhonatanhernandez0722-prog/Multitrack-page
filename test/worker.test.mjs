@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto'
 import { crc32, inflateRawSync } from 'node:zlib'
 import { FakeBucket, audio, makeZip } from './fakes.mjs'
 import worker from '../src/index.js'
+import { relay } from '../src/live.js'
 import { CATEGORIES } from '../src/catalog.js'
 
 let failures = 0
@@ -219,6 +220,30 @@ console.log('\nVersiones optimizadas (AAC-LC en M4A) hechas por la app del admin
   const deny = await call('POST', `/api/optimized/${enc}`, { body: { track: bajo.id, file: st.key, size: m4a.length, sha256: sha, aac, source: bajo.version } })
   isAdmin = true
   ok(deny.status === 403, 'solo el admin registra versiones optimizadas')
+}
+
+console.log('\nControl en vivo entre los dispositivos del admin (PC ↔ celular)')
+{
+  const fake = () => ({ got: [], send(m) { this.got.push(m) } })
+  const pc = fake()
+  const cel = fake()
+  const st = JSON.stringify({ type: 'state', state: { song: 'Eres', position: 12.5, playing: true } })
+  let last = relay([pc, cel], pc, st, null)
+  ok(cel.got.length === 1 && pc.got.length === 0 && last === st, 'el estado del PC llega al celular (y no vuelve al PC); la sala lo recuerda para quien entre después')
+  const cmd = JSON.stringify({ type: 'cmd', cmd: { cmd: 'jump', t: 30 } })
+  last = relay([pc, cel], cel, cmd, last)
+  ok(pc.got.at(-1) === cmd && last === st, 'la orden del celular (ir a una sección) llega al PC')
+  last = relay([pc, cel], cel, '{"type":"otra"}', last)
+  last = relay([pc, cel], cel, 'no es json', last)
+  ok(pc.got.length === 1, 'mensajes desconocidos o mal formados no se reenvían')
+  last = relay([pc, cel], pc, JSON.stringify({ type: 'bye' }), last)
+  ok(last === null, 'cuando el PC deja de reproducir, la sala olvida su estado')
+  const noTok = await worker.fetch(new Request('https://gosen.test/api/live'), env)
+  ok(noTok.status === 401, `sin sesión no se entra a la sala (${noTok.status})`)
+  isAdmin = false
+  const musician = await worker.fetch(new Request('https://gosen.test/api/live?token=t'), env)
+  isAdmin = true
+  ok(musician.status === 403, 'solo el administrador usa el control en vivo')
 }
 
 console.log('\nPermisos')

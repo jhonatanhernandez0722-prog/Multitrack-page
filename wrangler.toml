@@ -18,3 +18,12 @@ MAX_FILE_BYTES = "2147483648"
 # El panel (/) y la API (/api/…) los atiende el Worker.
 [assets]
 directory = "./public"
+
+# Control en vivo (PC ↔ celular del admin): una sala por cuenta.
+[[durable_objects.bindings]]
+name = "LIVE"
+class_name = "LiveRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LiveRoom"]
