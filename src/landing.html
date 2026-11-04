@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gosen Tracks · Multitracks en vivo para tu iglesia</title>
+<meta name="description" content="Gosen Tracks: multitracks en vivo con voces guía que cuentan a tempo, saltos de sección en el compás, listas para el culto, pads y mezcla por instrumento. En Windows, Mac, Android y iPhone." />
+<link rel="icon" href="/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<script>
+  // Tema antes de pintar (sin parpadeo): el guardado o el del sistema.
+  ;(function () {
+    var t = null
+    try { t = localStorage.getItem('gosen.web.theme') } catch (e) {}
+    if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    document.documentElement.dataset.theme = t
+  })()
+</script>
+<style>
+  /* Identidad de Gosen Tracks (la misma de la app): violeta Gosen, Barlow, claro y oscuro. */
+  :root {
+    --font: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+    --font-label: 'Barlow Condensed', 'Barlow', 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --r: 14px;
+    --r-lg: 22px;
+    --c-intro: #5fb4e8;
+    --c-verso: #4f8cff;
+    --c-precoro: #3ec5d6;
+    --c-coro: #b06cff;
+    --c-puente: #f1b44c;
+    --c-final: #8fd16a;
+    --fade: #ffb547;
+    --mute: #e8355a;
+    --solo: #f2b200;
+    --play: #12b76a;
+  }
+  :root[data-theme='light'] {
+    color-scheme: light;
+    --bg: #f5f4f9;
+    --bg-2: #ffffff;
+    --panel: #ffffff;
+    --panel-2: #f7f6fb;
+    --panel-3: #eceaf3;
+    --line: #e6e3ef;
+    --line-strong: #d6d3e1;
+    --text: #16141f;
+    --text-2: #4d4960;
+    --text-3: #6e6a85;
+    --accent: #6b3cf6;
+    --accent-2: #8b6cff;
+    --accent-strong: #5a2ee0;
+    --accent-ink: #ffffff;
+    --accent-soft: #f0ebff;
+    --accent-tx: #5a2ee0;
+    --glow: rgba(107, 60, 246, 0.28);
+    --shadow: 0 1px 2px rgba(26, 21, 48, 0.06), 0 18px 40px -18px rgba(26, 21, 48, 0.22);
+    --shadow-lg: 0 2px 6px rgba(26, 21, 48, 0.06), 0 40px 80px -30px rgba(40, 20, 110, 0.35);
+    --wave: #d6d2e3;
+    --hero-bg: radial-gradient(900px 500px at 78% -10%, rgba(139, 108, 255, 0.22), transparent 62%),
+      radial-gradient(700px 420px at -10% 30%, rgba(236, 72, 153, 0.08), transparent 60%), var(--bg);
+    --glass: rgba(255, 255, 255, 0.82);
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --bg: #0a0910;
+    --bg-2: #0e0d15;
+    --panel: #15131f;
+    --panel-2: #1b1828;
+    --panel-3: #252136;
+    --line: #262236;
+    --line-strong: #363049;
+    --text: #f1eff8;
+    --text-2: #b5b0c8;
+    --text-3: #8a85a0;
+    --accent: #7b52ff;
+    --accent-2: #a38bff;
+    --accent-strong: #9474ff;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(123, 82, 255, 0.16);
+    --accent-tx: #c4b5fd;
+    --glow: rgba(123, 82, 255, 0.45);
+    --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 44px -22px rgba(0, 0, 0, 0.9);
+    --shadow-lg: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 50px 90px -30px rgba(0, 0, 0, 0.95);
+    --wave: #3a3450;
+    --hero-bg: radial-gradient(900px 520px at 80% -12%, rgba(123, 82, 255, 0.32), transparent 62%),
+      radial-gradient(700px 420px at -10% 40%, rgba(236, 72, 153, 0.1), transparent 60%), var(--bg);
+    --glass: rgba(21, 19, 31, 0.82);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.55 var(--font);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    transition: background 0.3s var(--ease), color 0.3s var(--ease);
+  }
+  a { color: inherit; }
+  h1, h2, h3 { margin: 0; letter-spacing: -0.02em; line-height: 1.08; }
+  p { margin: 0; }
+  .wrap { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-label); font-weight: 600; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-tx);
+  }
+  .eyebrow::before { content: ''; width: 18px; height: 2px; border-radius: 2px; background: currentColor; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    min-height: 48px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--line-strong);
+    background: var(--panel); color: var(--text); text-decoration: none;
+    font: 600 16px/1 var(--font); cursor: pointer; white-space: nowrap;
+    transition: transform 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  }
+  .btn:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .btn:focus-visible, .tab:focus-visible, .theme-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 14px 30px -12px var(--glow); }
+  .btn.primary:hover { background: var(--accent-strong); box-shadow: 0 18px 36px -12px var(--glow); }
+  .btn.ghost { background: transparent; }
+
+  /* --- Barra de navegación ---------------------------------------------------- */
+  .nav {
+    position: fixed; inset: 0 0 auto 0; z-index: 50;
+    transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s;
+    border-bottom: 1px solid transparent;
+  }
+  .nav.scrolled { background: var(--glass); backdrop-filter: blur(16px) saturate(1.4); border-bottom-color: var(--line); }
+  .nav-in { display: flex; align-items: center; gap: 18px; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 700; font-size: 19px; }
+  .brand img { width: 34px; height: 34px; border-radius: 10px; box-shadow: 0 6px 16px -6px var(--glow); }
+  .brand span b { color: var(--accent-tx); }
+  .nav-links { display: flex; gap: 4px; margin-left: 18px; }
+  .nav-links a { padding: 8px 12px; border-radius: 999px; text-decoration: none; color: var(--text-2); font-weight: 500; font-size: 15px; }
+  .nav-links a:hover { color: var(--text); background: var(--accent-soft); }
+  .nav-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .nav .btn { min-height: 40px; padding: 0 16px; font-size: 15px; }
+  .theme-btn {
+    display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); cursor: pointer;
+  }
+  .theme-btn .sun { display: none; }
+  :root[data-theme='dark'] .theme-btn .sun { display: block; }
+  :root[data-theme='dark'] .theme-btn .moon { display: none; }
+
+  /* --- Portada (hero) ----------------------------------------------------------- */
+  .hero { position: relative; padding: 130px 0 90px; background: var(--hero-bg); overflow: hidden; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 48px; align-items: center; }
+  .hero h1 { font-size: clamp(40px, 5.4vw, 70px); font-weight: 700; margin: 18px 0 20px; }
+  .hero h1 em { font-style: normal; background: linear-gradient(120deg, var(--accent) 10%, #ec4899 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero-lead { font-size: 20px; color: var(--text-2); max-width: 540px; }
+  .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+  .hero-facts { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 34px; color: var(--text-2); font-size: 15px; }
+  .hero-facts span { display: inline-flex; align-items: center; gap: 8px; }
+  .hero-facts svg { color: var(--accent); }
+
+  /* Escena del hero: el reproductor y ventanas que flotan en capas (cada una es una parte real). */
+  .scene { position: relative; height: 520px; perspective: 1400px; }
+  .layer { position: absolute; will-change: transform; transition: transform 0.6s var(--ease-out); }
+  .win {
+    border-radius: 18px; background: var(--panel); border: 1px solid var(--line);
+    box-shadow: var(--shadow-lg); overflow: hidden;
+  }
+  .win-bar { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+  .win-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
+  .win-bar b { margin-left: 8px; font: 600 11px var(--font-label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+  .float-a { animation: floatA 9s ease-in-out infinite; }
+  .float-b { animation: floatB 11s ease-in-out infinite; }
+  .float-c { animation: floatA 13s ease-in-out infinite reverse; }
+  @keyframes floatA { 0%, 100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+  @keyframes floatB { 0%, 100% { translate: 0 0; } 50% { translate: 6px 10px; } }
+  .l-player { left: 2%; top: 40px; width: 86%; }
+  .l-list { right: -2%; top: 0; width: 38%; }
+  .l-voice { left: -4%; bottom: 46px; }
+  .l-mix { right: 2%; bottom: 0; width: 46%; }
+
+  .hp { padding: 14px 16px 16px; }
+  .hp-top { display: flex; align-items: center; gap: 12px; }
+  .cover { width: 42px; height: 42px; border-radius: 11px; flex: none; display: grid; place-items: center; color: #fff; font: 700 15px var(--font-label); background: linear-gradient(135deg, #8b6cff, #5a2ee0); }
+  .hp-name { display: flex; flex-direction: column; min-width: 0; }
+  .hp-name b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hp-name span { font-size: 12px; color: var(--text-3); }
+  .live-pill { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(18, 183, 106, 0.14); color: var(--play); font: 600 12px var(--font); }
+  .live-pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1.2s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: 0.3; } }
+  .hp-sec { margin-top: 12px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+  .hp-sec .big { font: 700 34px/1 var(--font-label); letter-spacing: 0.04em; color: var(--c-coro); text-transform: uppercase; }
+  .hp-sec .clock { font: 700 22px var(--mono); color: var(--text); }
+  .strip { display: flex; gap: 3px; height: 8px; margin-top: 12px; }
+  .strip i { border-radius: 4px; }
+  .wave { position: relative; height: 70px; margin-top: 8px; border-radius: 10px; overflow: hidden; background: var(--panel-2); }
+  .wave canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .wave .played { position: absolute; inset: 0 auto 0 0; width: 0; border-right: 2px solid var(--accent); background: linear-gradient(90deg, transparent, var(--accent-soft)); }
+  .hero .wave .played { animation: playhead 18s linear infinite; }
+  @keyframes playhead { from { width: 0; } to { width: 100%; } }
+  .beats { display: flex; gap: 6px; margin-top: 12px; }
+  .beats i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+  .hero .beats i { animation: beat 2.4s steps(1) infinite; }
+  .hero .beats i:nth-child(2) { animation-delay: 0.6s; }
+  .hero .beats i:nth-child(3) { animation-delay: 1.2s; }
+  .hero .beats i:nth-child(4) { animation-delay: 1.8s; }
+  @keyframes beat { 0% { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); } 25%, 100% { background: var(--line-strong); box-shadow: none; } }
+  .hero .beats i:first-child { animation-name: beatOne; }
+  @keyframes beatOne { 0% { background: #ec4899; box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.2); } 25%, 100% { background: var(--line-strong); box-shadow: none; } }
+
+  .mini-list { padding: 8px; display: grid; gap: 4px; }
+  .mini-list div { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 10px; font-size: 13px; }
+  .mini-list div.on { background: var(--accent-soft); color: var(--accent-tx); font-weight: 600; }
+  .mini-list em { margin-left: auto; font: 500 11px var(--mono); color: var(--text-3); font-style: normal; }
+  .mini-list .n { width: 18px; color: var(--text-3); font: 600 12px var(--mono); }
+  .voice-card { display: flex; align-items: center; gap: 10px; padding: 12px 16px 12px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow-lg); }
+  .voice-card .mic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; }
+  .voice-card b { font-size: 15px; }
+  .voice-card .says { font: 700 15px var(--mono); color: var(--accent-tx); min-width: 92px; }
+  .mixer { display: flex; gap: 10px; padding: 12px 14px 14px; align-items: flex-end; height: 132px; }
+  .ch { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
+  .ch .meter { flex: 1; width: 10px; border-radius: 6px; background: var(--panel-3); position: relative; overflow: hidden; }
+  .ch .meter::after { content: ''; position: absolute; inset: auto 0 0 0; height: var(--lv, 60%); background: linear-gradient(0deg, var(--cc, var(--accent)), color-mix(in srgb, var(--cc, var(--accent)) 60%, #fff)); border-radius: 6px; animation: level 0.9s ease-in-out infinite alternate; animation-delay: var(--d, 0s); transform-origin: bottom; }
+  @keyframes level { from { transform: scaleY(0.45); } to { transform: scaleY(1); } }
+  .ch span { font: 600 10px var(--font-label); letter-spacing: 0.08em; color: var(--text-3); text-transform: uppercase; }
+
+  /* --- Secciones ------------------------------------------------------------------ */
+  section.block { padding: 110px 0; position: relative; }
+  .head { max-width: 760px; margin-bottom: 46px; }
+  .head h2 { font-size: clamp(32px, 4vw, 50px); margin: 14px 0 16px; }
+  .head p { font-size: 19px; color: var(--text-2); }
+  .head.center { margin-left: auto; margin-right: auto; text-align: center; }
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out); transition-delay: var(--delay, 0s); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* --- Demostraciones --------------------------------------------------------------- */
+  .demos { padding-top: 90px; }
+  .demos .head { max-width: none; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 8px 40px; align-items: end; margin-bottom: 30px; }
+  .demos .head .eyebrow { grid-column: 1 / -1; }
+  .demos .head h2 { margin: 0; }
+  .demos .head p { font-size: 17px; }
+  .demos { background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 30%, var(--bg-2) 70%, var(--bg) 100%); }
+  .demo-shell { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 28px; align-items: start; }
+  .tabs { display: grid; gap: 8px; }
+  .tab {
+    position: relative; display: grid; grid-template-columns: 38px 1fr; gap: 2px 12px; align-items: center; text-align: left;
+    padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    font: inherit; cursor: pointer; overflow: hidden; transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
+  }
+  .tab:hover { transform: translateX(3px); }
+  .tab .ico { grid-row: span 2; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: var(--accent-soft); color: var(--accent-tx); }
+  .tab b { font-size: 16px; }
+  .tab small { color: var(--text-3); font-size: 13px; line-height: 1.3; }
+  .tab .bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: var(--accent); }
+  .tab.on { border-color: var(--accent); box-shadow: 0 16px 34px -20px var(--glow); }
+  .tab.on .ico { background: var(--accent); color: #fff; }
+  .demo-main { display: grid; gap: 16px; min-width: 0; }
+  .stage { position: relative; width: 100%; border-radius: 22px; padding: 10px; background: linear-gradient(140deg, var(--accent-soft), transparent 60%), var(--panel-2); border: 1px solid var(--line); box-shadow: var(--shadow-lg); }
+  .screen-box { position: relative; overflow: hidden; border-radius: 15px; }
+  .screen {
+    position: absolute; left: 0; top: 0; width: 760px; height: 460px; transform-origin: 0 0;
+    background: var(--bg); color: var(--text); font-size: 14px; overflow: hidden;
+  }
+  .screen.instant *, .screen.instant { transition: none !important; animation-duration: 0s !important; }
+  .caption { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 14px 18px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+  .caption .num { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; font: 700 15px var(--mono); }
+  .caption .txt { font-size: 18px; font-weight: 600; }
+  .caption .txt span { display: inline-block; animation: capIn 0.5s var(--ease-out); }
+  @keyframes capIn { from { opacity: 0; transform: translateY(8px); } }
+  .steps { display: flex; gap: 6px; margin-left: auto; }
+  .steps i { width: 26px; height: 5px; border-radius: 4px; background: var(--line-strong); transition: background 0.3s; }
+  .steps i.done { background: var(--accent-2); }
+  .steps i.on { background: var(--accent); }
+  .demo-note { color: var(--text-3); font-size: 14px; }
+
+  /* Cursor de las demostraciones */
+  .cursor { position: absolute; left: 0; top: 0; z-index: 30; width: 26px; height: 26px; pointer-events: none; opacity: 0; transform: translate(380px, 480px); transition-property: transform, opacity; transition-timing-function: cubic-bezier(0.3, 0.7, 0.2, 1); }
+  .cursor.show { opacity: 1; }
+  .cursor svg { width: 26px; height: 26px; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35)); transition: transform 0.15s; transform-origin: 4px 3px; }
+  .cursor.press svg { transform: scale(0.82); }
+  .ripple { position: absolute; z-index: 29; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; border: 2px solid var(--accent); pointer-events: none; animation: ripple 0.6s var(--ease-out) forwards; }
+  @keyframes ripple { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+
+  /* Piezas de la app dentro de las demostraciones (prefijo m-) */
+  .m-app { position: absolute; inset: 0; display: grid; grid-template-columns: 54px 1fr; }
+  .m-rail { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0; }
+  .m-rail img { width: 30px; height: 30px; border-radius: 9px; }
+  .m-rail i { width: 26px; height: 26px; border-radius: 8px; background: var(--panel-3); }
+  .m-rail i.on { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+  .m-body { position: relative; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .m-h { display: flex; align-items: center; gap: 10px; }
+  .m-h h4 { margin: 0; font-size: 16px; }
+  .m-label { font: 600 11px var(--font-label); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+  .m-card { border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .m-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); font: 600 12px var(--font); transition: background 0.25s, color 0.25s, border-color 0.25s, transform 0.2s; }
+  .m-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .m-play { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-3); color: var(--text-3); transition: background 0.3s, color 0.3s, box-shadow 0.3s; }
+  .m-play.on { background: var(--accent); color: #fff; box-shadow: 0 0 0 6px var(--accent-soft); }
+  .m-row { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 12px; transition: background 0.3s, box-shadow 0.3s; }
+  .m-row.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .m-row .cover { width: 36px; height: 36px; font-size: 13px; border-radius: 9px; }
+  .m-row .t { display: flex; flex-direction: column; min-width: 0; }
+  .m-row .t b { font-size: 14px; }
+  .m-row .t span { font-size: 12px; color: var(--text-3); }
+  .m-row .go { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-3); color: var(--text-2); }
+  .m-tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .m-tile { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 9px 8px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); transition: opacity 0.35s, transform 0.45s var(--ease-out), filter 0.3s; }
+  .m-tile.hidden { opacity: 0; transform: translateY(14px) scale(0.92); }
+  .m-tile.dim { opacity: 0.38; }
+  .m-tile .tn { font: 700 12px var(--font-label); letter-spacing: 0.05em; text-transform: uppercase; }
+  .m-tile .tt { font: 600 9.5px var(--font-label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--cc); }
+  .m-fader { position: relative; height: 112px; margin: 2px auto; width: 34px; }
+  .m-fader .track { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 5px; margin-left: -2.5px; border-radius: 4px; background: var(--panel-3); }
+  .m-fader .lv { position: absolute; left: 2px; bottom: 4px; width: 5px; height: 70%; border-radius: 4px; background: var(--cc); opacity: 0.85; transform-origin: bottom; animation: level 0.8s ease-in-out infinite alternate; animation-delay: var(--d, 0s); transition: opacity 0.3s; }
+  .m-fader .knob { position: absolute; left: 50%; width: 30px; height: 14px; margin-left: -15px; top: 22%; border-radius: 5px; background: var(--panel); border: 1px solid var(--line-strong); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); transition: top 0.6s var(--ease-out); }
+  .m-tile.muted .lv, .m-tile.dim .lv { opacity: 0.12; animation-play-state: paused; }
+  .m-db { text-align: center; font: 600 11px var(--mono); color: var(--text-2); }
+  .m-ms { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .m-ms span { display: grid; place-items: center; height: 22px; border-radius: 6px; background: var(--panel-3); font: 700 11px var(--font); color: var(--text-2); transition: background 0.25s, color 0.25s; }
+  .m-ms .m.on { background: var(--mute); color: #fff; }
+  .m-ms .s.on { background: var(--solo); color: #1c1203; }
+  .m-out { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: 6px; overflow: hidden; border: 1px solid var(--line-strong); }
+  .m-out span { display: grid; place-items: center; height: 18px; font: 700 9px var(--font); color: var(--text-3); transition: background 0.25s, color 0.25s; }
+  .m-out span.on { background: var(--accent); color: #fff; }
+  .m-prog { height: 6px; border-radius: 4px; background: var(--panel-3); overflow: hidden; }
+  .m-prog i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.4s var(--ease); }
+  .m-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font: 600 12px var(--font); background: var(--accent-soft); color: var(--accent-tx); transition: opacity 0.3s, transform 0.4s var(--ease-out); }
+  .m-badge.ok { background: rgba(18, 183, 106, 0.14); color: var(--play); }
+  .m-badge.off { opacity: 0; transform: translateY(6px); }
+  .m-route { display: flex; gap: 8px; }
+  .m-route span { flex: 1; padding: 8px 10px; border-radius: 10px; background: var(--panel-2); border: 1px dashed var(--line-strong); font-size: 12px; color: var(--text-2); transition: border-color 0.3s, background 0.3s; }
+  .m-route span.on { border-style: solid; border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+
+  /* Línea de tiempo (editor y salto) */
+  .m-tl { position: relative; height: 150px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+  .m-bars { position: absolute; inset: 0 0 auto 0; height: 22px; display: flex; border-bottom: 1px solid var(--line); }
+  .m-bars span { flex: 1; font: 600 10px var(--mono); color: var(--text-3); padding: 4px 0 0 4px; border-left: 1px solid var(--line-strong); }
+  .m-grid { position: absolute; inset: 22px 0 0 0; }
+  .m-grid i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .m-grid i.bar { background: var(--line-strong); }
+  .m-grid i.hot { background: var(--accent); width: 2px; box-shadow: 0 0 8px var(--accent); }
+  .m-wave { position: absolute; left: 0; right: 0; top: 60px; height: 60px; }
+  .m-secs { position: absolute; left: 0; right: 0; top: 30px; height: 24px; }
+  .m-sec { position: absolute; top: 0; height: 24px; border-radius: 7px; padding: 0 8px; font: 700 11px/24px var(--font-label); letter-spacing: 0.06em; text-transform: uppercase; color: #fff; white-space: nowrap; overflow: hidden; transition: width 0.5s var(--ease-out), opacity 0.4s, transform 0.4s var(--ease-out); }
+  .m-sec.new { opacity: 0; transform: scaleX(0.6); transform-origin: left; }
+  .m-sec .h { position: absolute; right: 0; top: 0; bottom: 0; width: 6px; background: rgba(255, 255, 255, 0.55); border-radius: 0 7px 7px 0; }
+  .m-voices { position: absolute; left: 0; right: 0; bottom: 4px; height: 22px; }
+  .m-v { position: absolute; bottom: 0; height: 20px; padding: 0 6px; border-radius: 6px; font: 700 10px/20px var(--mono); color: #fff; background: #8b5cf6; transition: opacity 0.35s, transform 0.35s var(--ease-out); }
+  .m-v.off { opacity: 0; transform: translateY(8px); }
+  .m-head { position: absolute; top: 22px; bottom: 0; width: 2px; background: var(--text); box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); z-index: 3; }
+  .m-pop { position: absolute; z-index: 5; width: 170px; padding: 6px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line-strong); box-shadow: var(--shadow-lg); transition: opacity 0.25s, transform 0.3s var(--ease-out); }
+  .m-pop.off { opacity: 0; transform: translateY(-6px) scale(0.97); pointer-events: none; }
+  .m-pop div { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; font-size: 12.5px; transition: background 0.2s; }
+  .m-pop div i { width: 10px; height: 10px; border-radius: 3px; }
+  .m-pop div.hover { background: var(--accent-soft); }
+  .m-pop .m-label { padding: 4px 8px 6px; }
+
+  .m-display { display: flex; align-items: center; gap: 18px; padding: 14px 18px; }
+  .m-display .big { font: 700 44px/1 var(--font-label); letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.3s; }
+  .m-display .meta { display: flex; flex-direction: column; gap: 2px; }
+  .m-display .meta b { font: 700 18px var(--mono); }
+  .m-display .meta span { font-size: 12px; color: var(--text-3); }
+  .m-display .beats { margin: 0 0 0 auto; gap: 8px; }
+  .m-display .beats i { width: 16px; height: 16px; transition: background 0.08s, box-shadow 0.08s; }
+  .m-display .beats i.on { background: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+  .m-display .beats i.one.on { background: #ec4899; box-shadow: 0 0 0 5px rgba(236, 72, 153, 0.2); }
+  .m-secbtns { display: flex; gap: 8px; }
+  .m-secbtns span { position: relative; flex: 1; padding: 10px 8px; border-radius: 12px; text-align: center; font: 700 13px var(--font-label); letter-spacing: 0.06em; text-transform: uppercase; background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--sc); transition: box-shadow 0.3s, background 0.3s; }
+  .m-secbtns span.cur { background: color-mix(in srgb, var(--sc) 14%, var(--panel)); }
+  .m-secbtns span.pend { box-shadow: 0 0 0 2px var(--sc), 0 0 22px -4px var(--sc); animation: pendPulse 0.6s ease-in-out infinite alternate; }
+  @keyframes pendPulse { to { box-shadow: 0 0 0 3px var(--sc), 0 0 28px -2px var(--sc); } }
+  .m-bubble { position: absolute; z-index: 6; padding: 8px 14px; border-radius: 14px 14px 14px 4px; background: var(--accent); color: #fff; font: 700 16px var(--mono); box-shadow: 0 14px 30px -12px var(--glow); transition: opacity 0.25s, transform 0.35s var(--ease-out); }
+  .m-bubble.off { opacity: 0; transform: translateY(10px) scale(0.9); }
+  .m-note { font-size: 12.5px; color: var(--text-2); }
+
+  /* Lista del culto */
+  .m-split { display: grid; grid-template-columns: 1.25fr 1fr; gap: 14px; height: 100%; }
+  .m-list { position: relative; padding: 10px; display: flex; flex-direction: column; gap: 0; }
+  .m-item { position: relative; transition: transform 0.5s var(--ease-out); }
+  .m-item.lift { z-index: 4; }
+  .m-item.lift .m-row { background: var(--panel); box-shadow: var(--shadow-lg); transform: scale(1.02); }
+  .m-trans { display: flex; align-items: center; gap: 6px; height: 22px; margin-left: 46px; padding-left: 10px; border-left: 2px dashed var(--line-strong); font-size: 11.5px; color: var(--text-3); transition: color 0.3s, border-color 0.3s; }
+  .m-trans.set { color: var(--accent-tx); border-left-color: var(--accent); font-weight: 600; }
+  .m-row .bar2 { position: absolute; left: 56px; right: 12px; bottom: 4px; height: 3px; border-radius: 3px; background: var(--panel-3); overflow: hidden; opacity: 0; transition: opacity 0.3s; }
+  .m-row .bar2 i { display: block; height: 100%; width: 0; background: var(--accent); }
+  .m-row.playing .bar2 { opacity: 1; }
+  .m-row { position: relative; }
+  .m-pad { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .m-keys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .m-keys span { display: grid; place-items: center; height: 26px; border-radius: 7px; background: var(--panel-2); border: 1px solid var(--line); font: 700 11px var(--font); transition: background 0.35s, color 0.35s, box-shadow 0.35s; }
+  .m-keys span.on { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 0 16px -4px var(--glow); }
+  .m-power { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--panel-3); color: var(--text-2); transition: background 0.3s, color 0.3s; }
+  .m-power.on { background: var(--accent); color: #fff; }
+  .m-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+  .m-check i { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--line-strong); display: grid; place-items: center; transition: background 0.25s; }
+  .m-check i.on { background: var(--accent); border-color: var(--accent); }
+  .m-check i.on::after { content: ''; width: 7px; height: 4px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+  .m-status { padding: 9px 12px; border-radius: 10px; background: var(--panel-2); font-size: 12.5px; color: var(--text-2); min-height: 36px; }
+
+  /* --- Cómo funciona ------------------------------------------------------------------- */
+  .flow { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .flow::before { content: ''; position: absolute; left: 6%; right: 6%; top: 34px; height: 2px; background: var(--line-strong); }
+  .flow .fill { position: absolute; left: 6%; top: 34px; height: 2px; width: 0; max-width: 88%; background: linear-gradient(90deg, var(--accent), #ec4899); transition: width 1.6s var(--ease-out); }
+  .flow.in .fill { width: 88%; }
+  .flow-step { position: relative; text-align: center; padding: 0 6px; }
+  .flow-step .dot { width: 70px; height: 70px; margin: 0 auto 18px; border-radius: 22px; display: grid; place-items: center; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); color: var(--accent); position: relative; }
+  .flow-step .dot svg { width: 30px; height: 30px; }
+  .flow-step h3 { font-size: 20px; margin-bottom: 8px; }
+  .flow-step p { color: var(--text-2); font-size: 15.5px; }
+
+  /* --- Funciones ------------------------------------------------------------------------- */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .feat { position: relative; padding: 26px; border-radius: var(--r-lg); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); overflow: hidden; transition: transform 0.35s var(--ease-out), border-color 0.3s; }
+  .feat:hover { transform: translateY(-6px); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+  .feat::after { content: ''; position: absolute; width: 220px; height: 220px; right: -90px; top: -90px; border-radius: 50%; background: radial-gradient(circle, var(--accent-soft), transparent 70%); }
+  .feat .ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-tx); margin-bottom: 18px; }
+  .feat .ic svg { width: 24px; height: 24px; }
+  .feat h3 { font-size: 21px; margin-bottom: 8px; }
+  .feat p { color: var(--text-2); font-size: 15.5px; }
+
+  /* --- Galería de instrumentos --------------------------------------------------------------- */
+  .gallery { overflow: hidden; }
+  .marquee { display: flex; gap: 12px; width: max-content; animation: marquee 60s linear infinite; padding: 6px 0; }
+  .marquee.rev { animation-direction: reverse; animation-duration: 70s; }
+  .gallery:hover .marquee { animation-play-state: paused; }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+  .chip { display: inline-flex; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); white-space: nowrap; }
+  .chip .sw { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--cc) 18%, transparent); color: var(--cc); }
+  .chip .sw i { width: 6px; height: 18px; border-radius: 3px; background: var(--cc); box-shadow: -9px 4px 0 -1px var(--cc), 9px 3px 0 -1px var(--cc); animation: level 1s ease-in-out infinite alternate; }
+  .chip b { font-size: 15px; }
+  .chip span { display: block; font: 600 11px var(--font-label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+  .rows { display: grid; gap: 14px; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+
+  /* --- Plataformas y llamado a la acción ----------------------------------------------------- */
+  .platforms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .plat { padding: 24px; border-radius: var(--r-lg); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .plat .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--panel-2); color: var(--text); margin-bottom: 14px; }
+  .plat h3 { font-size: 19px; margin-bottom: 6px; }
+  .plat p { color: var(--text-2); font-size: 14.5px; }
+  .plat a { display: inline-flex; margin-top: 12px; font-weight: 600; color: var(--accent-tx); text-decoration: none; }
+  .plat a:hover { text-decoration: underline; }
+  .cta { position: relative; overflow: hidden; padding: 70px 50px; border-radius: 32px; text-align: center; color: #fff; background: radial-gradient(600px 300px at 20% 0%, rgba(236, 72, 153, 0.45), transparent 60%), linear-gradient(135deg, #8b6cff, #5a2ee0 60%, #3b1fa8); box-shadow: 0 40px 80px -40px rgba(90, 46, 224, 0.8); }
+  .cta h2 { font-size: clamp(32px, 4.4vw, 54px); margin-bottom: 14px; }
+  .cta p { font-size: 19px; opacity: 0.9; max-width: 620px; margin: 0 auto 28px; }
+  .cta .btn { border-color: rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.12); color: #fff; }
+  .cta .btn.primary { background: #fff; color: #3b1fa8; border-color: #fff; box-shadow: 0 16px 30px -14px rgba(0, 0, 0, 0.5); }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .cta .eq { position: absolute; inset: auto 0 0 0; height: 90px; display: flex; gap: 6px; align-items: flex-end; justify-content: center; opacity: 0.22; pointer-events: none; }
+  .cta .eq i { width: 10px; height: 100%; border-radius: 6px 6px 0 0; background: #fff; transform-origin: bottom; animation: level 0.9s ease-in-out infinite alternate; }
+
+  footer { padding: 60px 0 40px; border-top: 1px solid var(--line); margin-top: 110px; }
+  .foot { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 30px; }
+  .foot p { color: var(--text-2); font-size: 15px; margin-top: 12px; max-width: 360px; }
+  .foot h4 { margin: 0 0 12px; font: 600 13px var(--font-label); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+  .foot a { display: block; color: var(--text-2); text-decoration: none; padding: 4px 0; }
+  .foot a:hover { color: var(--accent-tx); }
+  .legal { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--text-3); font-size: 14px; }
+
+  /* --- Tamaños ----------------------------------------------------------------------------------- */
+  @media (max-width: 1020px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .scene { height: 460px; max-width: 640px; margin: 0 auto; width: 100%; }
+    .demo-shell { grid-template-columns: 1fr; }
+    .tabs { grid-template-columns: repeat(5, minmax(150px, 1fr)); overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+    .tab { scroll-snap-align: start; grid-template-columns: 34px 1fr; }
+    .tabs { scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab small { display: none; }
+    .tab .ico { grid-row: auto; width: 34px; height: 34px; }
+    .features { grid-template-columns: repeat(2, 1fr); }
+    .platforms { grid-template-columns: repeat(2, 1fr); }
+    .nav-links { display: none; }
+  }
+  @media (max-width: 860px) {
+    .demos .head { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .hero { padding: 104px 0 60px; }
+    .hero-lead { font-size: 18px; }
+    .scene { height: 380px; }
+    .l-player { width: 100%; left: 0; top: 30px; }
+    .l-list { width: 52%; top: -6px; right: -4%; }
+    .l-mix { width: 62%; }
+    .l-voice { left: 0; bottom: 20px; }
+    .hp-sec .big { font-size: 26px; }
+    section.block { padding: 76px 0; }
+    .flow { grid-template-columns: 1fr 1fr; row-gap: 34px; }
+    .flow::before, .flow .fill { display: none; }
+    .features, .platforms { grid-template-columns: 1fr; }
+    .caption .txt { font-size: 16px; }
+    .steps { display: none; }
+    .cta { padding: 50px 22px; border-radius: 24px; }
+    .foot { grid-template-columns: 1fr; }
+    .legal { flex-direction: column; }
+    .nav .btn.ghost { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    .reveal { opacity: 1; transform: none; }
+    .marquee { flex-wrap: wrap; width: auto; justify-content: center; }
+    .marquee [aria-hidden] { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="/" aria-label="Gosen Tracks, inicio"><img src="/logo.png" alt="" /><span>Gosen <b>Tracks</b></span></a>
+    <nav class="nav-links" aria-label="Secciones">
+      <a href="#demos">Cómo se usa</a>
+      <a href="#funciones">Funciones</a>
+      <a href="#instrumentos">Instrumentos</a>
+      <a href="#plataformas">Plataformas</a>
+    </nav>
+    <div class="nav-end">
+      <button class="theme-btn" id="theme" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Tema claro / oscuro">
+        <svg class="i moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
+        <svg class="i sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+      </button>
+      <a class="btn ghost" href="/iphone/">App para iPhone</a>
+      <a class="btn primary" href="/admin">Entrar</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow reveal">Multitracks para la iglesia</span>
+        <h1 class="reveal" style="--delay: 0.08s">Tu banda, en vivo y <em>siempre a tempo</em>.</h1>
+        <p class="hero-lead reveal" style="--delay: 0.16s">Gosen Tracks reproduce las pistas de cada canción con voces guía que cuentan antes de cada parte, saltos que esperan el compás y una lista de culto que fluye de canción en canción.</p>
+        <div class="hero-cta reveal" style="--delay: 0.24s">
+          <a class="btn primary" href="#demos"><svg class="i" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" /></svg> Verlo funcionar</a>
+          <a class="btn" href="/admin">Entrar al panel</a>
+        </div>
+        <div class="hero-facts reveal" style="--delay: 0.32s">
+          <span><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg> Windows, Mac, Android y iPhone</span>
+          <span><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg> Canciones en la nube</span>
+          <span><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg> Funciona sin internet el domingo</span>
+        </div>
+      </div>
+
+      <div class="scene" id="scene" aria-label="Vista del reproductor de Gosen Tracks">
+        <div class="layer l-player" data-depth="0.5">
+          <div class="win float-a">
+            <div class="win-bar"><i></i><i></i><i></i><b>Reproductor</b></div>
+            <div class="hp">
+              <div class="hp-top">
+                <div class="cover">ET</div>
+                <div class="hp-name"><b>Eres Todopoderoso</b><span>Re · 76 BPM · 4/4</span></div>
+                <span class="live-pill">En vivo</span>
+              </div>
+              <div class="hp-sec">
+                <div><div class="m-label">Sección</div><div class="big" id="heroSec">Coro</div></div>
+                <div class="clock" id="heroClock">01:12.4</div>
+              </div>
+              <div class="strip" id="heroStrip"></div>
+              <div class="wave"><canvas data-wave="hero"></canvas><div class="played"></div></div>
+              <div class="beats" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="layer l-list" data-depth="1.1">
+          <div class="win float-b">
+            <div class="win-bar"><i></i><i></i><i></i><b>Domingo 9:00</b></div>
+            <div class="mini-list">
+              <div><span class="n">1</span>Al que está sentado<em>G</em></div>
+              <div class="on"><span class="n">▶</span>Eres Todopoderoso<em>D</em></div>
+              <div><span class="n">3</span>Santo por siempre<em>B</em></div>
+              <div><span class="n">4</span>Rey de reyes<em>E</em></div>
+            </div>
+          </div>
+        </div>
+        <div class="layer l-voice" data-depth="1.6">
+          <div class="voice-card float-c">
+            <span class="mic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" /></svg></span>
+            <div><div class="m-label">Voz guía</div><div class="says" id="heroSays">«Coro»</div></div>
+          </div>
+        </div>
+        <div class="layer l-mix" data-depth="0.9">
+          <div class="win float-b" style="animation-delay: -4s">
+            <div class="win-bar"><i></i><i></i><i></i><b>Mezcla</b></div>
+            <div class="mixer" id="heroMix"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block demos" id="demos">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="eyebrow">Míralo funcionar</span>
+        <h2>Así se usa Gosen Tracks, paso a paso.</h2>
+        <p>Cinco momentos reales de un domingo, con la app de verdad: elegir la canción, mezclar, seccionar, saltar a tempo y armar la lista del culto.</p>
+      </div>
+      <div class="demo-shell reveal" id="demoShell">
+        <div class="tabs" role="tablist" aria-label="Demostraciones" id="tabs"></div>
+        <div class="demo-main">
+          <div class="stage">
+            <div class="screen-box" id="screenBox">
+              <div class="screen" id="screen" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="caption" aria-live="polite">
+            <span class="num" id="capNum">1</span>
+            <span class="txt" id="capTxt"></span>
+            <span class="steps" id="capSteps" aria-hidden="true"></span>
+          </div>
+          <p class="demo-note">Las demostraciones se repiten solas. Toca una pestaña para ver otra.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="como">
+    <div class="wrap">
+      <div class="head center reveal">
+        <span class="eyebrow">Del panel al domingo</span>
+        <h2>Subes una vez. Toda la banda lo tiene listo.</h2>
+        <p>Las canciones viven en la nube de tu iglesia; cada equipo baja solo lo que necesita y el día del culto toca sin internet.</p>
+      </div>
+      <div class="flow reveal" id="flow">
+        <span class="fill"></span>
+        <div class="flow-step"><div class="dot"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg></div><h3>Sube el ZIP</h3><p>Desde el panel: la canción, sus pistas y su portada, con nombre, tono y compás.</p></div>
+        <div class="flow-step"><div class="dot"><svg class="i" viewBox="0 0 24 24"><path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10a4 4 0 0 1-1 7.9" /><path d="M12 12v8M9 17l3 3 3-3" /></svg></div><h3>La nube la ordena</h3><p>Cada pista con su instrumento y su color. Si cambias una, solo esa se vuelve a bajar.</p></div>
+        <div class="flow-step"><div class="dot"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M8 14h3" /></svg></div><h3>Arma el culto</h3><p>La lista del domingo con sus transiciones. Los equipos la preparan antes del día.</p></div>
+        <div class="flow-step"><div class="dot"><svg class="i" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg></div><h3>Toca en vivo</h3><p>Voces guía, click a tus audífonos y la música a la sala, sin cortes entre partes.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="funciones">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="eyebrow">Funciones</span>
+        <h2>Hecho para el que dirige desde el escenario.</h2>
+        <p>Todo lo que necesitas en el momento, sin menús escondidos.</p>
+      </div>
+      <div class="features" id="featGrid"></div>
+    </div>
+  </section>
+
+  <section class="block gallery" id="instrumentos">
+    <div class="wrap">
+      <div class="head center reveal">
+        <span class="eyebrow">Instrumentos</span>
+        <h2>Cada pista en su lugar, con su color.</h2>
+        <p>31 categorías de instrumentos: la app sabe qué va a tus audífonos, qué cambia de tono y qué suena en la sala.</p>
+      </div>
+    </div>
+    <div class="rows reveal">
+      <div class="marquee" id="row1"></div>
+      <div class="marquee rev" id="row2"></div>
+    </div>
+  </section>
+
+  <section class="block" id="plataformas">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="eyebrow">Plataformas</span>
+        <h2>En el computador del templo y en tu celular.</h2>
+        <p>La misma biblioteca y las mismas listas en todos los equipos de tu iglesia.</p>
+      </div>
+      <div class="platforms">
+        <div class="plat reveal"><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg></div><h3>Windows</h3><p>Reproductor completo, salidas por canal y control de la consola.</p></div>
+        <div class="plat reveal" style="--delay: 0.08s"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M16 3c-1 .1-2.2.8-2.9 1.6-.6.7-1.2 1.9-1 3 1.1 0 2.3-.6 3-1.5.6-.8 1-1.9.9-3.1zM19.5 17c-.5 1.2-1.1 2.3-2 3.3-.7.8-1.5 1.6-2.6 1.6s-1.5-.7-2.8-.7-1.7.7-2.8.7c-1.1 0-1.9-.9-2.6-1.7C4.6 17.5 3.6 13 5.4 10c.9-1.5 2.4-2.4 4-2.4 1.1 0 2.2.8 2.9.8s2-.9 3.4-.8c.6 0 2.3.2 3.4 1.8-2.9 1.8-2.4 6 .4 7.6z" /></svg></div><h3>Mac</h3><p>Para equipos con chip Apple, firmada y lista para abrir.</p></div>
+        <div class="plat reveal" style="--delay: 0.16s"><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></svg></div><h3>Android</h3><p>Para ensayar en casa con tus pistas, el click y la guía.</p></div>
+        <div class="plat reveal" style="--delay: 0.24s"><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 5h4" /></svg></div><h3>iPhone</h3><p>Se instala desde Safari: Compartir → Agregar a inicio.</p><a href="/iphone/">Abrir la app para iPhone →</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="cta reveal">
+      <div class="eq" aria-hidden="true" id="ctaEq"></div>
+      <h2>Prepara el próximo domingo.</h2>
+      <p>Sube tus multitracks, arma la lista y deja que la banda se concentre en adorar.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="/admin">Entrar al panel</a>
+        <a class="btn" href="/iphone/">Instalar en iPhone</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="/"><img src="/logo.png" alt="" /><span>Gosen <b>Tracks</b></span></a>
+        <p>Multitracks en vivo para iglesias: voces guía, saltos a tempo y listas de culto en todos tus equipos.</p>
+      </div>
+      <div>
+        <h4>Producto</h4>
+        <a href="#demos">Cómo se usa</a>
+        <a href="#funciones">Funciones</a>
+        <a href="#instrumentos">Instrumentos</a>
+      </div>
+      <div>
+        <h4>Tu iglesia</h4>
+        <a href="/admin">Panel de canciones</a>
+        <a href="/iphone/">App para iPhone</a>
+        <a href="#plataformas">Plataformas</a>
+      </div>
+    </div>
+    <div class="legal"><span>© <span id="year">2026</span> Gosen Tracks</span><span>Hecho con cuidado para el servicio del domingo.</span></div>
+  </div>
+</footer>
+
+<script>
+;(function () {
+  'use strict'
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+  var $ = function (s, r) { return (r || document).querySelector(s) }
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)) }
+  document.getElementById('year').textContent = new Date().getFullYear()
+
+  // --- Tema ---------------------------------------------------------------------------------
+  $('#theme').addEventListener('click', function () {
+    var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'
+    document.documentElement.dataset.theme = next
+    try { localStorage.setItem('gosen.web.theme', next) } catch (e) {}
+    drawWaves()
+  })
+
+  // --- Barra al desplazarse y aparición progresiva --------------------------------------------
+  var nav = $('#nav')
+  var onScroll = function () { nav.classList.toggle('scrolled', window.scrollY > 20) }
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onScroll()
+  if ('IntersectionObserver' in window && !reduce) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) } })
+    }, { threshold: 0.18, rootMargin: '0px 0px -40px 0px' })
+    $$('.reveal, .flow').forEach(function (el) { io.observe(el) })
+  } else $$('.reveal, .flow').forEach(function (el) { el.classList.add('in') })
+
+  // --- Ondas (dibujadas una vez; se redibujan con el tema) ---------------------------------------
+  function rand(seed) { var s = seed; return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646 } }
+  function drawWave(c) {
+    var w = c.clientWidth, h = c.clientHeight
+    if (!w || !h) return
+    var dpr = window.devicePixelRatio || 1
+    c.width = w * dpr; c.height = h * dpr
+    var x = c.getContext('2d'); x.scale(dpr, dpr)
+    var r = rand(c.dataset.seed ? Number(c.dataset.seed) : 7)
+    x.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--wave').trim() || '#ccc'
+    for (var i = 0; i < w; i += 3) {
+      var env = 0.35 + 0.65 * Math.abs(Math.sin(i / w * Math.PI * 3.2)) * (0.55 + 0.45 * Math.sin(i / 37))
+      var v = Math.max(0.08, env * (0.55 + r() * 0.45))
+      x.fillRect(i, (h - v * h * 0.86) / 2, 2, v * h * 0.86)
+    }
+  }
+  function drawWaves() { $$('canvas[data-wave]').forEach(drawWave) }
+  window.addEventListener('resize', function () { clearTimeout(drawWaves.t); drawWaves.t = setTimeout(drawWaves, 150) })
+
+  // --- Hero: mezcla, tira de secciones, voz guía a tempo y profundidad ---------------------------
+  var SEC = [['Intro', 'var(--c-intro)', 1], ['Verso', 'var(--c-verso)', 2], ['Pre coro', 'var(--c-precoro)', 1], ['Coro', 'var(--c-coro)', 2], ['Puente', 'var(--c-puente)', 1.2], ['Coro', 'var(--c-coro)', 2], ['Final', 'var(--c-final)', 0.8]]
+  $('#heroStrip').innerHTML = SEC.map(function (s) { return '<i style="flex:' + s[2] + ';background:' + s[1] + '"></i>' }).join('')
+  var MIX = [['Click', '#9aa3b5'], ['Guía', '#c77dff'], ['Bat', '#f46a6a'], ['Bajo', '#f1b44c'], ['Piano', '#2fd8a8'], ['Pad', '#5fb4e8'], ['Voz', '#4f8cff']]
+  $('#heroMix').innerHTML = MIX.map(function (m, i) { return '<div class="ch"><div class="meter" style="--cc:' + m[1] + ';--lv:' + (55 + (i * 37) % 40) + '%;--d:-' + (i * 0.23).toFixed(2) + 's"></div><span>' + m[0] + '</span></div>' }).join('')
+  $('#ctaEq').innerHTML = Array.from({ length: 40 }, function (_, i) { return '<i style="animation-delay:-' + ((i * 0.37) % 1).toFixed(2) + 's;height:' + (30 + (i * 53) % 70) + '%"></i>' }).join('')
+  if (!reduce) {
+    // La voz guía cuenta como en la app: el nombre en el compás anterior y la cuenta en el de entrada.
+    // Ciclo de 4 compases: 2 de Pre coro (nombre en el primero, cuenta en el segundo) y 2 de Coro.
+    var says = ['«Coro»', '«Coro»', '«Coro»', '…', '«1»', '«2»', '«3»', '«4»']
+    var k = 0, el = $('#heroSays'), sec = $('#heroSec'), clock = $('#heroClock'), t0 = 72.4
+    setInterval(function () {
+      if (document.hidden) return
+      var b = k % 16, coro = b >= 8
+      el.textContent = coro ? '♪' : says[b]
+      sec.textContent = coro ? 'Coro' : 'Pre coro'
+      sec.style.color = coro ? 'var(--c-coro)' : 'var(--c-precoro)'
+      t0 += 0.6
+      clock.textContent = '0' + Math.floor(t0 / 60) + ':' + ('0' + (t0 % 60).toFixed(1)).slice(-4)
+      k++
+    }, 600)
+    // Profundidad: cada ventana se mueve distinto con el ratón y al desplazarse.
+    var scene = $('#scene'), layers = $$('.layer', scene), mx = 0, my = 0, sy = 0, raf = 0
+    var apply = function () {
+      raf = 0
+      layers.forEach(function (l) {
+        var d = Number(l.dataset.depth)
+        l.style.transform = 'translate3d(' + (mx * d * 14).toFixed(1) + 'px,' + (my * d * 10 - sy * d * 0.08).toFixed(1) + 'px,0)'
+      })
+    }
+    var queue = function () { if (!raf) raf = requestAnimationFrame(apply) }
+    scene.closest('.hero').addEventListener('pointermove', function (e) {
+      var r = scene.getBoundingClientRect()
+      mx = (e.clientX - r.left) / r.width - 0.5; my = (e.clientY - r.top) / r.height - 0.5; queue()
+    })
+    window.addEventListener('scroll', function () { sy = Math.min(window.scrollY, 900); queue() }, { passive: true })
+  }
+
+  // --- Funciones ------------------------------------------------------------------------------
+  var ICON = {
+    mic: '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" />',
+    jump: '<path d="M4 17h4l3-10 3 10h6" /><path d="M17 4l3 3-3 3" />',
+    list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />',
+    pad: '<path d="M2 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0" /><path d="M2 18c2-4 4-4 6 0s4 4 6 0 4-4 6 0" opacity=".5" />',
+    out: '<path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z" />',
+    lyrics: '<rect x="3" y="4" width="18" height="12" rx="2" /><path d="M7 9h10M7 12h6M8 20h8" />',
+    remote: '<rect x="7" y="2" width="10" height="20" rx="2.5" /><circle cx="12" cy="8" r="2" /><path d="M10 14h4M10 17h4" />',
+    edit: '<path d="M3 17l6-6 4 4 8-8" /><path d="M14 7h7v7" />',
+    key: '<path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />'
+  }
+  var FEATS = [
+    ['mic', 'Voces guía a tempo', 'Antes de cada parte dice su nombre y cuenta sobre los pulsos del click: «Coro, 1, 2, 3, 4». Voz femenina o masculina.'],
+    ['jump', 'Saltos en el compás', 'Toca otra sección cuando quieras: la app espera el tiempo 1 y cambia sin cortar el ritmo. También repite una parte.'],
+    ['list', 'Listas con transiciones', 'Espera tu Play, sigue sola, se superpone, fundido cruzado o Trigger con el click a tempo.'],
+    ['pad', 'Pads tonales', 'Un colchón que toma el tono de la canción, respira con su tempo y sigue sonando entre canciones.'],
+    ['out', 'Click a tus audífonos', 'Click y guía por un lado, la música a la sala por el otro, o cada pista a su canal de la consola.'],
+    ['key', 'Tono y tempo en vivo', 'Cambia el tono o la velocidad mientras suena; el click y la guía no se desafinan.'],
+    ['edit', 'Editor multipista', 'Secciones sobre la cuadrícula del compás, voces que se arrastran como clips, fundidos y deshacer.'],
+    ['lyrics', 'Letra en Holyrics', 'Las diapositivas avanzan solas con la canción, marcadas a tiempo.'],
+    ['remote', 'Control desde el celular', 'Maneja el computador del templo desde tu teléfono: play, secciones e intensidad.']
+  ]
+  $('#featGrid').innerHTML = FEATS.map(function (f, i) {
+    return '<article class="feat reveal" style="--delay:' + (i % 3) * 0.08 + 's"><div class="ic"><svg class="i" viewBox="0 0 24 24">' + ICON[f[0]] + '</svg></div><h3>' + f[1] + '</h3><p>' + f[2] + '</p></article>'
+  }).join('')
+  if (!reduce && 'IntersectionObserver' in window) $$('#featGrid .reveal').forEach(function (el) { io.observe(el) })
+  else $$('#featGrid .reveal').forEach(function (el) { el.classList.add('in') })
+
+  // --- Galería de instrumentos (categorías reales de la nube) -----------------------------------
+  var FALLBACK = [{ id: 'drums', label: 'Batería', color: '#f46a6a' }, { id: 'bass', label: 'Bajo eléctrico', color: '#f1b44c' }, { id: 'piano', label: 'Piano', color: '#2fd8a8' }, { id: 'guitar', label: 'Guitarra eléctrica', color: '#8fd16a' }, { id: 'pad', label: 'Pads', color: '#5fb4e8' }, { id: 'choir', label: 'Coros', color: '#8a7dff' }, { id: 'click', label: 'Click', color: '#9aa3b5' }, { id: 'guide', label: 'Guía', color: '#c77dff' }]
+  function fillGallery(cats, fams) {
+    var famOf = {}
+    ;(fams || []).forEach(function (f) { (f.ids || f.categories || []).forEach(function (id) { famOf[id] = f.label || f.name }) })
+    var chip = function (c) { return '<span class="chip" style="--cc:' + c.color + '"><span class="sw"><i></i></span><span><b>' + c.label + '</b><span>' + (famOf[c.id] || 'Pista') + '</span></span></span>' }
+    var half = Math.ceil(cats.length / 2)
+    var rows = [cats.slice(0, half), cats.slice(half)]
+    ;['#row1', '#row2'].forEach(function (sel, i) {
+      var html = rows[i].map(chip).join('')
+      $(sel).innerHTML = html + '<span aria-hidden="true" style="display:contents">' + html + '</span>'
+    })
+  }
+  fillGallery(FALLBACK)
+  fetch('/api/categories').then(function (r) { return r.ok ? r.json() : null }).then(function (d) { if (d && d.categories && d.categories.length) fillGallery(d.categories, d.families) }).catch(function () {})
+
+  // ==========================================================================================
+  // Demostraciones tipo tutorial: una pantalla de la app, un cursor que la usa y un texto por paso.
+  // Todo sale de funciones reales de Gosen Tracks.
+  // ==========================================================================================
+  var W = 760, H = 460
+  var screen = $('#screen'), box = $('#screenBox')
+  var scale = 1
+  function fit() {
+    scale = box.clientWidth / W
+    screen.style.transform = 'scale(' + scale + ')'
+    box.style.height = H * scale + 'px'
+  }
+  new ResizeObserver(fit).observe(box)
+  fit()
+
+  var STOP = {}
+  function Run(instant) { this.alive = true; this.instant = instant; this.timers = [] }
+  Run.prototype.wait = function (ms) {
+    var self = this
+    return new Promise(function (res, rej) {
+      if (!self.alive) return rej(STOP)
+      if (self.instant) return res()
+      self.timers.push(setTimeout(function () { self.alive ? res() : rej(STOP) }, ms))
+    })
+  }
+  Run.prototype.stop = function () { this.alive = false; this.timers.forEach(clearTimeout) }
+  function at(el, fx, fy) {
+    var r = el.getBoundingClientRect(), b = screen.getBoundingClientRect()
+    return { x: (r.left - b.left + r.width * (fx == null ? 0.5 : fx)) / scale, y: (r.top - b.top + r.height * (fy == null ? 0.5 : fy)) / scale }
+  }
+  Run.prototype.cursorTo = function (x, y, ms) {
+    var c = $('.cursor', screen)
+    ms = this.instant ? 0 : ms == null ? 650 : ms
+    c.style.transitionDuration = ms + 'ms'
+    c.classList.add('show')
+    c.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'
+    this.pos = { x: x, y: y }
+    return this.wait(ms + 40)
+  }
+  Run.prototype.move = function (el, fx, fy, ms) { var p = at(el, fx, fy); return this.cursorTo(p.x, p.y, ms) }
+  Run.prototype.click = function () {
+    var c = $('.cursor', screen), self = this
+    if (this.instant) return Promise.resolve()
+    c.classList.add('press')
+    var rp = document.createElement('span'); rp.className = 'ripple'
+    rp.style.left = this.pos.x + 'px'; rp.style.top = this.pos.y + 'px'
+    screen.appendChild(rp)
+    setTimeout(function () { rp.remove() }, 700)
+    return this.wait(170).then(function () { c.classList.remove('press'); return self.wait(160) })
+  }
+  Run.prototype.press = function (down) { $('.cursor', screen).classList.toggle('press', down) }
+
+  var CURSOR = '<div class="cursor"><svg viewBox="0 0 24 24"><path d="M4 3l15 8.5-6.6 1.6L9.6 20z" fill="#fff" stroke="#16141f" stroke-width="1.6" stroke-linejoin="round"/></svg></div>'
+  var RAIL = function (on) { return '<aside class="m-rail"><img src="/logo.png" alt="">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i === on ? 'on' : '') + '"></i>' }).join('') + '</aside>' }
+  var PLAY = '<svg class="i" viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M8 5v14l11-7z"/></svg>'
+  var TRACKS = [['Click', 'Click', '#9aa3b5', 'L'], ['Guía', 'Guía', '#c77dff', 'L'], ['Batería', 'Batería', '#f46a6a', 'R'], ['Bajo', 'Bajo', '#f1b44c', 'R'], ['Piano', 'Piano', '#2fd8a8', 'R'], ['Pad', 'Pads', '#5fb4e8', 'R']]
+  function tile(t, i, hidden) {
+    return '<div class="m-tile' + (hidden ? ' hidden' : '') + '" data-t="' + t[0] + '" style="--cc:' + t[2] + '">' +
+      '<span class="tn">' + t[0] + '</span><span class="tt">' + t[1] + '</span>' +
+      '<div class="m-fader"><span class="track"></span><span class="lv" style="--d:-' + (i * 0.17).toFixed(2) + 's"></span><span class="knob"></span></div>' +
+      '<div class="m-db">0.0</div><div class="m-ms"><span class="m">M</span><span class="s">S</span></div>' +
+      '<div class="m-out"><span class="' + (t[3] === 'L' ? 'on' : '') + '">L</span><span>L+R</span><span class="' + (t[3] === 'R' ? 'on' : '') + '">R</span></div></div>'
+  }
+  function waveCanvas(seed) { return '<canvas data-wave="demo" data-seed="' + seed + '" style="position:absolute;inset:0;width:100%;height:100%"></canvas>' }
+
+  var DEMOS = [
+    {
+      tab: 'Elegir la canción', sub: 'Carga y prepara sus pistas', icon: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+      build: function () {
+        return '<div class="m-app">' + RAIL(1) + '<div class="m-body" style="display:grid;grid-template-columns:250px 1fr;gap:14px">' +
+          '<div class="m-card" style="padding:10px;display:flex;flex-direction:column;gap:4px"><div class="m-label" style="padding:4px 6px 8px">Biblioteca</div>' +
+          [['AQ', 'Al que está sentado', 'G · 72 BPM', '#f472b6,#be185d'], ['ET', 'Eres Todopoderoso', 'D · 76 BPM', '#8b6cff,#5a2ee0'], ['SP', 'Santo por siempre', 'B · 70 BPM', '#38bdf8,#0369a1'], ['RR', 'Rey de reyes', 'E · 128 BPM', '#f59e0b,#b45309']].map(function (s, i) {
+            return '<div class="m-row" data-song="' + i + '"><div class="cover" style="background:linear-gradient(135deg,' + s[3] + ')">' + s[0] + '</div><div class="t"><b>' + s[1] + '</b><span>' + s[2] + '</span></div><span class="go">' + PLAY + '</span></div>'
+          }).join('') + '</div>' +
+          '<div style="display:flex;flex-direction:column;gap:12px;min-width:0">' +
+          '<div class="m-card" style="padding:12px 14px;display:flex;align-items:center;gap:12px"><div class="cover" id="dCover" style="background:var(--panel-3);color:var(--text-3)">—</div><div class="t" style="display:flex;flex-direction:column;min-width:0"><b id="dName">Ninguna canción cargada</b><span class="m-note" id="dSub">Elige una en la biblioteca</span></div><span class="m-play" id="dPlay" style="margin-left:auto">' + PLAY + '</span></div>' +
+          '<div class="m-card" style="padding:10px 12px;display:grid;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="m-label">Pistas</span><span class="m-badge off" id="dBadge">Preparando 0/6</span></div><div class="m-prog"><i id="dProg"></i></div>' +
+          '<div style="position:relative;height:46px;border-radius:10px;background:var(--panel-2);overflow:hidden">' + waveCanvas(11) + '<div class="played" id="dPlayed" style="position:absolute;inset:0 auto 0 0;width:0;border-right:2px solid var(--accent);background:linear-gradient(90deg,transparent,var(--accent-soft));transition:width 4s linear"></div></div></div>' +
+          '<div class="m-tiles">' + TRACKS.map(function (t, i) { return tile(t, i, true) }).join('') + '</div></div></div></div>' + CURSOR
+      },
+      steps: [
+        ['Elige una canción de la biblioteca', function (r) {
+          var row = $('[data-song="1"]', screen)
+          return r.move($('.go', row)).then(function () { return r.click() }).then(function () {
+            row.classList.add('on')
+            $('#dCover').textContent = 'ET'; $('#dCover').style.cssText = ''
+            $('#dName').textContent = 'Eres Todopoderoso'; $('#dSub').textContent = 'Re · 76 BPM · 4/4'
+            return r.wait(500)
+          })
+        }],
+        ['La app prepara solo las pistas que faltan', function (r) {
+          var badge = $('#dBadge'), tiles = $$('.m-tile', screen), p = Promise.resolve()
+          badge.classList.remove('off')
+          tiles.forEach(function (t, i) {
+            p = p.then(function () { return r.wait(380) }).then(function () {
+              t.classList.remove('hidden')
+              badge.textContent = 'Preparando ' + (i + 1) + '/6'
+              $('#dProg').style.width = ((i + 1) / 6 * 100) + '%'
+            })
+          })
+          return p.then(function () { badge.textContent = 'Listo'; badge.classList.add('ok'); return r.wait(700) })
+        }],
+        ['Cada instrumento llega a su canal', function (r) { return r.move($('.m-tile[data-t="Piano"] .m-fader', screen)).then(function () { return r.wait(900) }) }],
+        ['Dale Play: suena todo junto, sincronizado', function (r) {
+          return r.move($('#dPlay')).then(function () { return r.click() }).then(function () {
+            $('#dPlay').classList.add('on'); $('#dPlayed').style.width = '62%'
+            return r.wait(2600)
+          })
+        }]
+      ]
+    },
+    {
+      tab: 'Mezclar en vivo', sub: 'Mute, solo, volumen y salidas', icon: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+      build: function () {
+        return '<div class="m-app">' + RAIL(0) + '<div class="m-body"><div class="m-h"><h4>Eres Todopoderoso</h4><span class="m-badge ok">En vivo</span><span class="m-note" style="margin-left:auto">Coro · compás 18</span></div>' +
+          '<div class="m-tiles">' + TRACKS.map(function (t, i) { return tile(t, i, false) }).join('') + '</div>' +
+          '<div class="m-route"><span id="rL"><b>L · audífonos:</b> click y guía</span><span id="rR"><b>R · sala:</b> la música</span></div></div></div>' + CURSOR
+      },
+      steps: [
+        ['Cada instrumento en su propio canal', function (r) { return r.wait(1300) }],
+        ['M silencia el piano', function (r) {
+          var t = $('.m-tile[data-t="Piano"]', screen)
+          return r.move($('.m', t)).then(function () { return r.click() }).then(function () { $('.m', t).classList.add('on'); t.classList.add('muted'); return r.wait(900) })
+        }],
+        ['S para escuchar solo la guía', function (r) {
+          var g = $('.m-tile[data-t="Guía"]', screen)
+          return r.move($('.s', g)).then(function () { return r.click() }).then(function () {
+            $('.s', g).classList.add('on')
+            $$('.m-tile', screen).forEach(function (t) { if (t !== g) t.classList.add('dim') })
+            return r.wait(1300)
+          }).then(function () { return r.click() }).then(function () {
+            $('.s', g).classList.remove('on')
+            $$('.m-tile', screen).forEach(function (t) { t.classList.remove('dim') })
+            return r.wait(500)
+          })
+        }],
+        ['Baja la batería arrastrando su fader', function (r) {
+          var t = $('.m-tile[data-t="Batería"]', screen), knob = $('.knob', t)
+          return r.move(knob).then(function () {
+            r.press(true)
+            var p = at(knob)
+            knob.style.top = '52%'
+            $('.m-db', t).textContent = '−6.0'
+            return r.cursorTo(p.x, p.y + 34, 600)
+          }).then(function () { r.press(false); return r.wait(700) })
+        }],
+        ['Click y guía a tus audífonos, la música a la sala', function (r) {
+          var t = $('.m-tile[data-t="Click"]', screen)
+          return r.move($('.m-out span', t)).then(function () { return r.click() }).then(function () {
+            $('#rL').classList.add('on')
+            return r.wait(700)
+          }).then(function () { $('#rR').classList.add('on'); return r.wait(1500) })
+        }]
+      ]
+    },
+    {
+      tab: 'Seccionar', sub: 'Partes sobre la cuadrícula del compás', icon: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+      build: function () {
+        var bars = ''
+        for (var b = 1; b <= 16; b++) bars += '<span>' + b + '</span>'
+        var grid = ''
+        for (var i = 0; i <= 64; i++) grid += '<i class="' + (i % 4 === 0 ? 'bar' : '') + '" data-beat="' + i + '" style="left:' + (i / 64 * 100) + '%"></i>'
+        return '<div class="m-app">' + RAIL(2) + '<div class="m-body"><div class="m-h"><h4>Seccionar la canción</h4><span class="m-note" style="margin-left:auto">Ajuste: <b>Compás</b></span></div>' +
+          '<div class="m-tl" id="tl" style="height:170px"><div class="m-bars">' + bars + '</div><div class="m-grid">' + grid + '</div>' +
+          '<div class="m-secs"><span class="m-sec" style="left:0;width:25%;background:var(--c-intro)">Intro</span><span class="m-sec" style="left:25%;width:25%;background:var(--c-verso)">Verso</span>' +
+          '<span class="m-sec new" id="coro" style="left:50%;width:18.75%;background:var(--c-coro)">Coro<span class="h"></span></span></div>' +
+          '<div class="m-wave">' + waveCanvas(23) + '</div><div class="m-voices" id="vl"></div>' +
+          '<div class="m-pop off" id="pop" style="left:52%;top:40px"><div class="m-label">Parte nueva aquí</div>' +
+          [['Pre coro', 'var(--c-precoro)'], ['Coro', 'var(--c-coro)'], ['Puente', 'var(--c-puente)'], ['Final', 'var(--c-final)']].map(function (o) { return '<div data-opt="' + o[0] + '"><i style="background:' + o[1] + '"></i>' + o[0] + '</div>' }).join('') + '</div></div>' +
+          '<div class="m-card" style="padding:12px 14px;display:flex;gap:12px;align-items:center"><span class="m-label">Voz guía</span><span class="m-note" id="vNote">Cada parte dice su nombre y cuenta antes de entrar.</span></div></div></div>' + CURSOR
+      },
+      steps: [
+        ['Toca una línea del compás donde empieza la parte', function (r) {
+          var line = $('[data-beat="32"]', screen)
+          return r.move(line, 0.5, 0.25).then(function () { return r.click() }).then(function () { line.classList.add('hot'); $('#pop').classList.remove('off'); return r.wait(500) })
+        }],
+        ['Elige qué parte es en el desplegable', function (r) {
+          var opt = $('[data-opt="Coro"]', screen)
+          return r.move(opt, 0.3).then(function () { opt.classList.add('hover'); return r.click() }).then(function () {
+            $('#pop').classList.add('off'); $('#coro').classList.remove('new'); $('[data-beat="32"]', screen).classList.remove('hot')
+            return r.wait(700)
+          })
+        }],
+        ['Arrastra el borde: se ajusta solo al compás', function (r) {
+          var h = $('#coro .h', screen)
+          return r.move(h).then(function () {
+            r.press(true)
+            var p = at(h)
+            $('#coro').style.width = '25%'
+            return r.cursorTo(p.x + 30, p.y, 600)
+          }).then(function () { r.press(false); return r.wait(600) })
+        }],
+        ['La voz guía se ajusta sola: «Coro, 1, 2, 3, 4»', function (r) {
+          var vl = $('#vl'), items = [['Coro', 37.5], ['1', 43.75], ['2', 45.3], ['3', 46.9], ['4', 48.4]], p = Promise.resolve()
+          vl.innerHTML = items.map(function (v) { return '<span class="m-v off" style="left:' + v[1] + '%">' + v[0] + '</span>' }).join('')
+          $$('.m-v', vl).forEach(function (v) { p = p.then(function () { return r.wait(260) }).then(function () { v.classList.remove('off') }) })
+          return p.then(function () { $('#vNote').textContent = 'El nombre un compás antes y la cuenta sobre los pulsos del click.'; return r.wait(2000) })
+        }]
+      ]
+    },
+    {
+      tab: 'Saltar a tempo', sub: 'Espera el compás, no corta', icon: '<path d="M4 17h4l3-10 3 10h6"/><path d="M17 4l3 3-3 3"/>',
+      build: function () {
+        var secs = [['Intro', 'var(--c-intro)'], ['Verso', 'var(--c-verso)'], ['Coro', 'var(--c-coro)'], ['Puente', 'var(--c-puente)'], ['Final', 'var(--c-final)']]
+        return '<div class="m-app">' + RAIL(0) + '<div class="m-body">' +
+          '<div class="m-card m-display"><div><div class="m-label">Sección</div><div class="big" id="jBig" style="color:var(--c-verso)">Verso</div></div><div class="meta"><b id="jBar">Compás 6 · 1</b><span id="jNext">Coro en 0:18</span></div><div class="beats" id="jBeats"><i class="one"></i><i></i><i></i><i></i></div></div>' +
+          '<div class="m-tl" style="height:120px"><div class="m-secs" style="top:10px">' +
+          [['Intro', 0, 16], ['Verso', 16, 34], ['Coro', 50, 30], ['Puente', 80, 20]].map(function (s) { var c = secs.filter(function (x) { return x[0] === s[0] })[0][1]; return '<span class="m-sec" style="left:' + s[1] + '%;width:' + s[2] + '%;background:' + c + '">' + s[0] + '</span>' }).join('') +
+          '</div><div class="m-wave" style="top:40px;height:70px">' + waveCanvas(31) + '</div><div class="m-head" id="jHead" style="left:24%;top:0"></div></div>' +
+          '<div class="m-secbtns">' + secs.map(function (s) { return '<span style="--sc:' + s[1] + '" data-sec="' + s[0] + '"' + (s[0] === 'Verso' ? ' class="cur"' : '') + '>' + s[0] + '</span>' }).join('') + '</div>' +
+          '<div class="m-bubble off" id="jSay" style="left:430px;top:40px">«Coro»</div></div></div>' + CURSOR
+      },
+      steps: [
+        ['La canción suena: Verso, compás 6', function (r) { return beats(r, 6, 1, 4) }],
+        ['Toca «Coro» cuando quieras', function (r) {
+          var b = $('[data-sec="Coro"]', screen)
+          return r.move(b).then(function () { return r.click() }).then(function () { b.classList.add('pend'); $('#jNext').textContent = 'Salta en el próximo compás'; return beats(r, 7, 1, 1) })
+        }],
+        ['Anuncia la entrada en los pulsos que quedan', function (r) {
+          var say = $('#jSay'), p = Promise.resolve()
+          ;['«Coro»', '«3»', '«4»'].forEach(function (w, i) {
+            p = p.then(function () { say.textContent = w; say.classList.remove('off'); return beats(r, 7, i + 2, 1) })
+          })
+          return p
+        }],
+        ['Salta justo en el tiempo 1, sin cortar el ritmo', function (r) {
+          $('#jSay').classList.add('off')
+          var b = $('[data-sec="Coro"]', screen)
+          b.classList.remove('pend'); b.classList.add('cur'); $('[data-sec="Verso"]', screen).classList.remove('cur')
+          var head = $('#jHead'); head.style.transition = 'none'; head.style.left = '50%'
+          $('#jBig').textContent = 'Coro'; $('#jBig').style.color = 'var(--c-coro)'; $('#jNext').textContent = 'Puente en 0:31'
+          return beats(r, 17, 1, 8)
+        }]
+      ]
+    },
+    {
+      tab: 'Armar el culto', sub: 'Orden, transiciones y pad', icon: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+      build: function () {
+        var songs = [['AQ', 'Al que está sentado', 'G', '#f472b6,#be185d'], ['ET', 'Eres Todopoderoso', 'D', '#8b6cff,#5a2ee0'], ['SP', 'Santo por siempre', 'B', '#38bdf8,#0369a1'], ['RR', 'Rey de reyes', 'E', '#f59e0b,#b45309']]
+        return '<div class="m-app">' + RAIL(1) + '<div class="m-body"><div class="m-split">' +
+          '<div class="m-card m-list" id="list"><div class="m-h" style="padding:2px 4px 8px"><h4>Domingo · 9:00</h4><span class="m-btn primary" id="lStart" style="margin-left:auto">' + PLAY + ' Iniciar culto</span></div>' +
+          songs.map(function (s, i) {
+            return '<div class="m-item" data-i="' + i + '"><div class="m-row"><span style="width:16px;font:600 12px var(--mono);color:var(--text-3)">' + (i + 1) + '</span><div class="cover" style="background:linear-gradient(135deg,' + s[3] + ')">' + s[0] + '</div><div class="t"><b>' + s[1] + '</b><span>Tono ' + s[2] + '</span></div><span class="bar2"><i></i></span></div>' +
+              (i < 3 ? '<div class="m-trans">■ Default · espera tu Play</div>' : '') + '</div>'
+          }).join('') + '</div>' +
+          '<div style="display:flex;flex-direction:column;gap:12px"><div class="m-card m-pad"><div class="m-h"><span class="m-power" id="pPow"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v8M6.6 6.6a7.5 7.5 0 1 0 10.8 0"/></svg></span><div><b>Pad</b><div class="m-note" id="pKey">Apagado</div></div></div>' +
+          '<div class="m-keys" id="keys">' + ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'].map(function (k) { return '<span data-k="' + k + '">' + k + '</span>' }).join('') + '</div>' +
+          '<div class="m-check"><i class="on"></i>Seguir la canción</div><div class="m-check"><i class="on"></i>Seguir el tempo</div></div>' +
+          '<div class="m-status" id="lStatus">Siguiente: Al que está sentado · espera tu Play</div>' +
+          '<div class="m-pop off" id="tPop" style="position:relative;width:auto"><div class="m-label">Al terminar</div>' + ['Default · espera tu Play', 'Auto-Advance · sigue sola', 'Overlap · se superponen', 'Crossfade · fundido 4 s', 'Trigger · sigue el click'].map(function (o) { return '<div data-t="' + o.split(' ')[0] + '">' + o + '</div>' }).join('') + '</div></div></div></div></div>' + CURSOR
+      },
+      steps: [
+        ['Arrastra para ordenar el culto', function (r) {
+          var items = $$('.m-item', screen), mv = items[3], tgt = items[1]
+          var h = tgt.getBoundingClientRect().top - mv.getBoundingClientRect().top
+          return r.move($('.m-row', mv), 0.4).then(function () {
+            r.press(true); mv.classList.add('lift')
+            var p = at($('.m-row', mv), 0.4)
+            mv.style.transform = 'translateY(' + (h / scale) + 'px)'
+            items[1].style.transform = items[2].style.transform = 'translateY(' + (mv.getBoundingClientRect().height / scale) + 'px)'
+            return r.cursorTo(p.x, p.y + h / scale, 700)
+          }).then(function () {
+            r.press(false)
+            var list = $('#list')
+            mv.classList.remove('lift')
+            ;[mv, items[1], items[2]].forEach(function (el) { el.style.transition = 'none'; el.style.transform = '' })
+            list.insertBefore(mv, items[1])
+            if (!$('.m-trans', mv)) mv.insertAdjacentHTML('beforeend', '<div class="m-trans">■ Default · espera tu Play</div>')
+            var last = $$('.m-item', screen)[3], tr = $('.m-trans', last); if (tr) tr.remove()
+            $$('.m-item', screen).forEach(function (el, i) { $('.m-row span', el).textContent = i + 1; el.offsetHeight; el.style.transition = '' })
+            return r.wait(500)
+          })
+        }],
+        ['Elige cómo pasa a la siguiente: Crossfade de 4 s', function (r) {
+          var tr = $('.m-item .m-trans', screen)
+          return r.move(tr, 0.4).then(function () { return r.click() }).then(function () {
+            $('#tPop').classList.remove('off'); return r.wait(400)
+          }).then(function () { var o = $('[data-t="Crossfade"]', screen); return r.move(o, 0.3).then(function () { o.classList.add('hover'); return r.click() }) }).then(function () {
+            $('#tPop').classList.add('off'); tr.textContent = '⤳ Crossfade · fundido 4 s'; tr.classList.add('set')
+            $('#lStatus').textContent = 'Siguiente: Rey de reyes · fundido cruzado de 4 s'
+            return r.wait(700)
+          })
+        }],
+        ['El pad toma el tono de la canción', function (r) {
+          return r.move($('#pPow')).then(function () { return r.click() }).then(function () {
+            $('#pPow').classList.add('on'); $('[data-k="G"]', screen).classList.add('on'); $('#pKey').textContent = 'Sol · Cálido'
+            return r.wait(900)
+          })
+        }],
+        ['Inicia el culto: una canción funde con la siguiente', function (r) {
+          var rows = $$('.m-item .m-row', screen)
+          return r.move($('#lStart')).then(function () { return r.click() }).then(function () {
+            rows[0].classList.add('on', 'playing'); var b1 = $('.bar2 i', rows[0])
+            b1.style.transition = 'width 2.6s linear'; b1.offsetWidth; b1.style.width = '100%'
+            $('#lStatus').textContent = 'Sonando: Al que está sentado'
+            return r.wait(2000)
+          }).then(function () {
+            $('#lStatus').textContent = 'Fundiendo a Rey de reyes…'
+            rows[1].classList.add('playing'); var b2 = $('.bar2 i', rows[1])
+            b2.style.transition = 'width 3s linear'; b2.offsetWidth; b2.style.width = '35%'
+            $('[data-k="G"]', screen).classList.remove('on'); $('[data-k="E"]', screen).classList.add('on'); $('#pKey').textContent = 'Mi · Cálido'
+            return r.wait(1300)
+          }).then(function () { rows[0].classList.remove('on', 'playing'); rows[1].classList.add('on'); $('#lStatus').textContent = 'Sonando: Rey de reyes · el pad cambió a Mi'; return r.wait(1800) })
+        }]
+      ]
+    }
+  ]
+
+  /** Pulsos del compás en la demostración de salto (0,6 s por pulso). */
+  function beats(r, bar, from, count) {
+    var dots = $$('#jBeats i', screen), p = Promise.resolve(), head = $('#jHead')
+    for (var n = 0; n < count; n++) (function (n) {
+      p = p.then(function () {
+        var beat = ((from - 1 + n) % 4) + 1, b = bar + Math.floor((from - 1 + n) / 4)
+        dots.forEach(function (d, i) { d.classList.toggle('on', i === beat - 1) })
+        $('#jBar').textContent = 'Compás ' + b + ' · ' + beat
+        var left = parseFloat(head.style.left) || 24
+        head.style.transition = 'left 0.6s linear'; head.style.left = Math.min(98, left + 0.55) + '%'
+        return r.wait(600)
+      })
+    })(n)
+    return p
+  }
+
+  // Pestañas
+  var tabs = $('#tabs')
+  tabs.innerHTML = DEMOS.map(function (d, i) {
+    return '<button class="tab" role="tab" type="button" id="tab' + i + '" aria-controls="screen" aria-selected="false"><span class="ico"><svg class="i" viewBox="0 0 24 24">' + d.icon + '</svg></span><b>' + d.tab + '</b><small>' + d.sub + '</small><span class="bar"></span></button>'
+  }).join('')
+  var cur = 0, run = null, visible = false, userPicked = false
+
+  function setCaption(i, steps) {
+    $('#capNum').textContent = i + 1
+    $('#capTxt').innerHTML = '<span>' + steps[i][0] + '</span>'
+    $('#capSteps').innerHTML = steps.map(function (_, k) { return '<i class="' + (k < i ? 'done' : k === i ? 'on' : '') + '"></i>' }).join('')
+  }
+  function start(i) {
+    if (run) run.stop()
+    cur = i
+    $$('.tab', tabs).forEach(function (t, k) {
+      t.classList.toggle('on', k === i); t.setAttribute('aria-selected', String(k === i))
+      var bar = $('.bar', t); bar.style.transition = 'none'; bar.style.width = '0'
+    })
+    var d = DEMOS[i]
+    screen.innerHTML = d.build()
+    screen.classList.toggle('instant', reduce)
+    $$('canvas[data-wave]', screen).forEach(drawWave)
+    var me = (run = new Run(reduce))
+    var bar = $('.bar', $$('.tab', tabs)[i])
+    var k = 0
+    var next = function () {
+      if (!me.alive) return
+      if (k >= d.steps.length) {
+        if (reduce) { setCaption(d.steps.length - 1, d.steps); return }
+        me.wait(1800).then(function () { start(userPicked ? i : (i + 1) % DEMOS.length) }, function () {})
+        return
+      }
+      setCaption(k, d.steps)
+      bar.style.transition = 'width 0.5s var(--ease)'; bar.style.width = ((k + 1) / d.steps.length * 100) + '%'
+      d.steps[k][1](me, d).then(function () { k++; next() }, function () {})
+    }
+    if (visible || reduce) next()
+  }
+  tabs.addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return
+    userPicked = true
+    start($$('.tab', tabs).indexOf(b))
+  })
+  tabs.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+    e.preventDefault()
+    var n = (cur + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1) + DEMOS.length) % DEMOS.length
+    userPicked = true; start(n); $$('.tab', tabs)[n].focus()
+  })
+  // Solo corre cuando se ve (no gasta nada fuera de pantalla ni en otra pestaña del navegador).
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      var v = es[0].isIntersecting
+      if (v === visible) return
+      visible = v
+      if (v && !document.hidden) start(cur)
+      else if (run) run.stop()
+    }, { threshold: 0.25 }).observe($('#demoShell'))
+  } else visible = true
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { if (run) run.stop() } else if (visible) start(cur)
+  })
+  start(0)
+  drawWaves()
+  // Para la autoprueba.
+  window.__gosenLanding = { demos: DEMOS.length, current: function () { return cur }, start: start }
+})()
+</script>
+</body>
+</html>

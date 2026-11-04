@@ -21,7 +21,17 @@ Este proyecto usa el Worker `gosen-tracks` y el bucket R2 existente `gosen-track
    npx wrangler@latest deploy
    ```
 
-5. Abre `https://gosen-tracks.gosentracks.workers.dev/` y entra con la cuenta de administrador de la app.
+5. Abre `https://gosen-tracks.gosentracks.workers.dev/admin` y entra con la cuenta de administrador de la app.
+
+## Páginas
+
+- `/` — página pública de Gosen Tracks (`src/landing.html`): presentación con demostraciones animadas tipo
+  tutorial (elegir la canción, mezclar, seccionar, saltar a tempo y armar el culto), tema claro/oscuro y
+  movimiento reducido. Sin dependencias: HTML, CSS y JavaScript nativos.
+- `/admin` — panel de canciones (`src/admin.html`). Portadas: se toman de cualquier imagen del ZIP (si hay
+  varias, el admin elige con vista previa), y se pueden arrastrar desde el equipo o de una canción a otra.
+  Antes de subir se valida el ZIP (que tenga audio y no esté cifrado) y se avisa si la canción ya existe.
+- La app solo usa `/api/…` y `/iphone/`; las páginas se pueden cambiar sin afectarla.
 
 El archivo `wrangler.toml` define el nombre del Worker, la vinculación al bucket R2 y las URL de Neon Auth y Data API. No se requiere una base de datos D1 para este panel. La autenticación y autorización se comprueban con Neon; los ZIP, portadas y fichas musicales se guardan en R2.
 
@@ -54,6 +64,7 @@ Safari en `https://gosen-tracks.gosentracks.workers.dev/iphone/` (Compartir → 
 ```powershell
 node --import ./test/register.mjs test/worker.test.mjs   # Worker con R2 y Neon simulados
 electron test/admin-ui.cjs                                # panel del admin en un navegador real
+electron test/landing-ui.cjs                              # página pública: demostraciones, temas, celular
 ```
 
 ## Contenido compartido

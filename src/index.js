@@ -1,4 +1,5 @@
 import ADMIN_HTML from './admin.html'
+import LANDING_HTML from './landing.html'
 import LOGO from './logo.png'
 import { CATEGORIES, FAMILIES, guessTrack, isAudioFile } from './catalog.js'
 import { extractSongJson } from './zipMetadata.js'
@@ -317,7 +318,9 @@ export default {
     const p = url.pathname
     const q = (k) => url.searchParams.get(k)
     if (req.method === 'OPTIONS') return new Response(null, { headers: { ...CORS, 'access-control-allow-methods': 'GET,POST,PUT,DELETE' } })
-    if (p === '/') return new Response(ADMIN_HTML, { headers: { 'content-type': 'text/html; charset=utf-8' } })
+    // Página pública (presentación con demostraciones) y, en /admin, el panel de canciones.
+    if (p === '/') return new Response(LANDING_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } })
+    if (p === '/admin' || p === '/admin/') return new Response(ADMIN_HTML, { headers: { 'content-type': 'text/html; charset=utf-8' } })
     if (p === '/logo.png') return new Response(LOGO, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } })
     if (p === '/api/login' && req.method === 'POST') return login(req, env)
     if (p === '/api/proxy' && req.method === 'POST') return proxy(req, env)
