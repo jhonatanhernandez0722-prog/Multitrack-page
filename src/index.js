@@ -76,9 +76,60 @@ function jwtExpiry(jwt) {
   }
 }
 
+// --- Sesión del panel de 2 horas ----------------------------------------------------------------
+// El JWT de Neon dura minutos; una subida larga podía quedarse sin sesión a mitad. Tras comprobar con
+// Neon que es admin, el Worker entrega su propia sesión firmada (HMAC-SHA256) que dura 2 horas. La
+// clave se crea sola la primera vez y vive en el bucket (system/, nunca se lista ni se descarga).
+const SYSTEM = 'system/'
+const SESSION_KEY = SYSTEM + 'panel-session-key'
+const PANEL_SESSION_MS = 2 * 60 * 60 * 1000
+let sessionKeyPromise = null
+
+function b64url(bytes) {
+  let bin = ''
+  for (const b of new Uint8Array(bytes)) bin += String.fromCharCode(b)
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+async function panelKey(env) {
+  sessionKeyPromise ??= (async () => {
+    let obj = await env.TRACKS.get(SESSION_KEY)
+    if (!obj) {
+      await env.TRACKS.put(SESSION_KEY, crypto.getRandomValues(new Uint8Array(32)))
+      obj = await env.TRACKS.get(SESSION_KEY)
+    }
+    const raw = new Uint8Array(await obj.arrayBuffer())
+    return crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])
+  })().catch((err) => {
+    sessionKeyPromise = null
+    throw err
+  })
+  return sessionKeyPromise
+}
+
+/** Sesión del panel (2 h) para un admin ya comprobado con Neon. */
+async function issuePanelSession(env, who) {
+  const exp = Date.now() + PANEL_SESSION_MS
+  const payload = b64url(new TextEncoder().encode(JSON.stringify({ email: who.email || null, exp })))
+  const sig = b64url(await crypto.subtle.sign('HMAC', await panelKey(env), new TextEncoder().encode(payload)))
+  return { token: `gps.${payload}.${sig}`, exp }
+}
+
+/** Acceso de una sesión del panel (o null si no es válida o caducó). */
+async function panelAccess(env, token) {
+  const [, payload, sig] = token.split('.')
+  if (!payload || !sig) return null
+  const bytes = Uint8Array.from(atob(sig.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))
+  const ok = await crypto.subtle.verify('HMAC', await panelKey(env), bytes, new TextEncoder().encode(payload)).catch(() => false)
+  if (!ok) return null
+  const data = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+  return typeof data.exp === 'number' && data.exp > Date.now() ? { allowed: true, admin: true, email: data.email } : null
+}
+
 async function access(req, env) {
   const jwt = (req.headers.get('authorization') || '').replace(/^Bearer /, '')
   if (!jwt) return null
+  if (jwt.startsWith('gps.')) return panelAccess(env, jwt).catch(() => null)
   const now = Date.now()
   const hit = accessCache.get(jwt)
   if (hit && hit.until > now) return hit.access
@@ -184,7 +235,7 @@ async function proxy(req, env) {
 const COVERS = 'covers/'
 const MAX_COVER_BYTES = 2 * 1024 * 1024
 /** Objetos del bucket que no son canciones. */
-const isAuxiliary = (key) => [COVERS, METADATA, INDEX, TRACK_FILES].some((prefix) => key.startsWith(prefix))
+const isAuxiliary = (key) => [COVERS, METADATA, INDEX, TRACK_FILES, SYSTEM].some((prefix) => key.startsWith(prefix))
 
 /** Canciones del bucket; `size` incluye ZIP, pistas sueltas, portada y ficha. */
 async function listAll(env) {
@@ -271,6 +322,8 @@ function normalizeMetadata(raw) {
 
 /** Descarga de un ZIP o pista suelta, completa o por rango ("bytes=a-b"), con su ETag. */
 async function serveFile(req, env, key) {
+  // La clave de las sesiones del panel no se descarga nunca.
+  if (key.startsWith(SYSTEM)) return json({ error: 'No existe' }, 404)
   const head = await env.TRACKS.head(key)
   if (!head) return json({ error: 'No existe' }, 404)
   const base = { ...CORS, 'accept-ranges': 'bytes', etag: head.httpEtag }
@@ -349,6 +402,13 @@ export default {
     const me = await access(req, env)
     if (!me) return json({ error: 'Sin acceso' }, 401)
 
+    // Sesión del panel de 2 horas (solo admin; se pide con la sesión de Neon o con otra del panel).
+    if (p === '/api/panel-session' && req.method === 'POST') {
+      if (!me.admin) return json({ error: 'Solo el administrador' }, 403)
+      // Solo con la sesión de Neon: una sesión del panel no se renueva sola (como mucho dura 2 horas).
+      if ((req.headers.get('authorization') || '').startsWith('Bearer gps.')) return json({ error: 'Inicia sesión otra vez' }, 401)
+      return json(await issuePanelSession(env, me))
+    }
     if (p === '/api/me')
       return json(me.admin ? { ...me, maxTotalBytes: Number(env.MAX_TOTAL_BYTES), maxFileBytes: Number(env.MAX_FILE_BYTES) } : me)
     if (p === '/api/tracks') return json(await listAll(env))

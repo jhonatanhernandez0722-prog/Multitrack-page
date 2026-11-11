@@ -20,6 +20,9 @@ export class Obj {
   text() {
     return Promise.resolve(new TextDecoder().decode(this.bytes))
   }
+  arrayBuffer() {
+    return Promise.resolve(this.bytes.slice().buffer)
+  }
 }
 export class FakeBucket {
   objects = new Map()

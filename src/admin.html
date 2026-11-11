@@ -201,6 +201,14 @@
   }
   .thumb img { width: 100%; height: 100%; object-fit: cover; }
   .empty { padding: 24px 0 8px; text-align: center; }
+  /* Biblioteca (la lista) y Subir canciones (subir + almacenamiento): una vista a la vez. */
+  .app-main[data-view='library'] .view-upload, .app-main[data-view='upload'] .view-library { display: none; }
+  .nav-count { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 12px; text-align: center; }
+  .job { position: relative; transition: opacity 0.4s, transform 0.4s; }
+  .job.leaving { opacity: 0; transform: translateY(-6px); }
+  .job-x { position: absolute; right: -6px; top: 6px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); font-size: 16px; line-height: 1; cursor: pointer; }
+  .job-x:hover { background: var(--panel-3); color: var(--text); }
+  .job.fail .job-top { padding-right: 26px; }
   /* Tema, inicio, orden y filtros */
   .theme-btn { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 50%; }
   .theme-btn .sun { display: none; }
@@ -332,8 +340,8 @@
     <div class="nav-group-label">Preparar</div>
     <nav aria-label="Secciones de la nube">
       <ul class="nav-list">
-        <li><a class="nav-item active" href="#library" aria-current="page"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h4" /></svg><span>Biblioteca</span></a></li>
-        <li><a class="nav-item" href="#upload"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16" /></svg><span>Subir canciones</span></a></li>
+        <li><a class="nav-item active" href="#biblioteca" data-view="library" aria-current="page"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h4" /></svg><span>Biblioteca</span></a></li>
+        <li><a class="nav-item" href="#subir" data-view="upload"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16" /></svg><span>Subir canciones</span><b class="nav-count hide" id="uploadCount"></b></a></li>
       </ul>
     </nav>
     <div class="sidebar-footer">
@@ -341,11 +349,11 @@
     </div>
   </aside>
 
-  <main class="app-main">
+  <main class="app-main" data-view="library">
     <header class="topbar">
       <div>
-        <div class="eyebrow">Almacenamiento en la nube</div>
-        <h1>Biblioteca</h1>
+        <div class="eyebrow" id="viewEyebrow">Canciones en la nube</div>
+        <h1 id="viewTitle">Biblioteca</h1>
       </div>
       <div class="who">
         <a class="home-link" href="/">Página principal</a>
@@ -358,7 +366,7 @@
       </div>
     </header>
 
-    <section id="library" class="card">
+    <section id="library" class="card view-library">
       <div class="card-head">
         <h2>Almacenamiento</h2>
         <button id="reload" class="btn small" title="Actualizar"><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" /></svg> Actualizar</button>
@@ -375,7 +383,7 @@
       </div>
     </section>
 
-    <section id="upload" class="card">
+    <section id="upload" class="card view-upload">
       <div class="card-head"><h2>Subir multitracks</h2></div>
       <label id="drop" class="drop" tabindex="0">
         <input id="file" type="file" accept=".zip" multiple hidden />
@@ -386,7 +394,7 @@
       <div id="queue"></div>
     </section>
 
-    <section class="card">
+    <section id="cloudList" class="card view-library">
       <div class="card-head">
         <h2>En la nube</h2>
         <div class="library-actions">
@@ -524,13 +532,35 @@
   const expiry = (jwt) => {
     try { return JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000 } catch { return 0 }
   }
-  async function token() {
-    if (!session) throw new Error('Inicia sesión.')
+  /** JWT de Neon vigente (se renueva con las cookies de Neon Auth). */
+  async function neonJwt() {
     if (expiry(session.jwt) - Date.now() > 60_000) return session.jwt
     const r = await fetch('/api/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cookies: session.cookies }) })
-    if (!r.ok) { logout('Tu sesión caducó. Entra otra vez.'); throw new Error('Sesión caducada.') }
+    if (!r.ok) throw new Error('Sesión caducada.')
     save({ ...session, jwt: (await r.json()).jwt })
     return session.jwt
+  }
+
+  /**
+   * Sesión para el panel: dura 2 horas (la entrega el Worker tras comprobar con Neon que es admin), así
+   * una subida larga no se corta. Al acabarse se pide otra; si Neon ya no renueva, hay que entrar de nuevo.
+   */
+  let renewing = null
+  async function token() {
+    if (!session) throw new Error('Inicia sesión.')
+    if (session.panel && session.panel.exp - Date.now() > 60_000) return session.panel.token
+    renewing ??= (async () => {
+      let jwt
+      try { jwt = await neonJwt() } catch {
+        logout('Tu sesión caducó. Entra otra vez.')
+        throw new Error('Sesión caducada.')
+      }
+      const r = await fetch('/api/panel-session', { method: 'POST', headers: { authorization: 'Bearer ' + jwt } })
+      if (!r.ok) return jwt
+      save({ ...session, panel: await r.json() })
+      return session.panel.token
+    })().finally(() => { renewing = null })
+    return renewing
   }
   async function api(path, opts = {}) {
     const r = await fetch(path, { ...opts, headers: { authorization: 'Bearer ' + (await token()), ...(opts.headers || {}) } })
@@ -1069,6 +1099,40 @@
     input.click()
   }
   $('q').oninput = renderList
+
+  // --- Vistas: Biblioteca (lista de canciones) y Subir canciones (subir + almacenamiento) -------
+  const VIEWS = {
+    library: { eyebrow: 'Canciones en la nube', title: 'Biblioteca' },
+    upload: { eyebrow: 'Agregar a la nube', title: 'Subir canciones' }
+  }
+  function showView(name) {
+    if (!VIEWS[name]) name = 'library'
+    document.querySelector('.app-main').dataset.view = name
+    for (const a of document.querySelectorAll('.nav-item[data-view]')) {
+      const on = a.dataset.view === name
+      a.classList.toggle('active', on)
+      if (on) a.setAttribute('aria-current', 'page')
+      else a.removeAttribute('aria-current')
+    }
+    $('viewEyebrow').textContent = VIEWS[name].eyebrow
+    $('viewTitle').textContent = VIEWS[name].title
+    window.scrollTo(0, 0)
+  }
+  for (const a of document.querySelectorAll('.nav-item[data-view]')) {
+    a.onclick = (e) => {
+      e.preventDefault()
+      history.replaceState(null, '', a.getAttribute('href'))
+      showView(a.dataset.view)
+    }
+  }
+  showView(location.hash === '#subir' ? 'upload' : 'library')
+
+  /** Subidas en curso (en el menú, para verlas desde la Biblioteca). */
+  function updateUploadCount() {
+    const n = document.querySelectorAll('#queue .job:not(.ok):not(.fail)').length
+    $('uploadCount').textContent = n
+    $('uploadCount').classList.toggle('hide', !n)
+  }
   $('themeBtn').onclick = () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'
     document.documentElement.dataset.theme = next
@@ -1270,6 +1334,11 @@
     el.innerHTML = '<div class="job-top"><span></span><span class="state muted small">En cola</span></div><div class="bar"><div></div></div><div class="job-note muted small"></div>'
     el.querySelector('span').textContent = name
     $('queue').prepend(el)
+    updateUploadCount()
+    const remove = () => {
+      el.classList.add('leaving')
+      setTimeout(() => el.remove(), 400)
+    }
     return {
       state: (text) => { el.querySelector('.state').textContent = text },
       progress: (f) => {
@@ -1282,6 +1351,18 @@
         el.querySelector('.state').textContent = msg
         el.querySelector('.state').title = title
         el.querySelector('.job-note').textContent = title
+        updateUploadCount()
+        if (ok) setTimeout(remove, 6000)
+        else {
+          // Un error queda hasta leerlo: se cierra con ×.
+          const x = document.createElement('button')
+          x.type = 'button'
+          x.className = 'job-x'
+          x.textContent = '×'
+          x.setAttribute('aria-label', 'Quitar este aviso')
+          x.onclick = remove
+          el.appendChild(x)
+        }
       }
     }
   }

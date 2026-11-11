@@ -188,6 +188,21 @@ app.whenReady().then(async () => {
     ok(noMeta.join(',') === 'Rey de reyes', `filtro «Sin ficha»: ${noMeta.join(', ')}`)
     await js(`(() => { const f = $('filterBy'); f.value = 'all'; f.onchange(); return 0 })()`)
 
+    // 8) Sesión de 2 horas, vistas separadas y avisos de subida que no quedan.
+    const ses = await js(`(() => { const s = JSON.parse(localStorage.getItem('gosen.cloud.session')); return s.panel ? (s.panel.exp - Date.now()) / 3600000 : 0 })()`)
+    ok(ses > 1.9 && ses <= 2, `el panel usa una sesión de ${ses.toFixed(2)} horas (las subidas largas no se cortan)`)
+    await js(`document.querySelector('.nav-item[data-view="library"]').click(); 0`)
+    const lib = await js(`({ list: getComputedStyle($('cloudList')).display !== 'none', upload: getComputedStyle($('upload')).display !== 'none', title: $('viewTitle').textContent })`)
+    await js(`document.querySelector('.nav-item[data-view="upload"]').click(); 0`)
+    const upl = await js(`({ list: getComputedStyle($('cloudList')).display !== 'none', upload: getComputedStyle($('upload')).display !== 'none', title: $('viewTitle').textContent })`)
+    ok(lib.list && !lib.upload && upl.upload && !upl.list && lib.title === 'Biblioteca' && upl.title === 'Subir canciones', '«Biblioteca» muestra la lista de canciones y «Subir canciones» solo la subida (ya no son lo mismo)')
+    await waitFor(`!document.querySelector('#queue .job.ok')`, 'los avisos de subidas terminadas se van solos', 9000)
+    const left = await js(`document.querySelectorAll('#queue .job.fail').length`)
+    await js(`document.querySelectorAll('#queue .job.fail .job-x').forEach((b) => b.click()); 0`)
+    await sleep(600)
+    ok((await js(`document.querySelectorAll('#queue .job').length`)) === 0 && left > 0, `las subidas que salieron bien se quitan solas; los ${left} avisos de error se cierran con ×`)
+    await js(`document.querySelector('.nav-item[data-view="library"]').click(); 0`)
+
     // 8) Tema claro/oscuro, el mismo de la página principal.
     const t0 = await js(`document.documentElement.dataset.theme`)
     await js(`$('themeBtn').click(); 0`)

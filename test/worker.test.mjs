@@ -277,6 +277,30 @@ console.log('\nAcceso comprobado una vez por sesión (descargas por trozos más 
   ok(accessChecks - b2 === 2, 'un JWT caducado no se guarda (Neon decide cada vez)')
 }
 
+console.log('\nSesión del panel de 2 horas')
+{
+  isAdmin = true
+  const r = await call('POST', '/api/panel-session')
+  const ses = await r.json()
+  const hours = (ses.exp - Date.now()) / 3600000
+  ok(r.ok && ses.token.startsWith('gps.') && hours > 1.99 && hours <= 2, `el admin recibe una sesión del panel de ${hours.toFixed(2)} horas`)
+  const before = accessChecks
+  const list = await call('GET', '/api/tracks', { headers: { authorization: `Bearer ${ses.token}` } })
+  ok(list.ok && accessChecks === before, 'con ella el panel funciona sin preguntarle a Neon cada vez')
+  const up = await call('POST', '/api/upload/start?name=Prueba.zip&size=10', { headers: { authorization: `Bearer ${ses.token}` } })
+  ok(up.ok, 'y sirve para subir canciones')
+  const [, payload, sig] = ses.token.split('.')
+  const forged = Buffer.from(JSON.stringify({ email: 'x', exp: Date.now() + 10 * 3600000 })).toString('base64url')
+  ok((await call('GET', '/api/tracks', { headers: { authorization: `Bearer gps.${forged}.${sig}` } })).status === 401, 'una sesión alterada (más horas) se rechaza')
+  ok(payload && (await call('POST', '/api/panel-session', { headers: { authorization: `Bearer ${ses.token}` } })).status === 401, 'una sesión del panel no se renueva sola: hace falta la de Neon')
+  const keys = [...env.TRACKS.objects.keys()]
+  ok(keys.some((k) => k.startsWith('system/')) && !(await getJson('/api/tracks')).some((t) => t.key.startsWith('system/')), 'la clave de las sesiones está en el bucket pero no aparece como canción')
+  ok((await call('GET', '/api/file/system%2Fpanel-session-key')).status === 404, 'y no se puede descargar')
+  isAdmin = false
+  ok((await call('POST', '/api/panel-session')).status === 403, 'un músico (no admin) no recibe sesión del panel')
+  isAdmin = true
+}
+
 console.log('\nBorrar una canción')
 {
   await call('DELETE', `/api/file/${encodeURIComponent('1-Eres.zip')}`)
