@@ -201,6 +201,13 @@
   }
   .thumb img { width: 100%; height: 100%; object-fit: cover; }
   .empty { padding: 24px 0 8px; text-align: center; }
+  /* Contraseña con ojo: tachado = oculta; al tocarlo se ve lo escrito. */
+  .pass-wrap { position: relative; }
+  .pass-wrap .input { width: 100%; padding-right: 44px; }
+  .pass-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--text-2); cursor: pointer; }
+  .pass-eye:hover { color: var(--text); background: var(--panel-3); }
+  .pass-eye svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .pass-eye[aria-pressed='true'] .eye-slash { display: none; }
   /* Biblioteca (la lista) y Subir canciones (subir + almacenamiento): una vista a la vez. */
   .app-main[data-view='library'] .view-upload, .app-main[data-view='upload'] .view-library { display: none; }
   .nav-count { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 12px; text-align: center; }
@@ -320,7 +327,12 @@
     </div>
     <div class="field">
       <label class="label" for="pass">Contraseña</label>
-      <input id="pass" class="input" type="password" autocomplete="current-password" required />
+      <div class="pass-wrap">
+        <input id="pass" class="input" type="password" autocomplete="current-password" required />
+        <button id="passEye" class="pass-eye" type="button" aria-pressed="false" aria-label="Mostrar la contraseña" title="Mostrar la contraseña">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /><path class="eye-slash" d="M4 4l16 16" /></svg>
+        </button>
+      </div>
     </div>
     <div id="lerr" class="alert error small hide"></div>
     <button id="lbtn" class="btn primary lg">Entrar</button>
@@ -1099,6 +1111,14 @@
     input.click()
   }
   $('q').oninput = renderList
+  $('passEye').onclick = () => {
+    const show = $('pass').type === 'password'
+    $('pass').type = show ? 'text' : 'password'
+    $('passEye').setAttribute('aria-pressed', String(show))
+    const label = show ? 'Ocultar la contraseña' : 'Mostrar la contraseña'
+    $('passEye').setAttribute('aria-label', label)
+    $('passEye').title = label
+  }
 
   // --- Vistas: Biblioteca (lista de canciones) y Subir canciones (subir + almacenamiento) -------
   const VIEWS = {

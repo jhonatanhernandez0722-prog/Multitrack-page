@@ -47,6 +47,8 @@ app.whenReady().then(async () => {
 
   try {
     await win.loadURL(`${base}/admin`)
+    const eye = await js(`(() => { const t0 = $('pass').type; $('passEye').click(); const t1 = $('pass').type; const p1 = $('passEye').getAttribute('aria-pressed'); $('passEye').click(); return [t0, t1, p1, $('pass').type].join(',') })()`)
+    ok(eye === 'password,text,true,password', `contraseña con ojo: oculta → visible → oculta (${eye})`)
     await js(`localStorage.clear(); $('email').value = 'admin@iglesia.com'; $('pass').value = 'x'; $('lbtn').click(); 0`)
     await waitFor(`!document.getElementById('panel').classList.contains('hide') && document.querySelectorAll('#list .row').length === 1`, 'panel con la canción')
     ok(true, 'el admin entra y ve la canción')
