@@ -24,6 +24,15 @@ directory = "./public"
 name = "LIVE"
 class_name = "LiveRoom"
 
+[[durable_objects.bindings]]
+name = "REHEARSAL"
+class_name = "RehearsalRoom"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["LiveRoom"]
+
+# Modo ensayo múltiple: una sala para todo el equipo.
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["RehearsalRoom"]

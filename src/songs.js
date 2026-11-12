@@ -55,7 +55,9 @@ export function songFields(doc) {
     duration: doc.duration ?? null,
     bpm: doc.bpm ?? null,
     key: doc.key ?? null,
-    timeSignature: doc.timeSignature ?? null
+    timeSignature: doc.timeSignature ?? null,
+    // Versión de la letra con acordes: la app la trae de nuevo solo si cambió.
+    chartRev: doc.chart?.updatedAt ?? null
   }
 }
 

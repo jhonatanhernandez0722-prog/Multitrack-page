@@ -1,4 +1,5 @@
 import ADMIN_HTML from './admin.html'
+import { SERVICES, deleteService, isServiceId, listServices, normalizeService, putService } from './services.js'
 import LANDING_HTML from './landing.html'
 import LOGO from './logo.png'
 import { CATEGORIES, FAMILIES, guessTrack, isAudioFile } from './catalog.js'
@@ -235,7 +236,7 @@ async function proxy(req, env) {
 const COVERS = 'covers/'
 const MAX_COVER_BYTES = 2 * 1024 * 1024
 /** Objetos del bucket que no son canciones. */
-const isAuxiliary = (key) => [COVERS, METADATA, INDEX, TRACK_FILES, SYSTEM].some((prefix) => key.startsWith(prefix))
+const isAuxiliary = (key) => [COVERS, METADATA, INDEX, TRACK_FILES, SYSTEM, SERVICES].some((prefix) => key.startsWith(prefix))
 
 /** Canciones del bucket; `size` incluye ZIP, pistas sueltas, portada y ficha. */
 async function listAll(env) {
@@ -274,6 +275,7 @@ async function listAll(env) {
     it.bpm = data?.bpm ?? null
     it.keySignature = data?.key ?? null
     it.timeSignature = data?.timeSignature ?? null
+    it.chartRev = data?.chartRev ?? null
     // Cambia si cambia el ZIP o la ficha (datos o pistas): la app solo vuelve a mirar entonces.
     it.rev = `${it.etag}:${sidecar?.etag ?? '-'}`
     delete it.etag
@@ -364,6 +366,19 @@ async function saveSongFields(env, key, fields) {
 }
 
 export { LiveRoom } from './live.js'
+export { RehearsalRoom } from './rehearsal.js'
+
+const MAX_CHART_TEXT = 60000
+
+/** Letra con acordes validada ({ text, notes }) o null si quedó vacía. */
+function cleanChart(body, who) {
+  const text = typeof body?.text === 'string' ? body.text.replace(/\r\n?/g, '\n') : ''
+  const notes = typeof body?.notes === 'string' ? body.notes.trim() : ''
+  if (text.length > MAX_CHART_TEXT) throw new Error('La letra es demasiado larga.')
+  if (notes.length > 4000) throw new Error('Las notas son demasiado largas.')
+  if (!text.trim() && !notes) return null
+  return { text, ...(notes ? { notes } : {}), updatedAt: new Date().toISOString(), by: who?.email ?? null }
+}
 
 export default {
   async fetch(req, env) {
@@ -399,8 +414,69 @@ export default {
       return room.fetch(req)
     }
 
+    // Modo ensayo múltiple: una sala para todo el equipo. Publica solo el admin; los demás siguen.
+    if (p === '/api/ensayo') {
+      const token = q('token') || ''
+      if (!token) return json({ error: 'Inicia sesión' }, 401)
+      const who = await access(new Request(req.url, { headers: { authorization: `Bearer ${token}` } }), env)
+      if (!who) return json({ error: 'Inicia sesión' }, 401)
+      if (!env.REHEARSAL) return json({ error: 'El modo ensayo no está activado en la nube' }, 503)
+      const room = env.REHEARSAL.get(env.REHEARSAL.idFromName('ensayo'))
+      const headers = new Headers(req.headers)
+      // El rol lo decide el Worker (comprobado con Neon), nunca el cliente.
+      headers.set('x-gosen-role', who.admin ? 'admin' : 'member')
+      return room.fetch(new Request(req, { headers }))
+    }
+
     const me = await access(req, env)
     if (!me) return json({ error: 'Sin acceso' }, 401)
+
+    // Servicios: los lee todo el equipo; los crea, cambia y borra el admin.
+    if (p === '/api/services' && req.method === 'GET') return json(await listServices(env.TRACKS))
+    if (p.startsWith('/api/services/')) {
+      const id = decodeURIComponent(p.slice('/api/services/'.length))
+      if (!isServiceId(id)) return json({ error: 'Servicio no válido' }, 400)
+      // POST = PUT (la app de escritorio solo manda GET, POST, DELETE y PATCH).
+      if (req.method !== 'PUT' && req.method !== 'POST' && req.method !== 'DELETE') return json({ error: 'Método no permitido' }, 405)
+      if (!me.admin) return json({ error: 'Solo el administrador gestiona los servicios' }, 403)
+      if (req.method === 'DELETE') {
+        await deleteService(env.TRACKS, id)
+        return json({ ok: true })
+      }
+      let doc
+      try {
+        doc = normalizeService(await req.json(), id, me)
+      } catch (err) {
+        return json({ error: err.message || 'Servicio no válido' }, 400)
+      }
+      const r = await putService(env.TRACKS, doc)
+      return r.conflict ? json({ error: 'Hay una versión más nueva de este servicio', current: r.conflict }, 409) : json(r.service)
+    }
+
+    // Letra y acordes: la lee todo el equipo; la escribe el admin. Vive en la ficha de la canción.
+    if (p.startsWith('/api/chart/')) {
+      const key = decodeURIComponent(p.slice('/api/chart/'.length))
+      if (!key || isAuxiliary(key)) return json({ error: 'Canción no válida' }, 400)
+      if (req.method === 'GET') {
+        const sheet = await readSheet(env.TRACKS, key)
+        return sheet?.doc.chart ? json(sheet.doc.chart) : json({ error: 'Sin letra' }, 404)
+      }
+      if (req.method !== 'PUT' && req.method !== 'POST') return json({ error: 'Método no permitido' }, 405)
+      if (!me.admin) return json({ error: 'Solo el administrador edita la letra y los acordes' }, 403)
+      if (!(await env.TRACKS.head(key))) return json({ error: 'Ese multitrack no existe' }, 404)
+      let chart
+      try {
+        chart = cleanChart(await req.json(), me)
+      } catch (err) {
+        return json({ error: err.message || 'Letra no válida' }, 400)
+      }
+      const sheet = await readSheet(env.TRACKS, key)
+      const doc = { ...(sheet?.doc ?? {}) }
+      if (chart) doc.chart = chart
+      else delete doc.chart
+      await writeSheet(env.TRACKS, key, doc)
+      return json(chart ?? { text: '', updatedAt: null })
+    }
 
     // Sesión del panel de 2 horas (solo admin; se pide con la sesión de Neon o con otra del panel).
     if (p === '/api/panel-session' && req.method === 'POST') {

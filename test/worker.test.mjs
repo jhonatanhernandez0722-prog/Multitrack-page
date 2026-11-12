@@ -11,6 +11,7 @@ import { crc32, inflateRawSync } from 'node:zlib'
 import { FakeBucket, audio, makeZip } from './fakes.mjs'
 import worker from '../src/index.js'
 import { relay } from '../src/live.js'
+import { REHEARSAL_TTL_MS, RehearsalRoom, rehearsalMessage } from '../src/rehearsal.js'
 import { CATEGORIES } from '../src/catalog.js'
 
 let failures = 0
@@ -299,6 +300,126 @@ console.log('\nSesión del panel de 2 horas')
   isAdmin = false
   ok((await call('POST', '/api/panel-session')).status === 403, 'un músico (no admin) no recibe sesión del panel')
   isAdmin = true
+}
+
+console.log('\nServicios compartidos (los ve todo el equipo, los gestiona el admin)')
+{
+  isAdmin = true
+  const id = '3f2b8c1e-aaaa-4bbb-8ccc-123456789abc'
+  const body = {
+    name: 'Servicio de oración',
+    date: '2026-12-11',
+    time: '19:30',
+    description: 'Tema: gratitud',
+    members: [
+      { email: 'Natalia@Iglesia.com', role: 'consola', name: 'Natalia', tag: 'consola' },
+      { email: 'natalia@iglesia.com', role: 'musicos' },
+      { email: 'no-es-correo', role: 'consola' },
+      { email: 'loly@iglesia.com', role: 'voz-principal', tag: 'voz-principal' }
+    ],
+    items: [{ id: 'i1', title: 'Eres Todopoderoso', cloudKey: '1-Eres.zip', onEnd: 'crossfade', transitionSeconds: 4, gapSeconds: 3 }, { id: 'i2', title: '' }],
+    updatedAt: '2026-11-12T10:00:00.000Z'
+  }
+  const r = await call('POST', `/api/services/${id}`, { body })
+  const saved = await r.json()
+  ok(r.ok && saved.members.length === 2 && saved.members[0].email === 'natalia@iglesia.com' && saved.items.length === 1 && 'updatedBy' in saved, 'el admin publica un servicio (integrantes sin repetir, canciones válidas, quién lo cambió)')
+  isAdmin = false
+  const list = await (await call('GET', '/api/services')).json()
+  ok(list.length === 1 && list[0].name === 'Servicio de oración' && list[0].items[0].cloudKey === '1-Eres.zip' && list[0].members[1].role === 'voz-principal', 'un integrante (no admin) ve el servicio con fecha, canciones y participantes')
+  ok((await call('PUT', `/api/services/${id}`, { body: { ...body, name: 'Cambiado' } })).status === 403, 'un integrante no puede cambiarlo')
+  ok((await call('DELETE', `/api/services/${id}`)).status === 403, 'ni borrarlo')
+  isAdmin = true
+  const old = await call('PUT', `/api/services/${id}`, { body: { ...body, name: 'Versión vieja', updatedAt: '2026-11-12T09:00:00.000Z' } })
+  const conflict = await old.json()
+  ok(old.status === 409 && conflict.current.name === 'Servicio de oración', 'un cambio más viejo no pisa al más nuevo (409 con la versión actual)')
+  ok((await call('PUT', `/api/services/${id}`, { body: { ...body, name: '' } })).status === 400 && (await call('PUT', '/api/services/x%20y', { body })).status === 400, 'sin nombre o con un id raro se rechaza')
+  const tracks = await getJson('/api/tracks')
+  ok(!tracks.some((t) => t.key.startsWith('services/')), 'los servicios no aparecen como canciones')
+  await call('DELETE', `/api/services/${id}`)
+  ok((await (await call('GET', '/api/services')).json()).length === 0, 'el admin lo borra y desaparece para todos')
+}
+
+console.log('\nLetra y acordes (la ven todos, la edita el admin)')
+{
+  isAdmin = true
+  const key = encodeURIComponent('1-Eres.zip')
+  const r = await call('PUT', `/api/chart/${key}`, { body: { text: 'Coro\nG       D\nEres todopoderoso', notes: 'Subir en el último coro' } })
+  const chart = await r.json()
+  ok(r.ok && chart.text.includes('Eres todopoderoso') && chart.notes === 'Subir en el último coro' && chart.updatedAt, 'el admin guarda la letra con acordes y sus notas')
+  const t = (await getJson('/api/tracks')).find((x) => x.key === '1-Eres.zip')
+  ok(t.chartRev === chart.updatedAt, 'el catálogo dice la versión de la letra (la app la trae solo si cambió)')
+  isAdmin = false
+  const got = await (await call('GET', `/api/chart/${key}`)).json()
+  ok(got.text === chart.text, 'un integrante la lee')
+  ok((await call('PUT', `/api/chart/${key}`, { body: { text: 'x' } })).status === 403, 'pero no puede cambiarla')
+  isAdmin = true
+  ok((await call('PUT', `/api/chart/${encodeURIComponent('no-existe.zip')}`, { body: { text: 'x' } })).status === 404, 'no se guarda letra de una canción que no existe')
+  const sheet = JSON.parse(new TextDecoder().decode(env.TRACKS.objects.get('metadata/1-Eres.zip').bytes))
+  ok(sheet.title && sheet.chart?.text === chart.text, 'la letra vive en la ficha de la canción, junto a sus datos (sin perderlos)')
+}
+
+console.log('\nSala de ensayo múltiple (lógica)')
+{
+  const empty = { service: null, serviceAt: 0, tick: null }
+  const service = JSON.stringify({ type: 'service', service: { id: 's1', name: 'Ensayo', songs: [] } })
+  const tick = JSON.stringify({ type: 'tick', index: 0, position: 12.5, status: 'playing' })
+  let m = rehearsalMessage('admin', service, empty, 1000)
+  ok(m.broadcast && m.memory.service === service, 'el admin publica el servicio: se reparte y se recuerda para quien entre')
+  m = rehearsalMessage('admin', tick, m.memory, 2000)
+  ok(m.broadcast && m.memory.tick === tick, 'y el estado del reproductor (posición, sección…)')
+  const fake = rehearsalMessage('member', JSON.stringify({ type: 'tick', position: 99 }), m.memory)
+  ok(!fake.broadcast && fake.memory.tick === tick, 'un integrante no puede mover el ensayo (se ignora)')
+  ok(!rehearsalMessage('member', JSON.stringify({ type: 'end' }), m.memory).broadcast, 'ni terminarlo')
+  ok(!rehearsalMessage('admin', JSON.stringify({ type: 'tick', x: 'y'.repeat(20000) }), m.memory).broadcast, 'un mensaje enorme se descarta')
+  const end = rehearsalMessage('admin', JSON.stringify({ type: 'end' }), m.memory)
+  ok(end.broadcast && end.memory.service === null && end.memory.tick === null, 'el admin termina: todos vuelven a lo normal y no queda nada guardado')
+}
+
+console.log('\nSala de ensayo múltiple (Durable Object con conexiones simuladas)')
+{
+  const sockets = []
+  const stored = new Map()
+  const state = {
+    getWebSockets: () => [...sockets],
+    getTags: (ws) => ws.tags,
+    storage: { get: async (k) => stored.get(k), put: async (k, v) => void stored.set(k, v), delete: async (k) => void stored.delete(k) }
+  }
+  const sock = (role) => {
+    const ws = { tags: [role], got: [], send: (m) => ws.got.push(m), close: () => sockets.includes(ws) && sockets.splice(sockets.indexOf(ws), 1) }
+    sockets.push(ws)
+    return ws
+  }
+  const service = JSON.stringify({ type: 'service', service: { id: 's1', name: 'Ensayo', songs: [] } })
+  const tick = JSON.stringify({ type: 'tick', index: 0, position: 3, status: 'playing' })
+  let room = new RehearsalRoom(state)
+  const pc = sock('admin')
+  const phone = sock('member')
+  await room.webSocketMessage(pc, service)
+  await room.webSocketMessage(pc, tick)
+  ok(phone.got.join() === [service, tick].join() && pc.got.length === 0, 'lo que publica el PC del admin le llega al celular (y no se le devuelve al PC)')
+  await room.webSocketMessage(phone, JSON.stringify({ type: 'end' }))
+  ok(pc.got.length === 0 && stored.has('service'), 'el celular no puede terminar el ensayo')
+  const late = sock('member')
+  await room.replay(late)
+  ok(late.got.join() === [service, tick].join(), 'quien entra tarde recibe enseguida el servicio y dónde va')
+  room = new RehearsalRoom(state) // la sala se durmió y despertó
+  const again = sock('member')
+  await room.replay(again)
+  ok(again.got[0] === service, 'si la sala se durmió, el servicio sigue guardado para quien vuelve')
+  room.announce()
+  const before = JSON.parse(pc.got.at(-1)).devices
+  late.close()
+  room.webSocketClose(late, 1000)
+  ok(before === 3 && JSON.parse(pc.got.at(-1)).devices === 2, 'el PC sabe cuántos dispositivos lo siguen (y cuando uno sale)')
+  stored.set('service', { raw: service, at: Date.now() - REHEARSAL_TTL_MS - 1000 })
+  room = new RehearsalRoom(state)
+  const next = sock('member')
+  await room.replay(next)
+  ok(next.got.length === 0 && !stored.has('service'), 'un ensayo que el PC dejó sin terminar (se apagó) se olvida pasado un rato')
+  room = new RehearsalRoom(state)
+  await room.webSocketMessage(pc, service)
+  await room.webSocketMessage(pc, JSON.stringify({ type: 'end' }))
+  ok(!stored.has('service') && JSON.parse(next.got.at(-1)).type === 'end', 'al terminar, todos vuelven a lo normal y la sala queda vacía')
 }
 
 console.log('\nBorrar una canción')
