@@ -239,11 +239,17 @@ ${
 
 /** Llama a una función de Neon con la sesión de la cuenta. {missing} si la función no existe aún. */
 export async function neonRpc(env, jwt, name, body = {}) {
-  const r = await fetch(`${env.DATA_API_URL}/rpc/${name}`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${jwt}`, 'content-type': 'application/json' },
-    body: JSON.stringify(body)
-  })
+  let r
+  try {
+    r = await fetch(`${env.DATA_API_URL}/rpc/${name}`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${jwt}`, 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+  } catch {
+    // Sin conexión con Neon: un error claro (nunca se da por buena una comprobación que no se pudo hacer).
+    return { error: 'No se pudo contactar la base de datos. Intenta de nuevo en un momento.', status: 503 }
+  }
   const text = await r.text()
   let data = null
   try {

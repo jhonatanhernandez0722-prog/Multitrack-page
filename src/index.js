@@ -4,8 +4,13 @@ import LANDING_HTML from './landing.html'
 import LOGO from './logo.png'
 import { CATEGORIES, FAMILIES, guessTrack, isAudioFile } from './catalog.js'
 import { extractSongJson } from './zipMetadata.js'
-import { claimsCurrent, consentState, legalApi, legalPage, legalSummary } from './legal/legal.js'
+import { claimsCurrent, consentState, legalApi, legalPage, legalSummary, neonRpc } from './legal/legal.js'
 import { PRIVACY_JS } from './legal/privacyScript.js'
+import { INTERNAL, CHURCH_PREFIX, brandingPrefix, can, churchOf, churchOfSongKey, keyOwner, planMessage, servicesPrefix, songPrefix, trackSongKey } from './tenancy.js'
+import { overLimit } from './limiter.js'
+import { churchApi, superadminApi } from './churches.js'
+import SUPERADMIN_HTML from './superadmin.html'
+import JOIN_HTML from './unirse.html'
 import {
   INDEX,
   METADATA,
@@ -57,6 +62,10 @@ import {
  *                                       descarga de 5 minutos: el ZIP original y las pistas reemplazadas
  * GET    /api/dl/<token>                  → la descarga (el enlace firmado hace de permiso)
  * Documentos legales y aceptaciones: ver src/legal/legal.js (/legal, /api/legal…).
+ *
+ * Varias iglesias (v37): cada sesión pertenece a una iglesia (Neon: gosen_my_access → church). Toda clave
+ * de R2 se comprueba con keyOwner (src/tenancy.js) y cada función con can(me, función) según el plan.
+ * Panel de cada iglesia y Superadmin: src/churches.js (/api/church/…, /api/sa/…, /api/2fa/…).
  */
 const CORS = {
   'access-control-allow-origin': '*',
@@ -145,7 +154,12 @@ async function verifyToken(env, token, prefix) {
 async function issuePanelSession(env, who, legal = null) {
   const now = Date.now()
   const exp = now + PANEL_SESSION_MS
-  return { token: await signToken(env, 'gps', { email: who.email || null, exp, iat: now, ...(legal ? { legal } : {}) }), exp }
+  // La iglesia, el plan y los límites viajan en la sesión (si cambian, bumpEpoch la invalida).
+  const church = who.church ? { id: who.church.id, name: who.church.name, internal: !!who.church.internal } : undefined
+  const extra = church
+    ? { church, plan: who.plan ? { id: who.plan.id, name: who.plan.name } : undefined, features: Array.isArray(who.features) ? who.features : undefined, limits: who.limits, subscription: who.subscription ? { state: who.subscription.state } : undefined }
+    : {}
+  return { token: await signToken(env, 'gps', { email: who.email || null, exp, iat: now, ...(legal ? { legal } : {}), ...extra }), exp }
 }
 
 /** Acceso de una sesión del panel (o null si no es válida o caducó). */
@@ -153,7 +167,16 @@ async function panelAccess(env, token) {
   const data = await verifyToken(env, token, 'gps')
   // Un enlace de descarga (t: 'dl') nunca sirve como sesión.
   if (!data || data.t) return null
-  return { allowed: true, admin: true, email: data.email, iat: data.iat || 0, legal: data.legal || null }
+  // Si Superadmin cambió el plan o el estado de la iglesia después de abrirla, hay que abrir otra.
+  if (data.church?.id && (await churchEpoch(env, data.church.id)) > (data.iat || 0)) return null
+  return {
+    allowed: true,
+    admin: true,
+    email: data.email,
+    iat: data.iat || 0,
+    legal: data.legal || null,
+    ...(data.church ? { church: data.church, plan: data.plan, features: data.features, limits: data.limits, subscription: data.subscription } : {})
+  }
 }
 
 async function access(req, env) {
@@ -265,31 +288,40 @@ async function proxy(req, env) {
 const COVERS = 'covers/'
 const MAX_COVER_BYTES = 2 * 1024 * 1024
 /** Objetos del bucket que no son canciones. */
-const isAuxiliary = (key) => [COVERS, METADATA, INDEX, TRACK_FILES, SYSTEM, SERVICES].some((prefix) => key.startsWith(prefix))
+const BRANDING = 'branding/'
+const isAuxiliary = (key) => [COVERS, METADATA, INDEX, TRACK_FILES, SYSTEM, SERVICES, BRANDING].some((prefix) => key.startsWith(prefix)) || /^c\/[^/]+\/services\//.test(key)
 
-/** Canciones del bucket; `size` incluye ZIP, pistas sueltas, portada y ficha. */
-async function listAll(env) {
+/**
+ * Canciones de UNA iglesia; `size` incluye ZIP, pistas sueltas, portada y ficha. La interna recorre el
+ * bucket (sus claves están en la raíz) y deja fuera las de las demás (`c/…`); las otras, solo sus prefijos.
+ */
+async function listAll(env, church = INTERNAL) {
   const items = []
   const covers = new Map()
   const metadata = new Map()
   const extraBytes = new Map()
-  let cursor
-  do {
-    const page = await env.TRACKS.list({ cursor, include: ['customMetadata'] })
-    for (const o of page.objects) {
-      if (o.key.startsWith(COVERS)) covers.set(o.key.slice(COVERS.length), o)
-      else if (o.key.startsWith(METADATA)) {
-        const data = o.customMetadata?.data
-        metadata.set(o.key.slice(METADATA.length), { data: data ? JSON.parse(data) : {}, size: o.size, etag: o.etag })
-      } else if (o.key.startsWith(TRACK_FILES)) {
-        const song = o.key.slice(TRACK_FILES.length).split('/')[0]
-        extraBytes.set(song, (extraBytes.get(song) || 0) + o.size)
-      } else if (!isAuxiliary(o.key)) {
-        items.push({ key: o.key, name: o.customMetadata?.name || o.key, size: o.size, uploaded: o.uploaded, etag: o.etag })
+  const internal = church === INTERNAL
+  const own = songPrefix(church)
+  const prefixes = internal ? [undefined] : [own, COVERS + own, METADATA + own, TRACK_FILES + own]
+  for (const prefix of prefixes) {
+    let cursor
+    do {
+      const page = await env.TRACKS.list({ prefix, cursor, include: ['customMetadata'] })
+      for (const o of page.objects) {
+        if (o.key.startsWith(COVERS)) covers.set(o.key.slice(COVERS.length), o)
+        else if (o.key.startsWith(METADATA)) {
+          const data = o.customMetadata?.data
+          metadata.set(o.key.slice(METADATA.length), { data: data ? JSON.parse(data) : {}, size: o.size, etag: o.etag })
+        } else if (o.key.startsWith(TRACK_FILES)) {
+          const song = trackSongKey(o.key)
+          extraBytes.set(song, (extraBytes.get(song) || 0) + o.size)
+        } else if (!isAuxiliary(o.key) && (internal ? !o.key.startsWith(CHURCH_PREFIX) : o.key.startsWith(own))) {
+          items.push({ key: o.key, name: o.customMetadata?.name || o.key, size: o.size, uploaded: o.uploaded, etag: o.etag })
+        }
       }
-    }
-    cursor = page.truncated ? page.cursor : undefined
-  } while (cursor)
+      cursor = page.truncated ? page.cursor : undefined
+    } while (cursor)
+  }
   for (const it of items) {
     const cover = covers.get(it.key)
     const sidecar = metadata.get(it.key)
@@ -310,6 +342,85 @@ async function listAll(env) {
     delete it.etag
   }
   return items
+}
+
+// --- Espacio usado por iglesia (cuotas) -------------------------------------------------------------------
+const usageCache = new Map()
+
+/** Bytes de todos los objetos con un prefijo. */
+async function prefixBytes(env, prefix) {
+  let bytes = 0
+  let cursor
+  do {
+    const page = await env.TRACKS.list({ prefix, cursor })
+    for (const o of page.objects) bytes += o.size
+    cursor = page.truncated ? page.cursor : undefined
+  } while (cursor)
+  return bytes
+}
+
+/** Lo que ocupa una iglesia: canciones (con pistas, portadas y fichas), servicios y logo. 60 s en memoria. */
+export async function churchUsage(env, church, fresh = false) {
+  const hit = usageCache.get(church)
+  if (!fresh && hit && hit.until > Date.now()) return hit.value
+  const items = await listAll(env, church)
+  const extra = (await prefixBytes(env, servicesPrefix(church))) + (await prefixBytes(env, brandingPrefix(church)))
+  const value = { bytes: items.reduce((s, o) => s + o.size, 0) + extra, songs: items.length, items }
+  usageCache.set(church, { value, until: Date.now() + 60_000 })
+  return value
+}
+export const forgetUsage = (church) => usageCache.delete(church)
+
+// --- Registro de acciones sobre el contenido (R2, de solo agregar por la API) --------------------------------
+// Las acciones de cuentas, planes y pagos quedan en Neon (gosen_audit_log). Las del contenido (subir, borrar,
+// descargar…) las registra el Worker aquí, porque las hace también con la sesión del panel.
+export const CONTENT_LOG = SYSTEM + 'audit/'
+
+export async function contentLog(env, me, church, action, target, details = null) {
+  try {
+    const at = new Date().toISOString()
+    const data = JSON.stringify({ at, actor: me?.email ?? null, role: me?.admin ? 'admin' : 'integrante', church, action, target: String(target ?? '').slice(0, 300), details })
+    await env.TRACKS.put(`${CONTENT_LOG}${church}/${at.slice(0, 7)}/${at}-${crypto.randomUUID()}.json`, data, {
+      httpMetadata: { contentType: 'application/json' },
+      customMetadata: { data: data.slice(0, 1800) }
+    })
+  } catch {
+    // el registro no debe frenar la acción
+  }
+}
+
+/** Las últimas acciones de contenido (de una iglesia o de todas), más nuevas primero. */
+export async function readContentLog(env, church = null, limit = 300) {
+  const out = []
+  let cursor
+  do {
+    const page = await env.TRACKS.list({ prefix: CONTENT_LOG + (church ? `${church}/` : ''), cursor, include: ['customMetadata'] })
+    for (const o of page.objects) {
+      try {
+        out.push(JSON.parse(o.customMetadata?.data || '{}'))
+      } catch {
+        // registro dañado: se ignora
+      }
+    }
+    cursor = page.truncated ? page.cursor : undefined
+  } while (cursor && out.length < 5000)
+  return out.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, limit)
+}
+
+// --- Cambios de plan o estado: invalidan las sesiones del panel abiertas antes ---------------------------------
+const EPOCH = SYSTEM + 'church-epoch/'
+const epochCache = new Map()
+async function churchEpoch(env, church) {
+  const hit = epochCache.get(church)
+  if (hit && hit.until > Date.now()) return hit.at
+  const [one, all] = await Promise.all([env.TRACKS.head(EPOCH + church), env.TRACKS.head(EPOCH + '_all')])
+  const at = Math.max(Number(one?.customMetadata?.at || 0), Number(all?.customMetadata?.at || 0))
+  epochCache.set(church, { at, until: Date.now() + 30_000 })
+  return at
+}
+export async function bumpEpoch(env, church = '_all') {
+  await env.TRACKS.put(EPOCH + church, '', { customMetadata: { at: String(Date.now()) } })
+  epochCache.clear()
 }
 
 function normalizeMetadata(raw) {
@@ -395,8 +506,13 @@ const safeName = (s) =>
     .slice(0, 120) || 'multitrack'
 
 async function downloadLinks(env, key, me, bearer) {
-  // Solo canciones (ZIP en la raíz del bucket), nunca fichas, portadas, servicios ni claves del sistema.
-  if (!key || key.includes('/') || isAuxiliary(key) || !/\.zip$/i.test(key)) return json({ error: 'No existe' }, 404)
+  // Solo canciones (ZIP) de la iglesia de la sesión, nunca fichas, portadas, servicios ni claves del sistema.
+  const church = churchOf(me)
+  const own = songPrefix(church)
+  if (!key || keyOwner(key) !== church || !key.startsWith(own) || key.slice(own.length).includes('/') || isAuxiliary(key) || !/\.zip$/i.test(key)) {
+    return json({ error: 'No existe' }, 404)
+  }
+  if (!can(me, 'biblioteca')) return json({ error: planMessage(me, 'biblioteca'), code: 'plan' }, 403)
   const head = await env.TRACKS.head(key)
   if (!head) return json({ error: 'No existe' }, 404)
   const consentOk = bearer.startsWith('gps.') ? await claimsCurrent(env, me.legal, me.email, me.iat) : (await consentState(env, bearer)).ok
@@ -420,6 +536,7 @@ async function downloadLinks(env, key, me, bearer) {
     const token = await signToken(env, 'gdl', { t: 'dl', k: f.key, n: f.name, e: me.email || null, exp })
     out.push({ label: f.label, name: f.name, size: f.size, url: `/api/dl/${token}` })
   }
+  await contentLog(env, me, church, 'cancion.descargada', key, { archivos: files.length })
   return json({ files: out, expires: exp })
 }
 
@@ -456,6 +573,7 @@ async function saveSongFields(env, key, fields) {
 
 export { LiveRoom } from './live.js'
 export { RehearsalRoom } from './rehearsal.js'
+export { Limiter } from './limiter.js'
 
 const MAX_CHART_TEXT = 60000
 
@@ -478,6 +596,9 @@ export default {
     // Página pública (presentación con demostraciones) y, en /admin, el panel de canciones.
     if (p === '/') return new Response(LANDING_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } })
     if (p === '/admin' || p === '/admin/') return new Response(ADMIN_HTML, { headers: { 'content-type': 'text/html; charset=utf-8' } })
+    if (p === '/superadmin' || p === '/superadmin/') return new Response(SUPERADMIN_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'x-frame-options': 'DENY' } })
+    // Enlace de invitación: el código va después de «#» (no llega al servidor ni a sus registros).
+    if (p === '/unirse' || p === '/unirse/') return new Response(JOIN_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'referrer-policy': 'no-referrer' } })
     if (p === '/logo.png') return new Response(LOGO, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } })
     // Documentos legales (públicos), preferencias de privacidad de la web y su estado.
     const legal = await legalPage(p, env)
@@ -485,12 +606,14 @@ export default {
     if (p === '/web/privacidad.js') return new Response(PRIVACY_JS, { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=3600' } })
     if (p === '/api/legal' && req.method === 'GET') return json(await legalSummary(env))
     if (p.startsWith('/api/dl/') && req.method === 'GET') return downloadFile(env, decodeURIComponent(p.slice('/api/dl/'.length)))
-    if (p === '/api/login' && req.method === 'POST') return login(req, env)
-    if (p === '/api/proxy' && req.method === 'POST') return proxy(req, env)
+    if (p === '/api/login' && req.method === 'POST') return (await overLimit(env, req, 'login')) || login(req, env)
+    if (p === '/api/proxy' && req.method === 'POST') return (await overLimit(env, req, 'auth')) || proxy(req, env)
     if (p === '/api/categories') return json({ categories: CATEGORIES, families: FAMILIES })
     // Nombre y categoría sugeridos para un archivo (mismas reglas que al migrar un ZIP).
     if (p === '/api/guess') return json(guessTrack(q('file') || ''))
     if (p === '/api/refresh' && req.method === 'POST') {
+      const limited = await overLimit(env, req, 'refresh')
+      if (limited) return limited
       const { cookies } = await req.json().catch(() => ({}))
       const jwt = cookies ? await jwtFromCookies(env, String(cookies)) : null
       return jwt ? json({ jwt }) : json({ error: 'Sesión caducada' }, 401)
@@ -516,31 +639,51 @@ export default {
       const who = await access(new Request(req.url, { headers: { authorization: `Bearer ${token}` } }), env)
       if (!who) return json({ error: 'Inicia sesión' }, 401)
       if (!env.REHEARSAL) return json({ error: 'El modo ensayo no está activado en la nube' }, 503)
-      const room = env.REHEARSAL.get(env.REHEARSAL.idFromName('ensayo'))
+      if (!can(who, 'ensayo_multiple')) return json({ error: planMessage(who, 'ensayo_multiple'), code: 'plan' }, 403)
+      // Una sala por iglesia: los ensayos de una no se ven en otra.
+      const church = churchOf(who)
+      const room = env.REHEARSAL.get(env.REHEARSAL.idFromName(church === INTERNAL ? 'ensayo' : `ensayo:${church}`))
       const headers = new Headers(req.headers)
       // El rol lo decide el Worker (comprobado con Neon), nunca el cliente.
       headers.set('x-gosen-role', who.admin ? 'admin' : 'member')
       return room.fetch(new Request(req, { headers }))
     }
 
+    // Superadmin (sus propias comprobaciones: cuenta de Neon + sesión de 2FA en la base).
+    if (p.startsWith('/api/sa/')) return superadminApi(req, env, p, { json, overLimit, churchUsage, contentLog, readContentLog, bumpEpoch, forgetUsage })
+
     const me = await access(req, env)
     if (!me) return json({ error: 'Sin acceso' }, 401)
     const bearer = (req.headers.get('authorization') || '').replace(/^Bearer /, '')
+    const church = churchOf(me)
+    /** ¿Esta clave es de la iglesia de la sesión? (si no, se responde como si no existiera) */
+    const owns = (key) => keyOwner(key) === church
+    const planError = (feature) => json({ error: planMessage(me, feature), code: 'plan', feature }, 403)
+
+    // Panel de la iglesia: perfil, logo, integrantes, invitaciones, suscripción, almacenamiento y 2FA.
+    if (p.startsWith('/api/church') || p.startsWith('/api/2fa') || p === '/api/sessions/others') {
+      const res = await churchApi(req, env, p, me, bearer, { json, overLimit, churchUsage, contentLog, readContentLog, forgetUsage })
+      if (res) return res
+    }
 
     // Aceptaciones de términos y privacidad (con la sesión de Neon de la cuenta).
     const legalRes = await legalApi(req, env, p, bearer, me, json)
     if (legalRes) return legalRes
 
     // Servicios: los lee todo el equipo; los crea, cambia y borra el admin.
-    if (p === '/api/services' && req.method === 'GET') return json(await listServices(env.TRACKS))
+    if (p === '/api/services' && req.method === 'GET') {
+      if (!can(me, 'repertorios')) return planError('repertorios')
+      return json(await listServices(env.TRACKS, servicesPrefix(church)))
+    }
     if (p.startsWith('/api/services/')) {
+      if (!can(me, 'repertorios')) return planError('repertorios')
       const id = decodeURIComponent(p.slice('/api/services/'.length))
       if (!isServiceId(id)) return json({ error: 'Servicio no válido' }, 400)
       // POST = PUT (la app de escritorio solo manda GET, POST, DELETE y PATCH).
       if (req.method !== 'PUT' && req.method !== 'POST' && req.method !== 'DELETE') return json({ error: 'Método no permitido' }, 405)
       if (!me.admin) return json({ error: 'Solo el administrador gestiona los servicios' }, 403)
       if (req.method === 'DELETE') {
-        await deleteService(env.TRACKS, id)
+        await deleteService(env.TRACKS, id, servicesPrefix(church))
         return json({ ok: true })
       }
       let doc
@@ -549,7 +692,9 @@ export default {
       } catch (err) {
         return json({ error: err.message || 'Servicio no válido' }, 400)
       }
-      const r = await putService(env.TRACKS, doc)
+      // Asignar músicos y cantantes es del plan Equipo en adelante (lo comprueba el servidor).
+      if (doc.members?.length && !can(me, 'asignacion_integrantes')) return planError('asignacion_integrantes')
+      const r = await putService(env.TRACKS, doc, servicesPrefix(church))
       return r.conflict ? json({ error: 'Hay una versión más nueva de este servicio', current: r.conflict }, 409) : json(r.service)
     }
 
@@ -557,6 +702,8 @@ export default {
     if (p.startsWith('/api/chart/')) {
       const key = decodeURIComponent(p.slice('/api/chart/'.length))
       if (!key || isAuxiliary(key)) return json({ error: 'Canción no válida' }, 400)
+      if (!owns(key)) return json({ error: 'Sin letra' }, 404)
+      if (!can(me, 'letras_acordes')) return planError('letras_acordes')
       if (req.method === 'GET') {
         const sheet = await readSheet(env.TRACKS, key)
         return sheet?.doc.chart ? json(sheet.doc.chart) : json({ error: 'Sin letra' }, 404)
@@ -583,6 +730,20 @@ export default {
       if (!me.admin) return json({ error: 'Solo el administrador' }, 403)
       // Solo con la sesión de Neon: una sesión del panel no se renueva sola (como mucho dura 2 horas).
       if ((req.headers.get('authorization') || '').startsWith('Bearer gps.')) return json({ error: 'Inicia sesión otra vez' }, 401)
+      const limited = await overLimit(env, req, 'panel')
+      if (limited) return limited
+      // Verificación en dos pasos: si la cuenta la activó (recomendada para administradores), se pide aquí.
+      const twofa = await neonRpc(env, bearer, 'gosen_2fa_status')
+      // Si no se pudo saber (y no es que falte la actualización v37), no se abre el panel sin comprobarlo.
+      if (twofa.error) return json({ error: 'No se pudo comprobar la verificación en dos pasos. Intenta de nuevo.', code: '2fa-unknown' }, 503)
+      if (twofa.data?.enabled) {
+        const code = (req.headers.get('x-gosen-totp') || '').trim()
+        if (!code) return json({ error: 'Escribe el código de tu app de autenticación.', code: '2fa-required' }, 401)
+        const v = await neonRpc(env, bearer, 'gosen_2fa_verify', { p_code: code })
+        if (!v.data?.ok) {
+          return json({ error: v.data?.result === 'bloqueado' ? 'Demasiados intentos. Espera unos minutos.' : 'El código no es correcto.', code: '2fa-bad' }, 401)
+        }
+      }
       // Con los documentos en vigor, el panel se usa tras aceptar términos y privacidad (se valida aquí).
       const consent = await consentState(env, bearer)
       if (!consent.ok) {
@@ -592,9 +753,14 @@ export default {
     }
     if (p === '/api/me')
       return json(me.admin ? { ...me, maxTotalBytes: Number(env.MAX_TOTAL_BYTES), maxFileBytes: Number(env.MAX_FILE_BYTES) } : me)
-    if (p === '/api/tracks') return json(await listAll(env))
+    if (p === '/api/tracks') {
+      if (!can(me, 'biblioteca')) return planError('biblioteca')
+      return json(await listAll(env, church))
+    }
 
     if (p.startsWith('/api/song/') && req.method === 'GET') {
+      if (!owns(decodeURIComponent(p.slice(10)))) return json({ error: 'No existe' }, 404)
+      if (!can(me, 'biblioteca')) return planError('biblioteca')
       try {
         const manifest = await songManifest(env.TRACKS, decodeURIComponent(p.slice(10)))
         return manifest ? json(manifest) : json({ error: 'No existe' }, 404)
@@ -603,9 +769,14 @@ export default {
       }
     }
 
-    if (p.startsWith('/api/file/') && req.method === 'GET') return serveFile(req, env, decodeURIComponent(p.slice(10)))
+    if (p.startsWith('/api/file/') && req.method === 'GET') {
+      if (!owns(decodeURIComponent(p.slice(10)))) return json({ error: 'No existe' }, 404)
+      if (!can(me, 'biblioteca')) return planError('biblioteca')
+      return serveFile(req, env, decodeURIComponent(p.slice(10)))
+    }
 
     if (p.startsWith('/api/cover/') && req.method === 'GET') {
+      if (!owns(decodeURIComponent(p.slice(11)))) return json({ error: 'Sin portada' }, 404)
       const obj = await env.TRACKS.get(COVERS + decodeURIComponent(p.slice(11)))
       if (!obj) return json({ error: 'Sin portada' }, 404)
       return new Response(obj.body, {
@@ -614,6 +785,17 @@ export default {
     }
 
     if (!me.admin) return json({ error: 'Solo el administrador' }, 403)
+    if (!can(me, 'biblioteca')) return planError('biblioteca')
+    // Toda canción que se toque desde aquí debe ser de la iglesia del admin.
+    for (const prefix of ['/api/detected/', '/api/optimized/', '/api/migrate-metadata/', '/api/metadata/', '/api/file/', '/api/cover/', '/api/song/']) {
+      if (p.startsWith(prefix)) {
+        const key = decodeURIComponent(p.slice(prefix.length)).replace(/\/tracks$/, '')
+        if (!owns(key)) return json({ error: 'Ese multitrack no existe' }, 404)
+      }
+    }
+    for (const k of ['song', 'key']) {
+      if (q(k) !== null && !owns(q(k))) return json({ error: 'Ese multitrack no existe' }, 404)
+    }
 
     if (p.startsWith('/api/download/') && req.method === 'POST') return downloadLinks(env, decodeURIComponent(p.slice('/api/download/'.length)), me, bearer)
 
@@ -690,6 +872,8 @@ export default {
       // Las versiones optimizadas (M4A) de las pistas siguen en uso: no se borran.
       const optFiles = Object.values(sheet?.doc?.optimized ?? {}).map((o) => o?.file).filter(Boolean)
       await deleteOrphanTrackFiles(env.TRACKS, key, tracks, optFiles)
+      forgetUsage(church)
+      await contentLog(env, me, church, 'cancion.editada', key, { pistas: tracks.length })
       return json({ ok: true, manifest: await songManifest(env.TRACKS, key) })
     }
 
@@ -742,6 +926,7 @@ export default {
         return json({ error: err.message || 'La ficha no es válida.' }, 400)
       }
       await saveSongFields(env, key, metadata)
+      await contentLog(env, me, church, 'cancion.editada', key, { titulo: metadata.title ?? null })
       return json({ ok: true })
     }
 
@@ -755,6 +940,8 @@ export default {
         cursor = page.truncated ? page.cursor : undefined
       } while (cursor)
       await env.TRACKS.delete([key, COVERS + key, METADATA + key, INDEX + key, ...extra])
+      forgetUsage(church)
+      await contentLog(env, me, church, 'cancion.borrada', key, null)
       return json({ ok: true })
     }
     if (p.startsWith('/api/cover/') && req.method === 'PUT') {
@@ -765,6 +952,7 @@ export default {
       const bytes = await req.arrayBuffer()
       if (!bytes.byteLength || bytes.byteLength > MAX_COVER_BYTES) return json({ error: 'La portada debe pesar menos de 2 MB' }, 413)
       await env.TRACKS.put(COVERS + key, bytes, { httpMetadata: { contentType: type } })
+      await contentLog(env, me, church, 'portada.cambiada', key, null)
       return json({ ok: true })
     }
     if (p.startsWith('/api/cover/') && req.method === 'DELETE') {
@@ -784,14 +972,23 @@ export default {
       if (song && (isAuxiliary(song) || !(await env.TRACKS.head(song)))) return json({ error: 'Ese multitrack no existe' }, 404)
       const max = Number(env.MAX_TOTAL_BYTES)
       if (max > 0) {
-        const used = (await listAll(env)).reduce((s, o) => s + o.size, 0)
+        const used = await prefixBytes(env, undefined)
         if (used + size > max) return json({ error: 'Se alcanzó el límite de almacenamiento' }, 507)
       }
+      // Cuota de la iglesia según su plan (null = sin límite, como la interna).
+      const quota = me.limits?.storage_bytes
+      if (quota) {
+        const used = (await churchUsage(env, church, true)).bytes
+        if (used + size > quota) {
+          return json({ error: `Tu iglesia llegó al límite de almacenamiento de su plan (${Math.round(quota / 1073741824)} GB). Borra canciones que no uses o consulta un plan mayor con Gosen.`, code: 'quota' }, 507)
+        }
+      }
       const safe = name.replace(/[^\w.\- ]/g, '_')
-      // Pista suelta: dentro de la carpeta de su canción, con un nombre que no se repite.
+      // Pista suelta: dentro de la carpeta de su canción, con un nombre que no se repite. Canción nueva: en la
+      // carpeta de la iglesia (la interna, en la raíz como siempre).
       const key = song
         ? `${trackPrefix(song)}${optimized ? 'opt-' : ''}${crypto.randomUUID()}${safe.slice(safe.lastIndexOf('.')).toLowerCase()}`
-        : `${Date.now()}-${safe}`
+        : `${songPrefix(church)}${Date.now()}-${safe}`
       const up = await env.TRACKS.createMultipartUpload(key, { customMetadata: { name } })
       return json({ key, uploadId: up.uploadId })
     }
@@ -800,6 +997,15 @@ export default {
     if (p === '/api/upload/done' && req.method === 'POST') {
       const { parts } = await req.json()
       await upload().complete(parts)
+      forgetUsage(church)
+      // Se vuelve a medir: si entre varias subidas a la vez se pasó de la cuota, lo recién subido se quita.
+      const quota = me.limits?.storage_bytes
+      if (quota && (await churchUsage(env, church, true)).bytes > quota) {
+        await env.TRACKS.delete(q('key'))
+        forgetUsage(church)
+        return json({ error: 'Tu iglesia llegó al límite de almacenamiento de su plan: el archivo no se guardó.', code: 'quota' }, 507)
+      }
+      if (!q('key').startsWith(TRACK_FILES)) await contentLog(env, me, church, 'cancion.subida', q('key'), null)
       return json({ ok: true })
     }
     if (p === '/api/upload/abort' && req.method === 'POST') {

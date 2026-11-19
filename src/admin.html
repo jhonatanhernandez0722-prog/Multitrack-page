@@ -229,7 +229,31 @@
   .pass-eye svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .pass-eye[aria-pressed='true'] .eye-slash { display: none; }
   /* Biblioteca (la lista) y Subir canciones (subir + almacenamiento): una vista a la vez. */
-  .app-main[data-view='library'] .view-upload, .app-main[data-view='upload'] .view-library { display: none; }
+  .app-main:not([data-view='library']) .view-library, .app-main:not([data-view='upload']) .view-upload,
+  .app-main:not([data-view='church']) .view-church, .app-main:not([data-view='members']) .view-members,
+  .app-main:not([data-view='subscription']) .view-subscription, .app-main:not([data-view='security']) .view-security { display: none; }
+  /* Tu iglesia: perfil, integrantes, suscripción y seguridad (v37). */
+  .church-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .church-grid .field label { display: block; margin-bottom: 5px; }
+  .logo-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .logo-box { width: 72px; height: 72px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel-3); display: grid; place-items: center; overflow: hidden; color: var(--text-3); font-size: 12px; text-align: center; }
+  .logo-box img { width: 100%; height: 100%; object-fit: cover; }
+  .plan-note { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--radius); background: var(--accent-soft); font-size: 14px; }
+  .plan-note .btn { margin-left: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .data-table th, .data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .data-table th { color: var(--text-3); font-family: var(--font-label); letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px; }
+  .table-scroll { overflow-x: auto; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel-3); color: var(--text-2); }
+  .chip.on { background: var(--accent-soft); color: var(--text); }
+  .chip.bad { background: rgba(255, 77, 94, 0.14); color: var(--danger); }
+  .feature-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 14px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; }
+  .feature-list li::before { content: '✓ '; color: var(--play); }
+  .feature-list li.off { color: var(--text-3); }
+  .feature-list li.off::before { content: '· '; color: var(--text-3); }
+  .secret { font: 700 16px var(--mono, monospace); letter-spacing: 0.08em; padding: 10px 12px; border-radius: var(--radius); background: var(--panel-3); word-break: break-all; }
+  .recovery { display: grid; grid-template-columns: repeat(2, minmax(0, 140px)); gap: 6px; font-family: monospace; }
+  .sub-banner { margin-bottom: 14px; }
   .nav-count { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 12px; text-align: center; }
   .job { position: relative; transition: opacity 0.4s, transform 0.4s; }
   .job.leaving { opacity: 0; transform: translateY(-6px); }
@@ -391,7 +415,7 @@
       <img src="/logo.png" alt="" />
       <div>
         <div class="brand-name">GOSEN</div>
-        <div class="brand-sub">Tracks</div>
+        <div class="brand-sub" id="brandSub">Tracks</div>
       </div>
     </div>
     <div class="nav-group-label">Preparar</div>
@@ -399,6 +423,15 @@
       <ul class="nav-list">
         <li><a class="nav-item active" href="#biblioteca" data-view="library" aria-current="page"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h4" /></svg><span>Biblioteca</span></a></li>
         <li><a class="nav-item" href="#subir" data-view="upload"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16" /></svg><span>Subir canciones</span><b class="nav-count hide" id="uploadCount"></b></a></li>
+      </ul>
+    </nav>
+    <div class="nav-group-label" style="margin-top: 14px">Tu iglesia</div>
+    <nav aria-label="Tu iglesia">
+      <ul class="nav-list">
+        <li><a class="nav-item" href="#iglesia" data-view="church"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v4M10 4h4M5 21V11l7-5 7 5v10M9 21v-5h6v5" /></svg><span>Iglesia</span></a></li>
+        <li><a class="nav-item" href="#integrantes" data-view="members"><svg class="i" viewBox="0 0 24 24"><path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" /></svg><span>Integrantes</span></a></li>
+        <li><a class="nav-item" href="#suscripcion" data-view="subscription"><svg class="i" viewBox="0 0 24 24"><path d="M3 7h18v12H3zM3 11h18M7 15h4" /></svg><span>Mi suscripción</span></a></li>
+        <li><a class="nav-item" href="#seguridad" data-view="security"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /></svg><span>Seguridad</span></a></li>
       </ul>
     </nav>
     <div class="sidebar-footer">
@@ -483,7 +516,104 @@
       <p id="libCount" class="muted small lib-count"></p>
       <div id="list"></div>
     </section>
+
+    <section class="card view-church">
+      <div class="card-head"><h2>Perfil de la iglesia</h2></div>
+      <form id="churchForm" class="church-grid">
+        <div class="field"><label class="label" for="ch_name">Nombre</label><input id="ch_name" class="input" maxlength="80" required /></div>
+        <div class="field"><label class="label" for="ch_city">Ciudad</label><input id="ch_city" class="input" maxlength="60" /></div>
+        <div class="field"><label class="label" for="ch_cname">Contacto</label><input id="ch_cname" class="input" maxlength="80" /></div>
+        <div class="field"><label class="label" for="ch_cphone">Teléfono</label><input id="ch_cphone" class="input" maxlength="20" /></div>
+        <div class="field"><label class="label" for="ch_cmail">Correo</label><input id="ch_cmail" class="input" type="email" /></div>
+        <div class="field"><label class="label" for="ch_accent">Color propio (Premium)</label><input id="ch_accent" class="input" type="color" value="#6b3cf6" /></div>
+        <div style="grid-column: 1 / -1"><button class="btn primary" type="submit">Guardar perfil</button> <span id="churchMsg" class="muted small" role="status"></span></div>
+      </form>
+      <div class="logo-row">
+        <div class="logo-box" id="logoBox">Sin logo</div>
+        <div>
+          <strong>Logo de la iglesia</strong>
+          <p class="muted small" style="margin: 2px 0 8px">PNG, JPG o WebP de hasta 1 MB. Lo ven los integrantes en la app.</p>
+          <input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+          <button class="btn small" type="button" id="logoBtn">Subir logo</button>
+          <button class="btn small" type="button" id="logoDel">Quitar</button>
+        </div>
+      </div>
+      <div id="personalNote" class="plan-note hide" style="margin-top: 12px"></div>
+    </section>
+
+    <section class="card view-members">
+      <div class="card-head"><h2>Integrantes</h2><span id="seatInfo" class="chip"></span></div>
+      <div class="table-scroll"><table class="data-table"><thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Cuenta</th><th></th></tr></thead><tbody id="memberRows"></tbody></table></div>
+    </section>
+    <section class="card view-members">
+      <div class="card-head">
+        <h2>Invitaciones</h2>
+        <div class="library-actions">
+          <input id="invNote" class="input" placeholder="Para quién (opcional)" maxlength="120" />
+          <input id="invDays" class="input" type="number" min="1" max="30" value="7" style="width: 90px" aria-label="Días de validez" />
+          <button class="btn primary small" type="button" id="invBtn">Generar código</button>
+        </div>
+      </div>
+      <p class="muted small">Cada código sirve para una sola persona y vence. Compártelo por WhatsApp: la persona elige «Crear cuenta» en Gosen y lo escribe.</p>
+      <div id="invResult" class="alert hide"></div>
+      <div class="table-scroll"><table class="data-table"><thead><tr><th>Para</th><th>Código</th><th>Vence</th><th>Estado</th><th>Usado por</th><th></th></tr></thead><tbody id="invRows"></tbody></table></div>
+    </section>
+
+    <section class="card view-subscription">
+      <div id="subBanner" class="plan-note sub-banner hide"></div>
+      <div class="card-head"><h2 id="subPlan">Mi suscripción</h2><span id="subState" class="chip"></span></div>
+      <div class="stats">
+        <div class="stat"><b id="subPrice">—</b><span class="label">Precio mensual</span></div>
+        <div class="stat"><b id="subEnds">—</b><span class="label">Vence</span></div>
+        <div class="stat"><b id="subSeats">—</b><span class="label">Integrantes</span></div>
+      </div>
+      <div class="meter"><div id="subMeter" class="free"></div></div>
+      <div class="legend"><span id="subStorage" class="muted small"></span><a class="btn small" id="contactBtn" target="_blank" rel="noopener">Escribir a Gosen</a></div>
+      <ul class="feature-list" id="featureList"></ul>
+    </section>
+    <section class="card view-subscription">
+      <div class="card-head"><h2>Historial de pagos</h2></div>
+      <div class="table-scroll"><table class="data-table"><thead><tr><th>Período</th><th>Plan</th><th>Tipo</th><th>Valor</th><th>Medio</th><th>Estado</th></tr></thead><tbody id="payRows"></tbody></table></div>
+    </section>
+    <section class="card view-subscription" id="auditCard">
+      <div class="card-head"><h2>Historial de acciones</h2><span class="chip">Premium</span></div>
+      <div class="table-scroll"><table class="data-table"><thead><tr><th>Fecha</th><th>Quién</th><th>Acción</th><th>Sobre</th></tr></thead><tbody id="auditRows"></tbody></table></div>
+    </section>
+
+    <section class="card view-security">
+      <div class="card-head"><h2>Verificación en dos pasos</h2><span id="tfState" class="chip"></span></div>
+      <p class="muted small">Recomendada para administradores: además de la contraseña, el panel te pedirá el código de una app de autenticación (Google Authenticator, Microsoft Authenticator u otra).</p>
+      <div id="tfOff">
+        <button class="btn primary" type="button" id="tfStart">Activar</button>
+        <div id="tfEnroll" class="hide" style="margin-top: 12px">
+          <p>En tu celular, agrega una cuenta en la app de autenticación con esta clave:</p>
+          <div class="secret" id="tfSecret"></div>
+          <p style="margin: 10px 0 6px"><a id="tfLink" href="#">Abrir en la app de autenticación (desde el celular)</a></p>
+          <div class="library-actions"><input id="tfCode" class="input" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" /><button class="btn primary small" type="button" id="tfConfirm">Confirmar</button></div>
+        </div>
+        <div id="tfCodes" class="hide" style="margin-top: 12px"><p><strong>Códigos de recuperación</strong> (guárdalos; cada uno sirve una vez y no se volverán a mostrar):</p><div class="recovery" id="tfCodeList"></div></div>
+      </div>
+      <div id="tfOn" class="hide">
+        <div class="library-actions"><input id="tfOffCode" class="input" inputmode="numeric" maxlength="11" placeholder="Código para desactivar" /><button class="btn small" type="button" id="tfDisable">Desactivar</button></div>
+      </div>
+      <p id="tfMsg" class="muted small" role="status"></p>
+    </section>
+    <section class="card view-security">
+      <div class="card-head"><h2>Sesiones y privacidad</h2></div>
+      <p class="muted small">Si perdiste un equipo o compartiste tu contraseña, cierra la sesión en todos los demás dispositivos y cambia la contraseña.</p>
+      <div class="library-actions"><button class="btn" type="button" id="otherSessions">Cerrar sesión en los demás dispositivos</button><button class="btn" type="button" id="privacyBtn2">Privacidad y aceptaciones</button></div>
+      <p id="sessMsg" class="muted small" role="status"></p>
+    </section>
   </main>
+
+<dialog id="totpDialog" class="metadata-dialog" aria-labelledby="totpHeading" style="width: min(420px, calc(100% - 28px))">
+  <form method="dialog" class="metadata-form" id="totpForm">
+    <div class="dialog-head"><h2 id="totpHeading">Código de verificación</h2></div>
+    <p class="muted small" id="totpText">Escribe el código de 6 dígitos de tu app de autenticación (o un código de recuperación).</p>
+    <input id="totpInput" class="input" inputmode="numeric" autocomplete="one-time-code" maxlength="11" required />
+    <div class="dialog-actions"><button class="btn" value="cancel" formnovalidate>Salir</button><button class="btn primary" value="ok" id="totpOk">Entrar</button></div>
+  </form>
+</dialog>
 </div>
 
 <dialog id="downloadDialog" class="metadata-dialog" aria-labelledby="downloadHeading">
@@ -661,7 +791,16 @@
         logout('Tu sesión caducó. Entra otra vez.')
         throw new Error('Sesión caducada.')
       }
-      const r = await fetch('/api/panel-session', { method: 'POST', headers: { authorization: 'Bearer ' + jwt } })
+      let r = await fetch('/api/panel-session', { method: 'POST', headers: { authorization: 'Bearer ' + jwt } })
+      // Con la verificación en dos pasos activa, el panel pide el código (y lo reintenta si fue malo).
+      for (let tries = 0; r.status === 401 && tries < 5; tries++) {
+        const d = await r.clone().json().catch(() => ({}))
+        if (d.code !== '2fa-required' && d.code !== '2fa-bad') break
+        const code = await askTotp(d.code === '2fa-bad' ? d.error : '')
+        if (!code) { logout(''); throw new Error('Se canceló la verificación.') }
+        r = await fetch('/api/panel-session', { method: 'POST', headers: { authorization: 'Bearer ' + jwt, 'x-gosen-totp': code } })
+      }
+      if (r.status === 401) { logout('No se pudo verificar tu cuenta. Entra otra vez.'); throw new Error('Sesión caducada.') }
       if (r.status === 428) {
         // Faltan aceptaciones (o hay una versión nueva): se piden antes de seguir.
         const d = await r.json().catch(() => ({}))
@@ -676,6 +815,18 @@
     })().finally(() => { renewing = null })
     return renewing
   }
+  /** Pide el código de la app de autenticación (devuelve '' si la persona cancela). */
+  function askTotp(error) {
+    return new Promise((resolve) => {
+      const dlg = $('totpDialog')
+      $('totpInput').value = ''
+      $('totpText').textContent = error || 'Escribe el código de 6 dígitos de tu app de autenticación (o un código de recuperación).'
+      dlg.onclose = () => resolve(dlg.returnValue === 'ok' ? $('totpInput').value.trim() : '')
+      dlg.showModal()
+      setTimeout(() => $('totpInput').focus(), 30)
+    })
+  }
+
   async function api(path, opts = {}) {
     const r = await fetch(path, { ...opts, headers: { authorization: 'Bearer ' + (await token()), ...(opts.headers || {}) } })
     const d = await r.json().catch(() => ({}))
@@ -812,9 +963,14 @@
       const me = await api('/api/me')
       if (!me.admin) return logout('Esta cuenta no es de administrador.')
       $('who').textContent = me.email
+      churchInfo = await neonApi('/api/church').catch(() => null)
+      applyChurch()
       $('login').classList.add('hide')
       $('panel').classList.remove('hide')
       await refresh()
+      // Si se abrió directamente en una vista de «Tu iglesia», se cargan sus datos.
+      const view = VIEWS[document.querySelector('.app-main').dataset.view]
+      if (view && view.load) view.load()
     } catch (err) {
       if (err.code === 'consent-required') return
       logout(err.message)
@@ -842,8 +998,310 @@
     $('meterText').textContent = usedGB <= FREE_GB
       ? `${fmtGB(used)} de ${FREE_GB} GB gratis`
       : `${FREE_GB} GB gratis + ${(usedGB - FREE_GB).toFixed(2)} GB de pago`
+    const quota = churchInfo && churchInfo.limits && churchInfo.limits.storage_bytes
+    if (churchInfo && churchInfo.church && !churchInfo.church.internal) {
+      // Iglesia cliente: lo que cuenta es la cuota de su plan.
+      $('cost').textContent = churchInfo.plan ? churchInfo.plan.name.replace(/^Gosen /, '') : '—'
+      $('cost').classList.remove('paid')
+      $('cost').nextElementSibling.textContent = 'Plan'
+      const pct = quota ? Math.min(100, (used / quota) * 100) : 0
+      $('mFree').style.width = pct + '%'
+      $('mOver').style.width = '0%'
+      $('meterText').textContent = quota ? `${fmtGB(used)} de ${fmtGB(quota)} de tu plan` : `${fmtGB(used)} usados`
+      document.querySelector('#library .legend span:last-child').textContent = quota && used / quota > 0.9 ? 'Casi sin espacio: borra canciones que no uses o consulta un plan mayor.' : 'El espacio lo da el plan de tu iglesia.'
+    }
     renderList()
   }
+
+  // --- Tu iglesia: perfil, integrantes, suscripción y seguridad (v37) ---------------------------------------------
+  let churchInfo = null
+  const FEATURES = {
+    reproductor: 'Reproductor multitrack', biblioteca: 'Biblioteca de canciones', click_guia: 'Click y guía', mezclador: 'Mezclador', repertorios: 'Repertorios',
+    ensayo_individual: 'Ensayo individual', programacion_basica: 'Programación básica', ensayo_multiple: 'Ensayo múltiple sincronizado',
+    programacion_completa: 'Programación completa de servicios', asignacion_integrantes: 'Asignación de músicos y cantantes', exportar_excel: 'Exportación a Excel',
+    letras_acordes: 'Letras y acordes', letras_secciones: 'Organización por secciones', transposicion_acordes: 'Transposición de acordes',
+    letras_sincronizadas: 'Letras sincronizadas con el reproductor', personalizacion: 'Personalización de la iglesia', holyrics: 'Holyrics Connect',
+    admin_avanzado: 'Herramientas avanzadas de administración', config_avanzada: 'Mayor capacidad de configuración', soporte_prioritario: 'Soporte prioritario'
+  }
+  const STATES = { interna: 'Interna', activa: 'Activa', gracia: 'En período de gracia', vencida: 'Vencida', sin_suscripcion: 'Sin activar', suspendida: 'Suspendida', archivada: 'Archivada' }
+  const can = (f) => !churchInfo || !Array.isArray(churchInfo.features) || churchInfo.features.includes(f)
+  const money = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(n) || 0)
+  const fdate = (d) => (d ? new Date(String(d).length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
+  const cell = (text) => { const td = document.createElement('td'); td.textContent = text ?? ''; return td }
+  /** Enlace para escribir a Gosen por WhatsApp (o por correo), con el motivo ya escrito. */
+  function contactLink(reason) {
+    const c = (churchInfo && churchInfo.contact) || {}
+    const church = churchInfo && churchInfo.church ? churchInfo.church.name : ''
+    const msg = `Hola, Gosen. Soy administrador de ${church}. ${reason}`
+    if (c.whatsapp) return `https://wa.me/${String(c.whatsapp).replace(/\D/g, '')}?text=${enc(msg)}`
+    if (c.email) return `mailto:${c.email}?subject=${enc('Gosen Tracks · ' + church)}&body=${enc(msg)}`
+    return null
+  }
+  /** Aviso de «esto es de otro plan» con la opción de consultar la actualización. */
+  function planNote(el, feature) {
+    el.replaceChildren()
+    const span = document.createElement('span')
+    span.textContent = `«${FEATURES[feature] || feature}» no está incluido en tu plan${churchInfo && churchInfo.plan ? ' (' + churchInfo.plan.name + ')' : ''}.`
+    el.append(span)
+    const link = contactLink(`Quiero información para tener «${FEATURES[feature] || feature}».`)
+    if (link) {
+      const a = document.createElement('a')
+      a.className = 'btn small'
+      a.href = link
+      a.target = '_blank'
+      a.rel = 'noopener'
+      a.textContent = 'Consultar actualización'
+      el.append(a)
+    }
+    el.classList.remove('hide')
+  }
+  function applyChurch() {
+    const c = churchInfo && churchInfo.church
+    $('brandSub').textContent = c && c.name && !c.internal ? c.name : 'Tracks'
+    $('brandSub').title = c && c.name ? c.name : ''
+  }
+  async function loadChurchView() {
+    try {
+      const info = await neonApi('/api/church/info')
+      $('ch_name').value = info.name || ''
+      $('ch_city').value = info.city || ''
+      $('ch_cname').value = info.contact_name || ''
+      $('ch_cphone').value = info.contact_phone || ''
+      $('ch_cmail').value = info.contact_email || ''
+      if (info.accent) $('ch_accent').value = info.accent
+      $('ch_accent').disabled = !can('config_avanzada')
+      const canLogo = can('personalizacion')
+      $('logoBtn').disabled = !canLogo
+      $('logoDel').disabled = !canLogo || !info.logo
+      if (!canLogo) planNote($('personalNote'), 'personalizacion')
+      else $('personalNote').classList.add('hide')
+      await showLogo(!!info.logo)
+    } catch (err) { $('churchMsg').textContent = err.message }
+  }
+  async function showLogo(has) {
+    const box = $('logoBox')
+    if (!has) { box.textContent = 'Sin logo'; return }
+    try {
+      const r = await fetch('/api/church/logo', { headers: { authorization: 'Bearer ' + (await token()) } })
+      if (!r.ok) { box.textContent = 'Sin logo'; return }
+      const img = document.createElement('img')
+      img.alt = 'Logo de la iglesia'
+      img.src = URL.createObjectURL(await r.blob())
+      box.replaceChildren(img)
+    } catch { box.textContent = 'Sin logo' }
+  }
+  $('churchForm').onsubmit = async (e) => {
+    e.preventDefault()
+    const patch = { name: $('ch_name').value, city: $('ch_city').value, contact_name: $('ch_cname').value, contact_phone: $('ch_cphone').value, contact_email: $('ch_cmail').value }
+    if (can('config_avanzada')) patch.accent = $('ch_accent').value
+    try {
+      await neonApi('/api/church/info', { method: 'PATCH', body: JSON.stringify(patch) })
+      $('churchMsg').textContent = 'Guardado.'
+      if (churchInfo && churchInfo.church) churchInfo.church.name = patch.name
+      applyChurch()
+    } catch (err) { $('churchMsg').textContent = err.message }
+  }
+  $('logoBtn').onclick = () => $('logoFile').click()
+  $('logoFile').onchange = async () => {
+    const f = $('logoFile').files[0]
+    $('logoFile').value = ''
+    if (!f) return
+    if (f.size > 1024 * 1024) return alert('El logo debe pesar menos de 1 MB.')
+    const r = await fetch('/api/church/logo', { method: 'PUT', headers: { authorization: 'Bearer ' + (await neonJwt()), 'content-type': f.type }, body: f })
+    const d = await r.json().catch(() => ({}))
+    if (!r.ok) return alert(d.error || 'No se pudo subir el logo.')
+    $('logoDel').disabled = false
+    showLogo(true)
+  }
+  $('logoDel').onclick = async () => {
+    if (!confirm('¿Quitar el logo de la iglesia?')) return
+    await neonApi('/api/church/logo', { method: 'DELETE' }).catch((err) => alert(err.message))
+    $('logoDel').disabled = true
+    showLogo(false)
+  }
+
+  async function loadMembers() {
+    const rows = await neonApi('/api/church/members').catch((err) => (alert(err.message), []))
+    const limit = churchInfo && churchInfo.limits && churchInfo.limits.members
+    $('seatInfo').textContent = limit ? `${rows.length} de ${limit} integrantes` : `${rows.length} integrantes`
+    $('seatInfo').className = 'chip' + (limit && rows.length >= limit ? ' bad' : ' on')
+    $('memberRows').replaceChildren(...rows.map((m) => {
+      const tr = document.createElement('tr')
+      tr.append(cell(m.email), cell(m.note || '—'), cell(m.is_admin ? 'Administrador' : 'Integrante'), cell(m.registered ? 'Creada' : 'Sin crear'))
+      const td = document.createElement('td')
+      const self = session && m.email === ($('who').textContent || '').toLowerCase()
+      const role = document.createElement('button')
+      role.className = 'btn small'
+      role.type = 'button'
+      role.textContent = m.is_admin ? 'Quitar admin' : 'Hacer admin'
+      role.onclick = async () => {
+        try { await neonApi('/api/church/members/role', { method: 'POST', body: JSON.stringify({ email: m.email, role: m.is_admin ? 'member' : 'admin' }) }); loadMembers() } catch (err) { alert(err.message) }
+      }
+      td.append(role)
+      if (!self) {
+        const del = document.createElement('button')
+        del.className = 'btn small icon-only danger'
+        del.type = 'button'
+        del.title = 'Quitar de la iglesia'
+        del.setAttribute('aria-label', `Quitar a ${m.email} de la iglesia`)
+        del.innerHTML = icon('trash')
+        del.onclick = async () => {
+          if (!confirm(`¿Quitar a ${m.email} de la iglesia? Ya no podrá usar Gosen con este equipo.`)) return
+          try { await neonApi('/api/church/members/' + enc(m.email), { method: 'DELETE' }); loadMembers() } catch (err) { alert(err.message) }
+        }
+        td.append(' ', del)
+      }
+      tr.append(td)
+      return tr
+    }))
+    loadInvitations()
+  }
+  const INV = { pendiente: 'Pendiente', reservada: 'En uso', usada: 'Usada', vencida: 'Vencida', anulada: 'Anulada', bloqueada: 'Bloqueada' }
+  async function loadInvitations() {
+    $('invDays').max = can('config_avanzada') ? 30 : 7
+    const rows = await neonApi('/api/church/invitations').catch(() => [])
+    $('invRows').replaceChildren(...rows.map((i) => {
+      const tr = document.createElement('tr')
+      tr.append(cell(i.note || '—'), cell('…' + i.hint), cell(fdate(i.expires_at)), cell(INV[i.status] || i.status), cell(i.used_email || i.reserved_email || '—'))
+      const td = document.createElement('td')
+      if (i.status === 'pendiente' || i.status === 'reservada') {
+        const b = document.createElement('button')
+        b.className = 'btn small danger'
+        b.type = 'button'
+        b.textContent = 'Anular'
+        b.onclick = async () => { try { await neonApi('/api/church/invitations/' + i.id, { method: 'DELETE' }); loadInvitations() } catch (err) { alert(err.message) } }
+        td.append(b)
+      }
+      tr.append(td)
+      return tr
+    }))
+  }
+  $('invBtn').onclick = async () => {
+    try {
+      const d = await neonApi('/api/church/invitations', { method: 'POST', body: JSON.stringify({ note: $('invNote').value, days: Number($('invDays').value) || null }) })
+      const box = $('invResult')
+      box.className = 'alert'
+      box.replaceChildren()
+      const line = document.createElement('div')
+      line.append('Código (solo se muestra ahora): ')
+      const code = document.createElement('strong')
+      code.textContent = d.code
+      line.append(code)
+      const actions = document.createElement('div')
+      actions.className = 'library-actions'
+      actions.style.marginTop = '8px'
+      const wa = document.createElement('a')
+      wa.className = 'btn small primary'
+      wa.href = d.whatsapp
+      wa.target = '_blank'
+      wa.rel = 'noopener'
+      wa.textContent = 'Enviar por WhatsApp'
+      const copy = document.createElement('button')
+      copy.className = 'btn small'
+      copy.type = 'button'
+      copy.textContent = 'Copiar mensaje'
+      copy.onclick = () => navigator.clipboard.writeText(d.text)
+      actions.append(wa, copy)
+      box.append(line, actions)
+      $('invNote').value = ''
+      loadInvitations()
+    } catch (err) { alert(err.message) }
+  }
+
+  async function loadSubscription() {
+    churchInfo = await neonApi('/api/church').catch(() => churchInfo)
+    const c = churchInfo || {}
+    const st = (c.subscription && c.subscription.state) || 'interna'
+    $('subPlan').textContent = c.plan ? c.plan.name : 'Mi suscripción'
+    $('subState').textContent = STATES[st] || st
+    $('subState').className = 'chip' + (['activa', 'interna'].includes(st) ? ' on' : st === 'gracia' ? '' : ' bad')
+    $('subPrice').textContent = c.church && c.church.internal ? 'Interna' : c.plan ? money(c.plan.price_month) : '—'
+    $('subEnds').textContent = c.subscription && c.subscription.ends_on ? fdate(c.subscription.ends_on) : c.church && c.church.internal ? 'Sin vencimiento' : '—'
+    const lim = c.limits || {}
+    $('subSeats').textContent = lim.members ? `${c.members ?? '—'} / ${lim.members}` : String(c.members ?? '—')
+    const used = c.usage ? c.usage.bytes : 0
+    $('subMeter').style.width = lim.storage_bytes ? Math.min(100, (used / lim.storage_bytes) * 100) + '%' : '0%'
+    $('subStorage').textContent = lim.storage_bytes ? `Almacenamiento: ${fmtGB(used)} de ${fmtGB(lim.storage_bytes)}` : `Almacenamiento: ${fmtGB(used)} (sin límite)`
+    const link = contactLink(st === 'vencida' || st === 'gracia' ? 'Quiero renovar la suscripción.' : 'Quiero información sobre los planes.')
+    $('contactBtn').classList.toggle('hide', !link)
+    if (link) $('contactBtn').href = link
+    $('contactBtn').textContent = st === 'vencida' || st === 'gracia' ? 'Renovar con Gosen' : 'Escribir a Gosen'
+    const banner = $('subBanner')
+    const days = c.subscription && c.subscription.days_left
+    if (st === 'gracia' || st === 'vencida' || st === 'suspendida' || (st === 'activa' && c.subscription && c.subscription.reminder)) {
+      banner.textContent = st === 'activa' ? `Tu suscripción vence en ${days} día(s). Renueva con tiempo para no perder funciones.` : st === 'gracia' ? 'Tu suscripción venció: estás en el período de gracia. Renueva para no perder las funciones de la nube.' : st === 'suspendida' ? 'La cuenta de tu iglesia está suspendida. Escribe a Gosen.' : 'Tu suscripción venció. Tus canciones y datos se conservan; renueva para volver a usar la nube.'
+      banner.classList.remove('hide')
+    } else banner.classList.add('hide')
+    const on = new Set(Array.isArray(c.features) ? c.features : Object.keys(FEATURES))
+    $('featureList').replaceChildren(...Object.entries(FEATURES).map(([id, label]) => {
+      const li = document.createElement('li')
+      li.textContent = label
+      if (!on.has(id)) li.className = 'off'
+      return li
+    }))
+    const pays = await neonApi('/api/church/subscriptions').catch(() => [])
+    const KIND = { alta: 'Alta', renovacion: 'Renovación', cambio_plan: 'Cambio de plan', cortesia: 'Cortesía' }
+    $('payRows').replaceChildren(...pays.map((x) => {
+      const tr = document.createElement('tr')
+      tr.append(cell(`${fdate(x.starts_on)} → ${fdate(x.ends_on)}`), cell(x.plan), cell(KIND[x.kind] || x.kind), cell(money(x.price_cop - (x.discount_cop || 0))), cell(x.payment_method || '—'), cell(x.status === 'anulada' ? 'Anulado' : 'Pagado'))
+      return tr
+    }))
+    $('auditCard').classList.toggle('hide', !can('admin_avanzado'))
+    if (can('admin_avanzado')) {
+      const rows = await neonApi('/api/church/audit').catch(() => [])
+      $('auditRows').replaceChildren(...rows.map((a) => {
+        const tr = document.createElement('tr')
+        tr.append(cell(new Date(a.at).toLocaleString('es-CO')), cell(a.actor || '—'), cell(a.action), cell(a.target || ''))
+        return tr
+      }))
+    }
+  }
+
+  async function loadSecurity() {
+    try {
+      const st = await neonApi('/api/2fa')
+      $('tfState').textContent = st.enabled ? 'Activa' : 'Desactivada'
+      $('tfState').className = 'chip' + (st.enabled ? ' on' : '')
+      $('tfOn').classList.toggle('hide', !st.enabled)
+      $('tfOff').classList.toggle('hide', st.enabled)
+      $('tfMsg').textContent = st.enabled && st.recovery_left != null ? `Te quedan ${st.recovery_left} códigos de recuperación.` : ''
+    } catch (err) { $('tfMsg').textContent = err.message }
+  }
+  $('tfStart').onclick = async () => {
+    try {
+      const d = await neonApi('/api/2fa/enroll', { method: 'POST', body: '{}' })
+      $('tfSecret').textContent = d.secret.replace(/(.{4})/g, '$1 ').trim()
+      $('tfLink').href = d.uri
+      $('tfEnroll').classList.remove('hide')
+    } catch (err) { $('tfMsg').textContent = err.message }
+  }
+  $('tfConfirm').onclick = async () => {
+    try {
+      const d = await neonApi('/api/2fa/confirm', { method: 'POST', body: JSON.stringify({ code: $('tfCode').value }) })
+      if (!d.ok) throw new Error(d.error)
+      $('tfEnroll').classList.add('hide')
+      $('tfCodeList').replaceChildren(...d.recovery_codes.map((c) => { const s = document.createElement('span'); s.textContent = c; return s }))
+      $('tfCodes').classList.remove('hide')
+      $('tfMsg').textContent = 'Listo: desde ahora el panel te pedirá el código al entrar.'
+      $('tfState').textContent = 'Activa'
+    } catch (err) { $('tfMsg').textContent = err.message }
+  }
+  $('tfDisable').onclick = async () => {
+    try {
+      const d = await neonApi('/api/2fa/disable', { method: 'POST', body: JSON.stringify({ code: $('tfOffCode').value }) })
+      if (!d.ok) throw new Error(d.error)
+      $('tfOffCode').value = ''
+      loadSecurity()
+    } catch (err) { $('tfMsg').textContent = err.message }
+  }
+  $('otherSessions').onclick = async () => {
+    if (!confirm('¿Cerrar la sesión en todos tus demás dispositivos (PC, celulares)? Tendrán que volver a entrar.')) return
+    try {
+      await neonApi('/api/sessions/others', { method: 'POST', body: JSON.stringify({ cookies: session.cookies }) })
+      $('sessMsg').textContent = 'Listo: las demás sesiones se cerraron.'
+    } catch (err) { $('sessMsg').textContent = err.message }
+  }
+  $('privacyBtn2').onclick = () => $('privacyBtn').click()
 
   const titleOf = (o) => o.title || o.name.replace(/\.zip$/i, '')
   /** Texto comparable: sin tildes, mayúsculas ni signos (para buscar y detectar duplicados). */
@@ -1455,8 +1913,13 @@
   // --- Vistas: Biblioteca (lista de canciones) y Subir canciones (subir + almacenamiento) -------
   const VIEWS = {
     library: { eyebrow: 'Canciones en la nube', title: 'Biblioteca' },
-    upload: { eyebrow: 'Agregar a la nube', title: 'Subir canciones' }
+    upload: { eyebrow: 'Agregar a la nube', title: 'Subir canciones' },
+    church: { eyebrow: 'Tu iglesia', title: 'Iglesia', load: () => loadChurchView() },
+    members: { eyebrow: 'Tu iglesia', title: 'Integrantes', load: () => loadMembers() },
+    subscription: { eyebrow: 'Tu iglesia', title: 'Mi suscripción', load: () => loadSubscription() },
+    security: { eyebrow: 'Tu cuenta', title: 'Seguridad', load: () => loadSecurity() }
   }
+  const HASHES = { '#subir': 'upload', '#iglesia': 'church', '#integrantes': 'members', '#suscripcion': 'subscription', '#seguridad': 'security' }
   function showView(name) {
     if (!VIEWS[name]) name = 'library'
     document.querySelector('.app-main').dataset.view = name
@@ -1469,6 +1932,7 @@
     $('viewEyebrow').textContent = VIEWS[name].eyebrow
     $('viewTitle').textContent = VIEWS[name].title
     window.scrollTo(0, 0)
+    if (VIEWS[name].load && session && !$('panel').classList.contains('hide')) VIEWS[name].load()
   }
   for (const a of document.querySelectorAll('.nav-item[data-view]')) {
     a.onclick = (e) => {
@@ -1477,7 +1941,7 @@
       showView(a.dataset.view)
     }
   }
-  showView(location.hash === '#subir' ? 'upload' : 'library')
+  showView(HASHES[location.hash] || 'library')
 
   /** Subidas en curso (en el menú, para verlas desde la Biblioteca). */
   function updateUploadCount() {

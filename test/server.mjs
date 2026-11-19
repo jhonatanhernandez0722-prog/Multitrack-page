@@ -49,6 +49,9 @@ globalThis.fetch = async (url, init) => {
     return new Response(JSON.stringify(consents.slice().reverse().map((c) => ({ event_id: c.event_id, subject_email: c.email, document: c.document, version: c.version, action: c.action, channel: c.channel, recorded_at: c.recorded_at, row_hash: c.row_hash, anonymized: false }))))
   }
   if (rpc === 'gosen_consent_verify') return new Response(JSON.stringify([{ total: consents.length, intact: true, first_broken_id: null }]))
+  if (rpc === 'gosen_2fa_status') return new Response(JSON.stringify({ enabled: false, required: false }))
+  // Cualquier otra función: como si Neon aún no tuviera la actualización (nunca se sale a internet).
+  if (rpc) return new Response(JSON.stringify({ code: 'PGRST202', message: `Could not find the function public.${rpc}` }), { status: 404 })
   if (u.endsWith('/sign-in/email')) return new Response('{}', { headers: { 'set-cookie': 's=1; Path=/', 'set-auth-jwt': jwt() } })
   if (u.endsWith('/token')) return new Response(JSON.stringify({ token: jwt() }))
   return realFetch(url, init)

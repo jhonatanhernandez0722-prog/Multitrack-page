@@ -8,6 +8,10 @@ Antes de dar por cerrados los puntos de la sección 7, conviene que los revise u
 
 Fecha del análisis: 18 de noviembre de 2026.
 
+**Actualización (v37, plataforma multiiglesia):** Gosen Tracks pasó a ofrecerse a varias iglesias con planes
+de pago (Inicial, Equipo y Premium), pagos manuales y suscripciones mensuales o anuales. Los documentos
+(todavía en borrador) se reescribieron para ese modelo. Los puntos nuevos están en las secciones 3, 5 y 7.
+
 ---
 
 ## 1. Qué es la plataforma (para delimitar el análisis)
@@ -20,8 +24,11 @@ Fecha del análisis: 18 de noviembre de 2026.
 | App (Windows, Mac, Android, iPhone en `/iphone/`) | Reproductor, servicios, letras y ensayo. | Integrantes autorizados. |
 | Nube | Worker y R2 de Cloudflare; cuentas y base de datos en Neon (AWS us-east-2, EE. UU.). | Encargados del tratamiento. |
 
-**Modelo de negocio.** Hoy no hay cobros, carrito ni medios de pago. Más adelante se piensa cobrar por
-un servicio.
+**Modelo de negocio (v37).**
+- Suscripción mensual o anual por iglesia, con pago manual (transferencia, Nequi…) que Gosen verifica y
+  registra.
+- No hay pasarela de pagos, cobros automáticos ni datos de tarjetas.
+- Hasta 3 iglesias clientes (cupo configurable) más la iglesia interna de Gosen, que no paga.
 
 **Contenido.** Los multitracks se compran a terceros con licencia. Solo los administradores de la
 iglesia pueden descargarlos.
@@ -78,7 +85,9 @@ iglesia pueden descargarlos.
 | Ley 1581, art. 5–6 (**datos sensibles**) | **Probablemente sí** | Pertenecer al equipo de una comunidad religiosa puede revelar convicciones religiosas. El art. 6, lit. d permite ese tratamiento a organismos sin ánimo de lucro de finalidad religiosa, referido a sus miembros. De todas formas se pide autorización expresa y se informa que no es obligatorio darla. |
 | Ley 1581, art. 26 y Decreto 1377 (**transferencia o transmisión internacional**) | **Sí** | Neon (EE. UU.) y Cloudflare actúan como encargados fuera de Colombia. Requiere un contrato de transmisión o las garantías del proveedor (ver 7). |
 | **Registro Nacional de Bases de Datos** (RNBD, Decreto 090 de 2018) | **Probablemente no** | Solo están obligadas las sociedades y entidades sin ánimo de lucro con activos totales de más de 100.000 UVT, y las entidades públicas. Hay que confirmar los activos de la Comunidad. |
-| **Ley 1480 de 2011** (Estatuto del Consumidor) | **Hoy no** | No hay relación de consumo: no se vende nada. **Aplicará** si se cobra un servicio. Ver la sección 5. |
+| **Ley 1480 de 2011** (Estatuto del Consumidor) | **Sí, probablemente** | Las iglesias clientes pagan una suscripción para su propio uso como destinatarias finales. El artículo 5 incluye a las personas jurídicas como consumidoras en ese caso. La contratación es a distancia (WhatsApp y transferencia): aplican el deber de información, el retracto con sus excepciones, la reversión del pago y la atención de reclamos. Ver la sección 5. |
+| **Facturación electrónica** (DIAN) | **Por confirmar** | Si quien vende está obligado a facturar, cada pago debe tener su factura electrónica. La plataforma registra el pago, pero no factura. |
+| Ley 1581: **responsable y encargado** | **Sí** | Gosen es responsable de las cuentas, la seguridad y las suscripciones. Cada iglesia cliente es responsable de los datos de sus integrantes que gestiona (asignaciones, servicios), y Gosen es su encargado. Hace falta un acuerdo de transmisión entre cada iglesia y Gosen (Decreto 1377, art. 25); los términos pueden servir, pero hay que revisarlo. |
 | Ley 1480, art. 47 (retracto) y art. 51 (reversión del pago), con la Ley 2439 de 2024 y la sentencia C-192 de 2026 | **Al cobrar** | El retracto es de 5 días hábiles, con las excepciones legales. La devolución del dinero se hace en un máximo de 15 días calendario (Ley 2439 de 2024, aplicado a todas las modalidades del art. 47 según la C-192 de 2026). La reversión del pago aplica a compras por comercio electrónico (Decreto 587 de 2016). |
 | **Ley 527 de 1999** (mensajes de datos) | **Sí** | Da validez a la aceptación electrónica (arts. 5 y 14). El registro sirve como prueba del mensaje de datos. |
 | **Ley 23 de 1982** y **Decisión Andina 351 de 1993** (derechos de autor) | **Sí** | Los multitracks y las obras son de terceros: descarga restringida y prohibición de redistribuir. |
@@ -177,17 +186,20 @@ iglesia pueden descargarlos.
 
 ## 5. Política de reembolsos: por qué dice lo que dice
 
-**Hoy.** No se vende ningún bien ni servicio y no hay pagos. La política dice exactamente eso, sin
-afirmar «no se hacen reembolsos» como regla general, porque eso no sería válido si existiera una
-relación de consumo. También explica qué hacer ante un cobro que diga ser de Gosen Tracks.
-
-**Futuro.** Se compromete solo a informar antes de cualquier cobro y a respetar los derechos
-irrenunciables:
-- retracto (art. 47 de la Ley 1480);
-- reversión del pago (art. 51);
-- garantía.
-
-No promete plazos ni condiciones que hoy no existen.
+**Qué dice (v37):**
+- **Qué se paga:** una suscripción por adelantado, con pago manual, sin cobros ni renovaciones
+  automáticas.
+- **Cancelación:** basta con no renovar; el servicio sigue hasta el fin del período pagado. No hay
+  devolución proporcional, salvo los casos que reconoce la ley.
+- **Retracto (art. 47):** 5 días hábiles, con devolución en máximo 15 días calendario (Ley 2439 de 2024 y
+  sentencia C-192 de 2026). Explica la excepción de los servicios ya iniciados con el acuerdo del
+  consumidor y que Gosen debe avisarlo **antes** de activar.
+- **Otros casos:** pago duplicado o mayor al acordado (se devuelve la diferencia), cobro no reconocido,
+  servicio no prestado por falla de Gosen (días adicionales o devolución proporcional) y reversión del
+  pago cuando aplique (art. 51 y Decreto 587 de 2016).
+- **Procedimiento:** respuesta en máximo 15 días hábiles. La devolución se hace en los plazos legales
+  donde existen y, en los demás casos, en la fecha que se acuerde. No se inventan plazos.
+- **Lo que no dice:** nunca «no se hacen reembolsos» como regla general.
 
 ---
 
@@ -236,6 +248,17 @@ No promete plazos ni condiciones que hoy no existen.
    lit. d).
 7. **Licencias** de los proveedores de multitracks frente a las descargas de los administradores.
 8. **Persona o área que atiende** las consultas y reclamos de datos (Decreto 1377, art. 23), para ponerla en la política.
+10. **(v37) Quién vende las suscripciones.** ¿Es la Comunidad Cristiana Gosen Barranquilla, una persona o
+    una empresa? De eso dependen:
+    - quién figura en los documentos;
+    - la facturación electrónica;
+    - el régimen tributario de los pagos.
+11. **(v37) Acuerdo de encargo del tratamiento** con cada iglesia cliente (Decreto 1377, art. 25):
+    confirmar si los términos bastan o si hace falta un documento aparte.
+12. **(v37) Retracto:** confirmar con un abogado cómo informar y documentar el inicio del servicio
+    (excepción del art. 47) antes de activar cada suscripción.
+13. **(v37) Conservación de pagos y comprobantes:** confirmar el plazo exacto según las normas contables
+    y tributarias que apliquen a quien vende.
 9. **Cómo se avisará de los cambios** de la política a los integrantes que usan solo la app (correo o
    aviso de la app en una próxima versión).
 

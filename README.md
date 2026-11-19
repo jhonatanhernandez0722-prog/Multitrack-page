@@ -31,9 +31,30 @@ Este proyecto usa el Worker `gosen-tracks` y el bucket R2 existente `gosen-track
 - `/admin` — panel de canciones (`src/admin.html`). Portadas: se toman de cualquier imagen del ZIP (si hay
   varias, el admin elige con vista previa), y se pueden arrastrar desde el equipo o de una canción a otra.
   Antes de subir se valida el ZIP (que tenga audio y no esté cifrado) y se avisa si la canción ya existe.
+- `/superadmin` — panel de Gosen para administrar la plataforma (`src/superadmin.html`): iglesias, planes,
+  cupo, pagos y suscripciones, invitaciones de administradores, registro de acciones y respaldos. Exige 2FA.
+- `/unirse#GSN-…` — página para quien recibe una invitación (`src/unirse.html`): muestra el código (con
+  «Copiar») y explica cómo crear la cuenta en la app. El código va después de `#`, así que no llega al
+  servidor.
 - La app solo usa `/api/…` y `/iphone/`; las páginas se pueden cambiar sin afectarla.
 
 El archivo `wrangler.toml` define el nombre del Worker, la vinculación al bucket R2 y las URL de Neon Auth y Data API. No se requiere una base de datos D1 para este panel. La autenticación y autorización se comprueban con Neon; los ZIP, portadas y fichas musicales se guardan en R2.
+
+## Varias iglesias (v37)
+
+Diseño completo: `docs/multiiglesia.md` en el repositorio de la app. En resumen:
+
+- Cada cuenta pertenece a una iglesia (`church_id`), que se deduce siempre de la sesión. La iglesia interna
+  `gosen` no ocupa cupo y conserva sus claves de R2 de siempre (en la raíz).
+- Las demás iglesias guardan con prefijo: `c/<id>/` (canciones), `metadata/c/<id>/`, `covers/c/<id>/`,
+  `tracks/c/<id>/`, `c/<id>/services/` y `branding/<id>/logo`. `keyOwner` (`src/tenancy.js`) comprueba en
+  cada petición que la clave sea de la iglesia de la sesión; si no, responde como si no existiera.
+- Funciones por plan: `can(me, función)` (`src/tenancy.js`), con las funciones que entrega Neon según el plan
+  y el estado de la suscripción. Cuotas de almacenamiento por plan, comprobadas al subir.
+- Una sala de ensayo por iglesia. Límite de intentos por IP en las rutas de acceso (Durable Object
+  `Limiter`, migración `v3`: la aplica `wrangler deploy`).
+- Antes de desplegar: ejecutar `neon/v37-iglesias.sql` (repositorio de la app) en el SQL Editor de Neon,
+  con el correo del superadministrador en la última línea.
 
 ## Fuente única de los datos
 
@@ -81,8 +102,10 @@ node --import ./test/register.mjs test/worker.test.mjs   # Worker con R2 y Neon 
 electron test/admin-ui.cjs                                # panel del admin en un navegador real
 electron test/landing-ui.cjs                              # página pública: demostraciones, temas, celular
 node --import ./test/register.mjs test/legal.test.mjs    # documentos, aceptaciones y descargas (Worker)
-GOSEN_PGLITE=<carpeta con @electric-sql/pglite> node test/sql.test.mjs   # el SQL de aceptaciones en Postgres
+GOSEN_PGLITE=<carpeta con node_modules/@electric-sql/pglite> node test/sql.test.mjs   # el SQL de aceptaciones en Postgres
 electron test/legal-ui.cjs                                # aceptación, cookies y descargas en un navegador
+node --import ./test/register.mjs test/churches.test.mjs # varias iglesias: aislamiento, cuotas, planes, 2FA, límites
+electron test/saas-ui.cjs                                 # Superadmin y panel de la iglesia en un navegador
 ```
 
 ## Contenido compartido

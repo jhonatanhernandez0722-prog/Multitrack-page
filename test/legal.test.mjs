@@ -114,9 +114,9 @@ console.log('Documentos legales (públicos, con versiones)')
   const page = await (await call(liveEnv, 'GET', '/legal/terminos/1.0', { token: null })).text()
   ok(page.includes(terms.sha256) && page.includes('900.000.000-1') && !page.includes('pendiente de confirmar'), 'la página muestra la misma huella que se registra al aceptar, y los datos del responsable')
   const priv = await (await call(liveEnv, 'GET', '/legal/privacidad', { token: null })).text()
-  ok(['Ley Estatutaria 1581 de 2012', 'Decreto 1377 de 2013', 'datos@iglesia.test', '10 días hábiles', '15 días hábiles', 'Superintendencia de Industria y Comercio', 'dato sensible', 'Neon', 'Cloudflare'].every((x) => priv.includes(x)), 'la política de privacidad trae responsable, normas, derechos, plazos, datos sensibles y encargados')
+  ok(['Ley Estatutaria 1581 de 2012', 'Decreto 1377 de 2013', 'datos@iglesia.test', '10 días hábiles', '15 días hábiles', 'Superintendencia de Industria y Comercio', 'dato sensible', 'Neon', 'Cloudflare', 'Suscripción y pagos', 'Ninguna otra iglesia ve tus datos'].every((x) => priv.includes(x)), 'la política de privacidad trae responsable, normas, derechos, plazos, datos sensibles, encargados, pagos y aislamiento entre iglesias')
   const refunds = await (await call(liveEnv, 'GET', '/legal/reembolsos', { token: null })).text()
-  ok(/no vende productos ni servicios y no recibe pagos/.test(refunds) && /artículo 47 de la Ley 1480/.test(refunds) && !/no se hacen reembolsos/i.test(refunds), 'reembolsos: dice que hoy no hay cobros y reconoce el retracto y la reversión para el futuro (sin «no se hacen reembolsos»)')
+  ok(/suscripción mensual o anual/.test(refunds) && /No hay cobros automáticos/.test(refunds) && /artículo 47 de la Ley 1480/.test(refunds) && /15 días calendario/.test(refunds) && /Pago duplicado/.test(refunds) && /artículo 51/.test(refunds) && !/no se hacen reembolsos/i.test(refunds), 'reembolsos: suscripción sin renovación automática, cancelación, retracto (devolución en 15 días), cobros duplicados y reversión (sin «no se hacen reembolsos»)')
 }
 
 // --- 2. Web sin terceros ni datos de más -----------------------------------------------------------------

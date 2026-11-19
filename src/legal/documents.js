@@ -46,61 +46,73 @@ function termsV1(owner) {
   return `
 <section>
 <h2>1. Qué es Gosen Tracks y quién lo ofrece</h2>
-<p>Gosen Tracks es una herramienta privada del ministerio de música de ${field('name')} (en adelante, «la Comunidad»). Incluye la aplicación de reproducción de multitracks (Windows, Mac, Android y la aplicación web para iPhone), esta página web y el panel de administración en la nube.</p>
-<p>No es un servicio abierto al público: solo pueden tener cuenta las personas cuyo correo autoriza un administrador de la Comunidad. La página pública solo presenta la herramienta.</p>
+<p>Gosen Tracks es una plataforma para equipos de música de iglesias: la aplicación de multitracks (Windows, Mac, Android y la aplicación web para iPhone), esta página web, el panel de cada iglesia y la nube donde se guardan sus canciones. La ofrece ${field('name')} (en adelante, «Gosen»).</p>
+<p>Gosen la ofrece a iglesias clientes mediante una suscripción (ver la sección 4) y la usa también su propia iglesia. Cada iglesia tiene su espacio independiente: sus canciones, servicios, integrantes y configuración no los ve ninguna otra iglesia.</p>
 </section>
 <section>
 <h2>2. Aceptación de estos términos</h2>
-<p>Estos términos regulan el uso de Gosen Tracks. Se aceptan marcando la casilla correspondiente en el formulario donde se piden; esa aceptación electrónica tiene validez conforme a la Ley 527 de 1999 (mensajes de datos). La aceptación de estos términos es independiente de la autorización para el tratamiento de datos personales, que se pide aparte (ver la ${link('privacidad', 'política de privacidad')}).</p>
+<p>Estos términos regulan el uso de Gosen Tracks. Se aceptan marcando la casilla correspondiente en el formulario donde se piden; esa aceptación electrónica tiene validez conforme a la Ley 527 de 1999 (mensajes de datos). Es independiente de la autorización para el tratamiento de datos personales, que se pide aparte (ver la ${link('privacidad', 'política de privacidad')}).</p>
 <p>Si no aceptas estos términos, no puedes usar el panel de administración ni descargar contenido desde la web. Los documentos legales y los canales de contacto siguen disponibles para cualquier persona.</p>
 </section>
 <section>
-<h2>3. Cuentas</h2>
+<h2>3. Iglesias, cuentas y roles</h2>
 <ul>
-<li>Cada cuenta es personal. Usa tu propio correo y no compartas tu contraseña.</li>
-<li>Los administradores de la Comunidad autorizan y retiran el acceso, asignan las funciones dentro del equipo (por ejemplo, Consola, Músicos, Cantantes) y pueden crear cuentas para integrantes.</li>
-<li>Ser administrador permite subir, editar y borrar canciones, organizar los servicios y descargar el contenido desde la web. Las etiquetas de función no dan permisos de administrador.</li>
-<li>Si crees que alguien usó tu cuenta sin permiso, avisa de inmediato a un administrador o al correo de contacto.</li>
+<li>Gosen crea cada iglesia cliente y entrega a su administrador principal un código de activación. Los administradores de la iglesia invitan a sus integrantes con códigos personales, de un solo uso y con vencimiento.</li>
+<li>Cada cuenta es personal y pertenece a una sola iglesia. Usa tu propio correo, verifícalo y no compartas tu contraseña. Cambiar una cuenta de iglesia solo lo puede hacer Gosen, a pedido de la iglesia.</li>
+<li>Los administradores de la iglesia gestionan sus integrantes, invitaciones, roles, servicios y canciones, y consultan su suscripción. Las etiquetas de función (por ejemplo, Consola o Músicos) no dan permisos de administrador.</li>
+<li>Gosen administra la plataforma (iglesias, planes, suscripciones y pagos) con cuentas protegidas con verificación en dos pasos. Gosen no usa ni descarga el contenido de las iglesias; solo ve los datos necesarios para operar el servicio (por ejemplo, cuánto espacio ocupa cada iglesia).</li>
+<li>Si crees que alguien usó tu cuenta sin permiso, cierra la sesión en los demás dispositivos desde la app o el panel y avisa a tu administrador o a Gosen.</li>
 </ul>
 </section>
 <section>
-<h2>4. Contenido musical y licencias</h2>
-<p>Los multitracks, pistas, letras y obras musicales disponibles en Gosen Tracks pertenecen a sus autores, compositores, productores o distribuidores. La Comunidad adquiere los multitracks a terceros bajo las licencias de esos proveedores, que normalmente permiten su uso dentro de la iglesia que los adquirió. Gosen Tracks no te transfiere ningún derecho sobre esas obras.</p>
+<h2>4. Planes y suscripción</h2>
 <ul>
-<li>Solo los administradores de la Comunidad, con su cuenta, pueden descargar los multitracks desde la web, y solo para las actividades de la Comunidad y dentro de lo que permita la licencia de cada proveedor.</li>
-<li>Está prohibido redistribuir, compartir fuera de la Comunidad, publicar, vender, subir a otras plataformas o usar comercialmente el contenido, así como intentar extraerlo de la aplicación.</li>
+<li>Gosen ofrece planes (por ejemplo, Inicial, Equipo y Premium) con funciones, número de integrantes y espacio de almacenamiento distintos. Las funciones, los límites y los precios vigentes de cada plan se informan antes de contratar y se pueden consultar en la sección «Mi suscripción».</li>
+<li>La suscripción es mensual o anual y se paga por adelantado por los medios que se acuerden con Gosen (por ejemplo, transferencia o Nequi). Gosen la activa o la renueva cuando verifica el pago, y registra el período, el valor, el medio y la referencia del pago.</li>
+<li>No hay cobros automáticos: cada período se paga y se activa por separado.</li>
+<li>Antes del vencimiento, la plataforma avisa. Si el pago no se renueva, hay un período de gracia; al terminar, se suspenden las funciones de la nube del plan (por ejemplo, descargar canciones, compartir servicios o el ensayo múltiple). Las canciones ya guardadas en los equipos siguen sonando.</li>
+<li>Al vencer o suspenderse una suscripción, los datos de la iglesia no se borran automáticamente: se conservan y vuelven a estar disponibles al renovar. La iglesia puede pedir su eliminación (ver la sección 9).</li>
+<li>Si una iglesia supera el espacio o el número de integrantes de su plan, no podrá subir más canciones ni sumar integrantes hasta liberar espacio o cambiar de plan.</li>
+<li>Las condiciones de cancelación, retracto y reembolso están en la ${link('reembolsos', 'política de reembolsos, devoluciones y cancelaciones')}.</li>
+</ul>
+</section>
+<section>
+<h2>5. Contenido musical y licencias</h2>
+<p>Cada iglesia sube sus propios multitracks y es responsable de contar con las licencias que exigen sus proveedores (por ejemplo, las tiendas de multitracks) y los titulares de los derechos. Gosen solo los guarda y los entrega a esa iglesia; no adquiere ni transfiere derechos sobre las obras.</p>
+<ul>
+<li>Desde la web, solo los administradores de cada iglesia, con su cuenta, pueden descargar los multitracks de su iglesia, y solo para las actividades de esa iglesia y dentro de lo que permita cada licencia.</li>
+<li>Está prohibido redistribuir, publicar, vender, compartir fuera de la iglesia, subir a otras plataformas o usar comercialmente el contenido, así como intentar extraerlo de la aplicación o acceder al de otra iglesia.</li>
 <li>Las letras y acordes que se escriben en la aplicación son ayudas internas para el ensayo y el servicio; las obras siguen siendo de sus autores.</li>
 </ul>
-<p>Estas reglas se basan en la protección de los derechos de autor (Ley 23 de 1982 y Decisión Andina 351 de 1993). Quien las incumpla puede perder el acceso, sin perjuicio de las acciones que correspondan a los titulares de los derechos.</p>
+<p>Estas reglas se basan en la protección de los derechos de autor (Ley 23 de 1982 y Decisión Andina 351 de 1993). Gosen puede retirar contenido o suspender el acceso ante un uso que infrinja derechos de terceros.</p>
 </section>
 <section>
-<h2>5. Uso permitido</h2>
-<p>Gosen Tracks se usa para preparar, ensayar y acompañar las actividades musicales de la Comunidad. No está permitido:</p>
+<h2>6. Uso permitido</h2>
+<p>No está permitido:</p>
 <ul>
-<li>intentar acceder a cuentas, datos o funciones para las que no tienes permiso;</li>
-<li>interferir con el funcionamiento de la plataforma o sobrecargarla a propósito;</li>
+<li>intentar acceder a cuentas, iglesias, datos o funciones para las que no tienes permiso;</li>
+<li>interferir con el funcionamiento de la plataforma, sobrecargarla a propósito o probar sus defensas sin autorización;</li>
 <li>usar la información de otros integrantes (nombres, correos, asignaciones) para fines distintos a la organización del equipo.</li>
 </ul>
 </section>
 <section>
-<h2>6. Servicio sin costo y disponibilidad</h2>
-<p>Hoy Gosen Tracks no tiene costo para los integrantes y no se realizan cobros ni pagos a través de la plataforma (ver la ${link('reembolsos', 'política de reembolsos')}). Si en el futuro se cobrara por algún servicio, se informará antes con condiciones comerciales separadas, que habrá que aceptar expresamente; nada de lo que aceptes hoy te obliga a pagar.</p>
-<p>La plataforma depende de proveedores externos (alojamiento en la nube y autenticación). Procuramos que funcione bien, pero puede haber interrupciones, cambios o mejoras en sus funciones. Te recomendamos tener preparado lo necesario para los servicios con anticipación (por ejemplo, las canciones guardadas en tu equipo).</p>
+<h2>7. Disponibilidad</h2>
+<p>La plataforma depende de proveedores externos (alojamiento en la nube y autenticación). Gosen procura que funcione bien y avisa con anticipación los mantenimientos que pueda prever, pero puede haber interrupciones. Te recomendamos tener preparadas en tus equipos las canciones de cada servicio con anticipación. Si una falla atribuible a Gosen impide usar el servicio contratado, se aplica lo previsto en la ${link('reembolsos', 'política de reembolsos')}.</p>
 </section>
 <section>
-<h2>7. Responsabilidad</h2>
-<p>La Comunidad responde por el funcionamiento de la plataforma en los términos de la ley colombiana. Nada en estos términos limita la responsabilidad que la ley no permite limitar, ni los derechos irrenunciables que te reconozca la ley.</p>
+<h2>8. Responsabilidad</h2>
+<p>Gosen responde por la prestación del servicio en los términos de la ley colombiana. Nada en estos términos limita la responsabilidad que la ley no permite limitar, ni los derechos irrenunciables que la ley reconoce a los consumidores.</p>
 </section>
 <section>
-<h2>8. Retiro del acceso</h2>
-<p>Puedes dejar de usar Gosen Tracks en cualquier momento y pedir que se elimine tu cuenta (ver la ${link('privacidad', 'política de privacidad')}). Los administradores pueden retirar el acceso de quien deje el equipo o incumpla estos términos.</p>
+<h2>9. Terminación</h2>
+<p>La iglesia puede dejar de usar Gosen Tracks en cualquier momento: basta con no renovar. Puede pedir la eliminación de sus canciones y datos escribiendo a ${field('email')}; Gosen la hace dentro de los plazos de la ley de protección de datos, salvo lo que deba conservar por obligación legal (por ejemplo, los registros de pagos). Gosen puede suspender una iglesia o una cuenta que incumpla estos términos, informando el motivo.</p>
 </section>
 <section>
-<h2>9. Cambios en estos términos</h2>
-<p>Si estos términos cambian, se publicará una nueva versión con su fecha de entrada en vigor y un resumen de los cambios. Las versiones anteriores quedan disponibles en el historial de esta página. Cuando el cambio lo requiera, se pedirá de nuevo tu aceptación antes de seguir usando las funciones que dependen de ella.</p>
+<h2>10. Cambios en estos términos</h2>
+<p>Si estos términos cambian, se publicará una nueva versión con su fecha de entrada en vigor y un resumen de los cambios. Las versiones anteriores quedan disponibles en el historial de esta página. Cuando el cambio lo requiera, se pedirá de nuevo tu aceptación. Un cambio de precios no afecta el período que ya pagaste.</p>
 </section>
 <section>
-<h2>10. Ley aplicable y contacto</h2>
+<h2>11. Ley aplicable y contacto</h2>
 <p>Estos términos se rigen por la ley de la República de Colombia. Antes de acudir a otra instancia, escríbenos para buscar una solución directa:</p>
 ${contact()}
 </section>`
@@ -113,36 +125,41 @@ function privacyV1(owner) {
   return `
 <section class="notice">
 <h2>Aviso de privacidad (resumen)</h2>
-<p>${field('name')} es responsable del tratamiento de los datos personales que se recogen en Gosen Tracks. Los usamos solo para darte acceso a la plataforma y organizar el equipo de música de la Comunidad: tu cuenta, tu función en los servicios y las herramientas de ensayo. No los vendemos, no hacemos publicidad con ellos ni los usamos para perfilarte. Puedes conocer, actualizar, rectificar y pedir la supresión de tus datos, y revocar la autorización, escribiendo a ${field('email')}. La política completa está a continuación.</p>
+<p>${field('name')} («Gosen») trata los datos personales que se recogen en Gosen Tracks para dar acceso a la plataforma, organizar los equipos de música de las iglesias que la usan y administrar sus suscripciones. No los vendemos, no hacemos publicidad con ellos ni los usamos para perfilarte. Puedes conocer, actualizar, rectificar y pedir la supresión de tus datos, y revocar la autorización, escribiendo a ${field('email')}. La política completa está a continuación.</p>
 </section>
 <section>
 <h2>1. Responsable del tratamiento</h2>
 ${contact()}
+<p>Gosen es responsable de las cuentas, la seguridad, la operación de la plataforma y la administración de las suscripciones. Cada iglesia cliente decide a quién invita y cómo organiza su equipo (servicios, asignaciones): para esos datos de sus integrantes, la iglesia es responsable y Gosen los trata por su encargo, solo para prestarle el servicio.</p>
 </section>
 <section>
 <h2>2. Normas que se aplican</h2>
-<p>Esta política se adopta conforme a la Ley Estatutaria 1581 de 2012 y su reglamentación (Decreto 1377 de 2013, compilado en el Decreto Único 1074 de 2015), y aplica a los datos personales tratados en Gosen Tracks: la aplicación, la página web y el panel de administración.</p>
+<p>Esta política se adopta conforme a la Ley Estatutaria 1581 de 2012 y su reglamentación (Decreto 1377 de 2013, compilado en el Decreto Único 1074 de 2015), y aplica a los datos personales tratados en Gosen Tracks: la aplicación, la página web, el panel de cada iglesia y el de Gosen.</p>
 </section>
 <section>
 <h2>3. Qué datos tratamos y para qué</h2>
 <table>
 <thead><tr><th>Dato</th><th>Para qué se usa</th><th>¿Obligatorio?</th></tr></thead>
 <tbody>
-<tr><td>Correo electrónico</td><td>Identificar tu cuenta, comprobar que estás autorizado e iniciar sesión.</td><td>Sí: sin él no hay cuenta.</td></tr>
+<tr><td>Correo electrónico</td><td>Identificar tu cuenta, verificar que es tuyo, iniciar sesión y recuperar la contraseña.</td><td>Sí: sin él no hay cuenta.</td></tr>
 <tr><td>Contraseña</td><td>Iniciar sesión. La guarda cifrada nuestro proveedor de autenticación; nosotros no la almacenamos ni podemos verla.</td><td>Sí.</td></tr>
-<tr><td>Nombre</td><td>Mostrarte a tus compañeros en los servicios, la programación del mes y el ensayo (por ejemplo, «Dirige: Ana»).</td><td>No: si falta, se muestra la parte de tu correo antes de la @.</td></tr>
+<tr><td>Iglesia y rol</td><td>Saber a qué iglesia perteneces y qué puedes hacer en ella (administrador o integrante).</td><td>Sí.</td></tr>
+<tr><td>Nombre</td><td>Mostrarte a tus compañeros en los servicios, la programación del mes y el ensayo.</td><td>No: si falta, se muestra la parte de tu correo antes de la @.</td></tr>
 <tr><td>Función en el equipo (etiqueta)</td><td>Asignarte en los servicios según lo que haces (Consola, Músicos, Cantantes…).</td><td>No.</td></tr>
-<tr><td>Asignaciones a servicios</td><td>Que el equipo sepa quién participa en cada servicio y para exportar la programación del mes.</td><td>Solo si un administrador te asigna.</td></tr>
-<tr><td>Autoría de cambios</td><td>Saber qué administrador creó o cambió un servicio, una canción o una letra.</td><td>Solo administradores.</td></tr>
-<tr><td>Registro de aceptaciones</td><td>Demostrar qué versión de los términos y de esta política aceptaste o revocaste, cuándo y desde qué formulario.</td><td>Sí, cuando aceptas o revocas.</td></tr>
+<tr><td>Asignaciones a servicios</td><td>Que tu equipo sepa quién participa en cada servicio y para exportar la programación del mes.</td><td>Solo si un administrador te asigna.</td></tr>
+<tr><td>Invitaciones</td><td>Dar acceso con un código personal. El código no se guarda: solo una huella que no permite recuperarlo, y el correo de quien lo usó.</td><td>Solo al unirte con un código.</td></tr>
+<tr><td>Verificación en dos pasos</td><td>Proteger las cuentas de administración (obligatoria para Gosen y recomendada para administradores). Se guarda la clave de la app de autenticación y la huella de los códigos de recuperación.</td><td>Solo si la activas.</td></tr>
+<tr><td>Contacto de la iglesia</td><td>Nombre, teléfono y correo de la persona de contacto de cada iglesia cliente, para administrar la suscripción y avisar los vencimientos.</td><td>Solo para iglesias clientes.</td></tr>
+<tr><td>Suscripción y pagos</td><td>Plan, período, valor, medio de pago, referencia y, si se envía, el comprobante, para activar y renovar la suscripción y atender reclamos.</td><td>Solo para iglesias clientes.</td></tr>
+<tr><td>Registro de acciones y de aceptaciones</td><td>Saber quién hizo cambios importantes (por ejemplo, subir o borrar canciones, invitar o cambiar de plan) y demostrar qué versión de los documentos se aceptó o revocó.</td><td>Sí, cuando ocurren.</td></tr>
 </tbody>
 </table>
-<p>No pedimos documentos de identidad, fecha de nacimiento, teléfono, dirección ni datos de pago. Tampoco guardamos en nuestras bases de datos tu dirección IP ni los datos de tu navegador. Nuestros proveedores de nube procesan los datos técnicos de cada conexión (como la dirección IP) para entregar el servicio y protegerlo.</p>
+<p>No pedimos documentos de identidad, fecha de nacimiento ni dirección de las personas, y no guardamos datos de tarjetas. Tampoco guardamos en nuestras bases de datos tu dirección IP ni los datos de tu navegador. Nuestros proveedores de nube procesan los datos técnicos de cada conexión (como la dirección IP) para entregar el servicio, protegerlo y limitar los intentos de acceso.</p>
 <p>En tu dispositivo, la aplicación guarda tu sesión, tus ajustes y las canciones preparadas para funcionar sin internet. Los detalles están en la ${link('cookies', 'política de cookies')}.</p>
 </section>
 <section>
 <h2>4. Datos sensibles</h2>
-<p>Pertenecer al equipo de música de una comunidad cristiana puede revelar tus convicciones religiosas, que la ley considera un dato sensible (artículo 5 de la Ley 1581 de 2012). Este dato se trata solo en el curso de las actividades de la Comunidad y referido a sus integrantes, y no se entrega a terceros sin tu autorización. No estás obligado a autorizar el tratamiento de datos sensibles; sin embargo, sin esa autorización no es posible darte una cuenta en una herramienta que es, precisamente, la del equipo de la Comunidad.</p>
+<p>Pertenecer al equipo de música de una iglesia puede revelar tus convicciones religiosas, que la ley considera un dato sensible (artículo 5 de la Ley 1581 de 2012). Este dato se trata solo para prestar el servicio a tu iglesia y no se entrega a terceros sin tu autorización. No estás obligado a autorizar el tratamiento de datos sensibles; sin embargo, sin esa autorización no es posible darte una cuenta en una herramienta que es, precisamente, la del equipo de tu iglesia.</p>
 <p>Gosen Tracks no está dirigido a menores de edad. No se crean cuentas para menores de 18 años.</p>
 </section>
 <section>
@@ -153,11 +170,11 @@ ${contact()}
 <h2>6. Con quién se comparten los datos</h2>
 <p>Los datos no se venden ni se ceden a terceros. Solo los tratan, por encargo nuestro y para prestar el servicio, estos proveedores:</p>
 <ul>
-<li><strong>Neon</strong> (Neon Inc.): base de datos y autenticación de cuentas, alojadas en Amazon Web Services en Estados Unidos (región us-east-2).</li>
-<li><strong>Cloudflare</strong> (Cloudflare, Inc.): alojamiento de la página, la nube de canciones y los servicios, y la conexión en tiempo real del ensayo.</li>
+<li><strong>Neon</strong> (Neon Inc.): base de datos y autenticación de cuentas (incluidos los correos de verificación y de recuperación de contraseña), alojadas en Amazon Web Services en Estados Unidos (región us-east-2).</li>
+<li><strong>Cloudflare</strong> (Cloudflare, Inc.): alojamiento de la página, la nube de canciones, los comprobantes de pago y los servicios, y la conexión en tiempo real del ensayo.</li>
 </ul>
 <p>Como estos proveedores están fuera de Colombia, el uso de sus servicios implica una transmisión internacional de datos a encargados del tratamiento, que se hace solo para las finalidades de esta política.</p>
-<p>Dentro de la Comunidad, tus compañeros ven tu nombre, tu función y tus asignaciones. Los administradores ven además tu correo y el registro de tus aceptaciones.</p>
+<p>Dentro de tu iglesia, tus compañeros ven tu nombre, tu función y tus asignaciones, y sus administradores ven además tu correo. Ninguna otra iglesia ve tus datos. Gosen ve los datos necesarios para operar la plataforma, administrar las suscripciones y atender solicitudes.</p>
 </section>
 <section>
 <h2>7. Tus derechos</h2>
@@ -172,25 +189,27 @@ ${contact()}
 </section>
 <section>
 <h2>8. Cómo ejercer tus derechos</h2>
-<p>Escribe a ${field('email')} desde el correo de tu cuenta (o explica cómo podemos confirmar que eres el titular). Indica qué pides y, si es un reclamo, los hechos y los documentos que quieras aportar.</p>
+<p>Escribe a ${field('email')} desde el correo de tu cuenta (o explica cómo podemos confirmar que eres el titular). Indica qué pides y, si es un reclamo, los hechos y los documentos que quieras aportar. Si tu solicitud es sobre datos que gestiona tu iglesia (por ejemplo, una asignación), también se la puedes hacer a su administrador.</p>
 <ul>
 <li><strong>Consultas</strong> (qué datos tenemos y cómo se usan): se responden en máximo 10 días hábiles desde que se reciben; si no es posible, te diremos el motivo y la nueva fecha, que no superará 5 días hábiles más.</li>
 <li><strong>Reclamos</strong> (corregir, actualizar, suprimir o revocar): se atienden en máximo 15 días hábiles desde el día siguiente a recibirlos; si no es posible, te diremos el motivo y la nueva fecha, que no superará 8 días hábiles más. Si al reclamo le falta información, te la pediremos en los 5 días siguientes.</li>
 </ul>
-<p>Los administradores de la Comunidad pueden además ayudarte a corregir tu nombre o tu función. Desde el panel de administración, un administrador puede revocar su propia autorización en cualquier momento.</p>
+<p>Desde la app y el panel puedes, además, cerrar la sesión en tus otros dispositivos y, si eres administrador, revocar tu autorización en cualquier momento.</p>
 </section>
 <section>
 <h2>9. Cuánto tiempo se conservan</h2>
 <ul>
-<li><strong>Cuenta</strong> (correo, nombre, función): mientras seas integrante autorizado. Si pides la supresión o se retira tu acceso y lo pides, se elimina.</li>
-<li><strong>Servicios y programación</strong>: se conservan como historial del ministerio. Puedes pedir que se quite tu nombre de los servicios pasados.</li>
-<li><strong>Registro de aceptaciones</strong>: mientras exista tu cuenta y luego por el tiempo necesario para atender reclamaciones (hasta 5 años). Después se anonimiza: se quita tu correo y queda solo una huella que no te identifica directamente.</li>
+<li><strong>Cuenta</strong> (correo, nombre, iglesia, rol, función): mientras seas integrante. Si pides la supresión, o tu iglesia te retira y lo pides, se elimina.</li>
+<li><strong>Datos de una iglesia</strong> (canciones, servicios, programación): mientras la iglesia sea cliente. Si la suscripción vence, no se borran automáticamente; la iglesia puede pedir su eliminación.</li>
+<li><strong>Suscripciones y pagos</strong>: el tiempo que exijan las normas contables y tributarias aplicables.</li>
+<li><strong>Invitaciones</strong>: la huella del código y quién la usó, mientras exista la iglesia.</li>
+<li><strong>Registro de aceptaciones y de acciones</strong>: mientras exista la cuenta y luego por el tiempo necesario para atender reclamaciones (hasta 5 años). Después se anonimiza.</li>
 <li><strong>Sesión del panel en el navegador</strong>: 2 horas, o hasta que salgas.</li>
 </ul>
 </section>
 <section>
 <h2>10. Seguridad</h2>
-<p>Las conexiones van cifradas (HTTPS). El acceso depende del rol: los integrantes ven lo que necesitan para el equipo y solo los administradores administran contenido y cuentas. El registro de aceptaciones no se puede modificar ni borrar desde la aplicación ni desde la web, y su integridad se puede verificar. Ninguna medida es infalible: si detectamos un incidente que afecte tus datos, te lo informaremos y lo reportaremos a la autoridad cuando corresponda.</p>
+<p>Las conexiones van cifradas (HTTPS). Cada iglesia está aislada de las demás en la base de datos y en la nube de canciones, y el acceso depende del rol: los integrantes ven lo que necesitan para su equipo, los administradores administran su iglesia y solo Gosen administra la plataforma, con verificación en dos pasos obligatoria. Los intentos repetidos de acceso se frenan, los códigos de invitación se guardan solo como huella y los archivos privados se entregan con permisos y enlaces temporales. Los registros de acciones y de aceptaciones no se pueden modificar desde la plataforma y su integridad se puede verificar. Ninguna medida es infalible: si detectamos un incidente que afecte tus datos, te lo informaremos y lo reportaremos a la autoridad cuando corresponda.</p>
 </section>
 <section>
 <h2>11. Vigencia y cambios</h2>
@@ -206,23 +225,25 @@ function cookiesV1(owner) {
 <section>
 <h2>1. Qué usamos</h2>
 <p>Esta página web no usa cookies de analítica, de publicidad ni de seguimiento, ni píxeles o herramientas de medición de terceros. Las fuentes tipográficas se sirven desde nuestro propio dominio, así que visitarla no envía tus datos a terceros como Google.</p>
-<p>Lo que sí usamos es el almacenamiento local del navegador (una tecnología similar a las cookies) para lo siguiente:</p>
+<p>Lo que sí usamos es el almacenamiento del navegador (una tecnología similar a las cookies) para lo siguiente:</p>
 <table>
 <thead><tr><th>Nombre</th><th>Dónde</th><th>Para qué</th><th>Tipo</th><th>Duración</th></tr></thead>
 <tbody>
 <tr><td><code>gosen.web.privacy</code></td><td>Toda la web</td><td>Recordar tu elección sobre el almacenamiento opcional.</td><td>Necesaria</td><td>Hasta que la cambies o borres los datos del navegador.</td></tr>
-<tr><td><code>gosen.cloud.session</code></td><td>Panel de administración</td><td>Mantener abierta la sesión del administrador.</td><td>Necesaria</td><td>Hasta salir del panel (la sesión del panel dura 2 horas).</td></tr>
+<tr><td><code>gosen.cloud.session</code></td><td>Panel de cada iglesia</td><td>Mantener abierta la sesión del administrador.</td><td>Necesaria</td><td>Hasta salir del panel (la sesión del panel dura 2 horas).</td></tr>
+<tr><td><code>gosen.sa.session</code></td><td>Panel de Gosen (Superadmin)</td><td>Mantener la sesión de administración de la plataforma mientras la pestaña está abierta.</td><td>Necesaria</td><td>Se borra al cerrar la pestaña (como mucho 8 horas).</td></tr>
 <tr><td><code>gosen.web.theme</code></td><td>Toda la web</td><td>Recordar si prefieres el tema claro u oscuro.</td><td>Preferencias (opcional)</td><td>Hasta que la retires.</td></tr>
-<tr><td><code>gosen.cloud.view</code></td><td>Panel de administración</td><td>Recordar cómo ordenas y filtras la lista de canciones.</td><td>Preferencias (opcional)</td><td>Hasta que la retires.</td></tr>
+<tr><td><code>gosen.cloud.view</code></td><td>Panel de cada iglesia</td><td>Recordar cómo ordenas y filtras la lista de canciones.</td><td>Preferencias (opcional)</td><td>Hasta que la retires.</td></tr>
 </tbody>
 </table>
+<p>La página de invitación (/unirse) muestra tu código sin enviarlo al servidor: el código va después del símbolo «#» del enlace, una parte que el navegador no envía.</p>
 <p>La aplicación para iPhone (en /iphone/) guarda en el dispositivo tu sesión, tus ajustes y las canciones preparadas para tocar sin internet. Es necesario para que la aplicación funcione y no se usa para otra cosa.</p>
 <p>Nuestro proveedor de alojamiento, Cloudflare, puede usar cookies técnicas de seguridad (por ejemplo, para distinguir tráfico automatizado) cuando su protección lo requiere. Son estrictamente necesarias para proteger el servicio.</p>
 </section>
 <section>
 <h2>2. Tus opciones</h2>
 <ul>
-<li>Lo necesario funciona siempre: sin ello, la página o el panel no funcionarían como los pides.</li>
+<li>Lo necesario funciona siempre: sin ello, la página o los paneles no funcionarían como los pides.</li>
 <li>Lo opcional (preferencias) solo se guarda si lo aceptas. Si lo rechazas, la página funciona igual, pero no recordará tu tema ni tu forma de ordenar la lista.</li>
 <li>Puedes cambiar o retirar tu elección cuando quieras con el enlace «Configurar cookies» que está al pie de cada página. Al retirarla, lo que se había guardado se borra de inmediato.</li>
 <li>También puedes borrar estos datos desde la configuración de tu navegador.</li>
@@ -237,19 +258,37 @@ function refundsV1(owner) {
   const { field, link } = helpers(owner)
   return `
 <section>
-<h2>1. Hoy no hay cobros</h2>
-<p>Gosen Tracks no vende productos ni servicios y no recibe pagos: no tiene precios, carrito ni medios de pago, y su uso no tiene costo para los integrantes de la Comunidad. Por eso hoy no hay compras que cancelar, devolver ni reembolsar.</p>
-<p>Si recibiste un cobro que dice ser de Gosen Tracks, no proviene de esta plataforma. Escríbenos a ${field('email')} para avisarnos.</p>
+<h2>1. Qué se paga</h2>
+<p>Las iglesias clientes pagan una suscripción mensual o anual a Gosen Tracks, un servicio digital (la plataforma, la nube de sus canciones y las funciones de su plan). Los precios vigentes se informan antes de contratar. El pago se hace por adelantado y de forma manual, por los medios acordados con Gosen (por ejemplo, transferencia o Nequi); Gosen activa el período cuando verifica el pago. No hay cobros automáticos ni renovaciones automáticas.</p>
+<p>La propia iglesia de Gosen y sus integrantes no pagan por usar la plataforma.</p>
 </section>
 <section>
-<h2>2. Si en el futuro se cobra algún servicio</h2>
-<p>Antes de cobrar por cualquier servicio se publicará una nueva versión de esta política con sus condiciones concretas (qué se cobra, cómo se cancela, plazos y procedimiento) y se pedirá aceptar las condiciones comerciales aparte, de forma expresa. Esa versión respetará, cuando se aplique la relación de consumo, los derechos que la ley reconoce al consumidor y que no se pueden excluir, entre ellos:</p>
+<h2>2. Cancelación</h2>
 <ul>
-<li>el <strong>derecho de retracto</strong> en las ventas a distancia y por comercio electrónico (artículo 47 de la Ley 1480 de 2011, con las excepciones que la propia ley establece), con devolución del dinero en el plazo legal;</li>
-<li>la <strong>reversión del pago</strong> en compras por comercio electrónico en los casos del artículo 51 de la Ley 1480 de 2011 (por ejemplo, fraude, operación no solicitada o servicio no prestado);</li>
-<li>la <strong>garantía</strong> y la atención de cobros duplicados o equivocados.</li>
+<li>Puedes cancelar cuando quieras: basta con no renovar. El servicio sigue activo hasta el último día del período pagado.</li>
+<li>Al terminar el período (y el de gracia), se suspenden las funciones de la nube; tus datos no se borran automáticamente y vuelven a estar disponibles si renuevas. Puedes pedir su eliminación (ver los ${link('terminos', 'términos')}).</li>
+<li>Si cancelas antes de que termine un período pagado, no hay devolución proporcional de los días restantes, salvo en los casos de las secciones 3 y 4, que reconoce la ley.</li>
 </ul>
-<p>Nada de lo anterior es una oferta comercial: es el compromiso de informar las condiciones antes de cualquier cobro. Ver también los ${link('terminos', 'términos y condiciones')}.</p>
+</section>
+<section>
+<h2>3. Derecho de retracto</h2>
+<p>Cuando la contratación se hace a distancia (por ejemplo, por WhatsApp y transferencia) y existe una relación de consumo, la ley reconoce el derecho de retracto: puedes desistir dentro de los 5 días hábiles siguientes a la contratación (artículo 47 de la Ley 1480 de 2011). En ese caso, Gosen devuelve el dinero pagado en un plazo máximo de 15 días calendario desde que ejerces el retracto.</p>
+<p>La ley excluye el retracto, entre otros, en los servicios cuya prestación ya comenzó con el acuerdo del consumidor. Si al activar tu suscripción empiezas a usar el servicio, Gosen te lo informará antes de activarla para que decidas.</p>
+</section>
+<section>
+<h2>4. Cobros equivocados, pagos duplicados y servicio no prestado</h2>
+<ul>
+<li><strong>Pago duplicado o por un valor mayor al acordado</strong>: se devuelve la diferencia.</li>
+<li><strong>Cobro que no reconoces</strong>: si recibiste un cobro que dice ser de Gosen Tracks y no lo autorizaste, avísanos de inmediato.</li>
+<li><strong>Servicio no prestado</strong>: si por una falla atribuible a Gosen no puedes usar el servicio contratado durante un tiempo importante, Gosen compensa ese tiempo con días adicionales o, si lo prefieres, con la devolución proporcional.</li>
+<li>Cuando el pago se haya hecho por un medio electrónico y la ley lo permita, también puedes pedir la reversión del pago (artículo 51 de la Ley 1480 de 2011 y Decreto 587 de 2016).</li>
+</ul>
+</section>
+<section>
+<h2>5. Cómo pedirlo</h2>
+<p>Escribe a ${field('email')} indicando: la iglesia, el nombre de quien pagó, la fecha, el valor, el medio y la referencia del pago, y el motivo (retracto, cobro duplicado, servicio no prestado u otro), con el comprobante si lo tienes.</p>
+<p>Gosen responde en un plazo máximo de 15 días hábiles. Si la solicitud procede, hace la devolución por el mismo medio de pago o por el que se acuerde, en los plazos que fija la ley cuando los hay (por ejemplo, 15 días calendario en el retracto) y, en los demás casos, en la fecha que se acuerde al aprobarla.</p>
+<p>Estos derechos no se pierden por ninguna condición de estos documentos. Si no estás de acuerdo con la respuesta, puedes acudir a la Superintendencia de Industria y Comercio.</p>
 </section>`
 }
 

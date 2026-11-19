@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="no-referrer" />
+<title>Gosen Tracks · Superadmin</title>
+<link rel="icon" href="/logo.png" />
+<link rel="stylesheet" href="/fonts/fonts.css" />
+<script>
+  ;(function () {
+    var t = null
+    try { t = localStorage.getItem('gosen.web.theme') } catch (e) {}
+    if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    document.documentElement.dataset.theme = t
+  })()
+</script>
+<script src="/web/privacidad.js" defer></script>
+<style>
+  :root {
+    --font: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+    --font-label: 'Barlow Condensed', 'Barlow', 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', Consolas, monospace;
+    --radius: 10px; --radius-lg: 16px;
+  }
+  :root, :root[data-theme='light'] {
+    color-scheme: light;
+    --bg: #f5f4f9; --panel: #ffffff; --panel-2: #f7f6fb; --panel-3: #eceaf3; --line: #e6e3ef; --line-strong: #d6d3e1;
+    --text: #16141f; --text-2: #4d4960; --text-3: #6e6a85;
+    --accent: #6b3cf6; --accent-ink: #fff; --accent-soft: #f0ebff; --accent-tx: #5a2ee0;
+    --ok: #0f9d6b; --warn: #b7791f; --bad: #d92d4a;
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --bg: #0a0910; --panel: #15131f; --panel-2: #1b1828; --panel-3: #252136; --line: #262236; --line-strong: #363049;
+    --text: #f1eff8; --text-2: #b5b0c8; --text-3: #8a85a0;
+    --accent: #7b52ff; --accent-ink: #fff; --accent-soft: rgba(123, 82, 255, 0.16); --accent-tx: #c4b5fd;
+    --ok: #34d399; --warn: #f1b44c; --bad: #ff6b81;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { margin: 0; letter-spacing: -0.01em; }
+  .hide { display: none !important; }
+  .muted { color: var(--text-3); }
+  .small { font-size: 13px; }
+  .mono { font-family: var(--mono); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: var(--radius); border: 1px solid var(--line-strong); background: var(--panel); color: var(--text); font: 600 14px var(--font); cursor: pointer; white-space: nowrap; text-decoration: none; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.danger { color: var(--bad); }
+  .btn.small { min-height: 30px; padding: 0 10px; font-size: 13px; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .input, select.input, textarea.input { width: 100%; min-height: 38px; padding: 8px 10px; border-radius: var(--radius); border: 1px solid var(--line-strong); background: var(--panel-2); color: var(--text); font: 14px var(--font); }
+  textarea.input { min-height: 70px; resize: vertical; }
+  .input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  label.lbl { display: block; font: 600 12px var(--font-label); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .alert { padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--line-strong); font-size: 14px; }
+  .alert.error { border-color: color-mix(in srgb, var(--bad) 50%, transparent); color: var(--bad); }
+  .alert.ok { border-color: color-mix(in srgb, var(--ok) 50%, transparent); color: var(--ok); }
+
+  .auth-screen { min-height: 100vh; display: grid; place-items: center; padding: 20px 16px; background: radial-gradient(700px 420px at 50% 0%, var(--accent-soft), transparent 65%), var(--bg); }
+  .auth-card { width: min(440px, 100%); display: flex; flex-direction: column; gap: 12px; padding: 26px; border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--panel); box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.6); }
+  .auth-card h1 { font: 700 22px var(--font-label); letter-spacing: 0.14em; text-align: center; }
+  .auth-card h1 span { color: var(--accent-tx); }
+  .auth-card img { width: 64px; height: 64px; border-radius: 16px; align-self: center; }
+  .secret { font: 700 17px var(--mono); letter-spacing: 0.08em; word-break: break-all; padding: 12px; border-radius: var(--radius); background: var(--accent-soft); color: var(--accent-tx); text-align: center; }
+  .codes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font: 600 15px var(--mono); }
+  .codes span { padding: 6px; border-radius: 8px; background: var(--panel-3); text-align: center; }
+
+  header.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 20px; background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  header.top .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  header.top .brand img { width: 30px; height: 30px; border-radius: 8px; }
+  header.top .badge { font: 700 11px var(--font-label); letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-tx); }
+  header.top .grow { flex: 1; }
+  nav.tabs { display: flex; gap: 4px; padding: 10px 20px 0; overflow-x: auto; border-bottom: 1px solid var(--line); }
+  nav.tabs button { border: 0; background: none; color: var(--text-2); font: 600 14px var(--font); padding: 10px 14px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+  nav.tabs button[aria-selected='true'] { color: var(--text); border-bottom-color: var(--accent); }
+  main.wrap { padding: 20px; max-width: 1240px; margin: 0 auto; display: grid; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px; }
+  .card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .card-head h2 { font-size: 18px; }
+  .card-head .grow { flex: 1; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font: 600 12px var(--font-label); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); white-space: nowrap; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: var(--panel-2); }
+  .state { display: inline-block; font: 700 11px var(--font-label); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--panel-3); color: var(--text-2); }
+  .state.activa, .state.interna { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+  .state.gracia, .state.sin_suscripcion { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+  .state.vencida, .state.suspendida, .state.archivada { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+  .bar { height: 6px; border-radius: 999px; background: var(--panel-3); overflow: hidden; min-width: 80px; }
+  .bar > i { display: block; height: 100%; background: var(--accent); }
+  .slots { font: 700 15px var(--font-label); letter-spacing: 0.06em; }
+  .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 12px; }
+  .features label { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  dialog { width: min(920px, calc(100% - 24px)); max-height: min(92vh, 900px); padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--panel); color: var(--text); }
+  dialog.narrow { width: min(560px, calc(100% - 24px)); }
+  dialog::backdrop { background: rgba(5, 4, 12, 0.65); backdrop-filter: blur(2px); }
+  dialog .dlg { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+  dialog .dlg-head { display: flex; align-items: center; gap: 10px; }
+  dialog .dlg-head h2 { flex: 1; font-size: 20px; }
+  .subtabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  .subtabs button { border: 0; background: none; color: var(--text-2); font: 600 13px var(--font); padding: 8px 12px; border-bottom: 2px solid transparent; cursor: pointer; }
+  .subtabs button[aria-selected='true'] { color: var(--text); border-bottom-color: var(--accent); }
+  footer.legal { padding: 16px 20px 28px; color: var(--text-3); font-size: 13px; display: flex; gap: 6px 14px; flex-wrap: wrap; max-width: 1240px; margin: 0 auto; }
+  footer.legal a, footer.legal button { color: var(--text-3); background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+  @media (max-width: 640px) { main.wrap { padding: 12px; } .card { padding: 14px; } header.top { padding: 10px 12px; } nav.tabs { padding: 6px 12px 0; } }
+</style>
+</head>
+<body>
+<div id="auth" class="auth-screen">
+  <form id="loginForm" class="auth-card" autocomplete="on">
+    <img src="/logo.png" alt="" />
+    <h1>GOSEN <span>SUPERADMIN</span></h1>
+    <div><label class="lbl" for="email">Correo</label><input id="email" class="input" type="email" autocomplete="email" required /></div>
+    <div><label class="lbl" for="pass">Contraseña</label><input id="pass" class="input" type="password" autocomplete="current-password" required /></div>
+    <div id="lerr" class="alert error hide" role="alert"></div>
+    <button id="lbtn" class="btn primary" type="submit">Entrar</button>
+    <p class="muted small" style="margin: 0; text-align: center">Después te pediremos el código de tu app de autenticación (obligatorio).</p>
+  </form>
+
+  <form id="totpForm" class="auth-card hide">
+    <img src="/logo.png" alt="" />
+    <h1>VERIFICACIÓN <span>EN DOS PASOS</span></h1>
+    <p class="muted" style="margin: 0">Escribe el código de 6 dígitos de tu app de autenticación (o uno de tus códigos de recuperación).</p>
+    <input id="totp" class="input mono" inputmode="numeric" autocomplete="one-time-code" maxlength="11" required aria-label="Código de verificación" />
+    <div id="terr" class="alert error hide" role="alert"></div>
+    <button class="btn primary" type="submit">Verificar</button>
+    <button class="btn" type="button" data-logout>Salir</button>
+  </form>
+
+  <form id="enrollForm" class="auth-card hide">
+    <img src="/logo.png" alt="" />
+    <h1>ACTIVA LA <span>VERIFICACIÓN</span></h1>
+    <p class="muted" style="margin: 0">Para Superadmin la verificación en dos pasos es obligatoria. En tu celular, abre Google Authenticator, Microsoft Authenticator u otra app compatible y agrega una cuenta con esta clave:</p>
+    <div class="secret" id="secret"></div>
+    <a class="btn" id="otpLink" href="#">Abrir en la app de autenticación (desde el celular)</a>
+    <label class="lbl" for="enrollCode">Código que muestra la app</label>
+    <input id="enrollCode" class="input mono" inputmode="numeric" maxlength="6" required />
+    <div id="eerr" class="alert error hide" role="alert"></div>
+    <button class="btn primary" type="submit">Activar</button>
+    <button class="btn" type="button" data-logout>Salir</button>
+  </form>
+
+  <div id="recoveryCard" class="auth-card hide">
+    <h1>CÓDIGOS DE <span>RECUPERACIÓN</span></h1>
+    <p class="muted" style="margin: 0">Guárdalos en un lugar seguro. Cada uno sirve una sola vez si pierdes el celular. No se volverán a mostrar.</p>
+    <div class="codes" id="codes"></div>
+    <button class="btn primary" type="button" id="codesDone">Ya los guardé</button>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <header class="top">
+    <span class="brand"><img src="/logo.png" alt="" /> Gosen Tracks</span>
+    <span class="badge">Superadmin</span>
+    <span class="grow"></span>
+    <span class="muted small" id="who"></span>
+    <button class="btn small" type="button" id="themeBtn">Tema</button>
+    <button class="btn small" type="button" data-logout>Salir</button>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="Secciones">
+    <button role="tab" data-tab="churches" aria-selected="true">Iglesias</button>
+    <button role="tab" data-tab="payments" aria-selected="false">Pagos y vencimientos</button>
+    <button role="tab" data-tab="plans" aria-selected="false">Planes</button>
+    <button role="tab" data-tab="settings" aria-selected="false">Ajustes y seguridad</button>
+    <button role="tab" data-tab="audit" aria-selected="false">Registro</button>
+  </nav>
+  <main class="wrap">
+    <div id="msg" class="alert hide" role="status"></div>
+
+    <section data-panel="churches" class="card">
+      <div class="card-head">
+        <h2>Iglesias</h2>
+        <span class="slots" id="slots"></span>
+        <span class="grow"></span>
+        <button class="btn primary" type="button" id="newChurchBtn">Nueva iglesia</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Iglesia</th><th>Plan</th><th>Estado</th><th>Vence</th><th>Integrantes</th><th>Almacenamiento</th><th>Invitaciones</th></tr></thead>
+        <tbody id="churchRows"></tbody>
+      </table></div>
+    </section>
+
+    <section data-panel="payments" class="card hide">
+      <div class="card-head"><h2>Próximos vencimientos</h2><span class="grow"></span><button class="btn primary" type="button" id="payBtn">Registrar pago</button></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Iglesia</th><th>Estado</th><th>Vence</th><th>Días</th><th>Recordar</th></tr></thead>
+        <tbody id="dueRows"></tbody>
+      </table></div>
+    </section>
+    <section data-panel="payments" class="card hide">
+      <div class="card-head"><h2>Historial de pagos</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Registrado</th><th>Iglesia</th><th>Plan</th><th>Tipo</th><th>Período</th><th>Valor</th><th>Medio</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="subRows"></tbody>
+      </table></div>
+    </section>
+
+    <section data-panel="plans" class="card hide">
+      <div class="card-head"><h2>Planes</h2><span class="muted small">Precios, límites y funciones. Los cambios llegan a las iglesias al momento.</span></div>
+      <div id="planCards" style="display: grid; gap: 14px"></div>
+    </section>
+
+    <section data-panel="settings" class="card hide">
+      <div class="card-head"><h2>Ajustes</h2></div>
+      <form id="settingsForm" class="grid">
+        <div><label class="lbl" for="s_max">Cupo de iglesias comerciales</label><input id="s_max" class="input" type="number" min="0" max="100" /></div>
+        <div><label class="lbl" for="s_grace">Días de gracia tras vencer</label><input id="s_grace" class="input" type="number" min="0" max="60" /></div>
+        <div><label class="lbl" for="s_rem">Avisar desde (días antes)</label><input id="s_rem" class="input" type="number" min="0" max="60" /></div>
+        <div><label class="lbl" for="s_inv">Invitación: días por defecto</label><input id="s_inv" class="input" type="number" min="1" max="30" /></div>
+        <div><label class="lbl" for="s_invmax">Invitación: máximo (Premium)</label><input id="s_invmax" class="input" type="number" min="1" max="90" /></div>
+        <div><label class="lbl" for="s_wa">WhatsApp de Gosen (solo números, con país)</label><input id="s_wa" class="input" inputmode="numeric" placeholder="573001234567" /></div>
+        <div><label class="lbl" for="s_mail">Correo comercial de Gosen</label><input id="s_mail" class="input" type="email" /></div>
+        <div><label class="lbl" for="s_verify">Verificación de correo para invitaciones</label><select id="s_verify" class="input"><option value="true">Obligatoria</option><option value="false">No exigir (solo si Neon Auth no envía códigos)</option></select></div>
+        <div style="grid-column: 1 / -1"><button class="btn primary" type="submit">Guardar ajustes</button></div>
+      </form>
+    </section>
+    <section data-panel="settings" class="card hide">
+      <div class="card-head"><h2>Seguridad y respaldo</h2></div>
+      <div class="grid">
+        <div>
+          <label class="lbl" for="resetEmail">Quitar la 2FA de una cuenta (perdió su celular)</label>
+          <div class="row"><input id="resetEmail" class="input" type="email" placeholder="correo@iglesia.com" style="flex: 1" /><button class="btn" type="button" id="resetBtn">Quitar</button></div>
+        </div>
+        <div>
+          <label class="lbl">Respaldo</label>
+          <p class="muted small" style="margin: 0 0 8px">Descarga cuentas, iglesias, planes y pagos (sin códigos ni secretos). Queda también una copia privada en la nube.</p>
+          <button class="btn" type="button" id="backupBtn">Descargar respaldo</button>
+        </div>
+      </div>
+    </section>
+
+    <section data-panel="audit" class="card hide">
+      <div class="card-head">
+        <h2>Registro de acciones</h2>
+        <span class="grow"></span>
+        <select id="auditChurch" class="input" style="width: auto" aria-label="Iglesia"></select>
+        <button class="btn" type="button" id="auditBtn">Actualizar</button>
+        <button class="btn" type="button" id="verifyBtn">Verificar integridad</button>
+      </div>
+      <p id="verifyMsg" class="muted small"></p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Quién</th><th>Rol</th><th>Iglesia</th><th>Acción</th><th>Sobre</th></tr></thead>
+        <tbody id="auditRows"></tbody>
+      </table></div>
+    </section>
+  </main>
+  <footer class="legal"><a href="/legal" target="_blank" rel="noopener">Documentos legales</a><a href="/admin">Panel de canciones</a><button type="button" data-privacy-settings>Configurar cookies</button></footer>
+</div>
+
+<dialog id="churchDlg">
+  <div class="dlg">
+    <div class="dlg-head"><h2 id="cTitle"></h2><span id="cState" class="state"></span><button class="btn small" type="button" data-close>Cerrar</button></div>
+    <div class="subtabs" role="tablist">
+      <button data-sub="perfil" aria-selected="true">Perfil y plan</button>
+      <button data-sub="admins" aria-selected="false">Administradores e invitaciones</button>
+      <button data-sub="members" aria-selected="false">Integrantes</button>
+      <button data-sub="subs" aria-selected="false">Pagos</button>
+      <button data-sub="storage" aria-selected="false">Almacenamiento</button>
+    </div>
+    <div data-subpanel="perfil">
+      <form id="churchForm" class="grid">
+        <div><label class="lbl" for="c_name">Nombre</label><input id="c_name" class="input" required maxlength="80" /></div>
+        <div><label class="lbl" for="c_plan">Plan</label><select id="c_plan" class="input"></select></div>
+        <div><label class="lbl" for="c_members">Integrantes (vacío = los del plan)</label><input id="c_members" class="input" type="number" min="1" /></div>
+        <div><label class="lbl" for="c_storage">Almacenamiento GB (vacío = el del plan)</label><input id="c_storage" class="input" type="number" min="1" step="0.5" /></div>
+        <div><label class="lbl" for="c_city">Ciudad</label><input id="c_city" class="input" maxlength="60" /></div>
+        <div><label class="lbl" for="c_cname">Contacto</label><input id="c_cname" class="input" maxlength="80" /></div>
+        <div><label class="lbl" for="c_cphone">Teléfono / WhatsApp</label><input id="c_cphone" class="input" maxlength="20" /></div>
+        <div><label class="lbl" for="c_cmail">Correo de contacto</label><input id="c_cmail" class="input" type="email" /></div>
+        <div style="grid-column: 1 / -1"><label class="lbl" for="c_notes">Notas internas</label><textarea id="c_notes" class="input" maxlength="2000"></textarea></div>
+        <div class="row" style="grid-column: 1 / -1">
+          <button class="btn primary" type="submit">Guardar</button>
+          <span class="grow"></span>
+          <button class="btn" type="button" id="suspendBtn">Suspender</button>
+          <button class="btn" type="button" id="activateBtn">Reactivar</button>
+          <button class="btn danger" type="button" id="archiveBtn">Archivar</button>
+        </div>
+      </form>
+    </div>
+    <div data-subpanel="admins" class="hide">
+      <div class="row" style="margin-bottom: 10px">
+        <label class="lbl" for="invDays" style="margin: 0">Vence en (días)</label>
+        <input id="invDays" class="input" type="number" min="1" max="90" value="14" style="width: 90px" />
+        <select id="invRole" class="input" style="width: auto"><option value="admin">Administrador</option><option value="member">Integrante</option></select>
+        <button class="btn primary" type="button" id="invBtn">Generar invitación</button>
+      </div>
+      <div id="invResult" class="alert hide"></div>
+      <div class="table-wrap"><table><thead><tr><th>Rol</th><th>Código</th><th>Creada</th><th>Vence</th><th>Estado</th><th>Usada por</th><th></th></tr></thead><tbody id="invRows"></tbody></table></div>
+    </div>
+    <div data-subpanel="members" class="hide">
+      <div class="table-wrap"><table><thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Cuenta</th><th>Correo verificado</th><th></th></tr></thead><tbody id="memRows"></tbody></table></div>
+    </div>
+    <div data-subpanel="subs" class="hide">
+      <div class="row" style="margin-bottom: 10px"><button class="btn primary" type="button" id="cPayBtn">Registrar pago o renovación</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Registrado</th><th>Plan</th><th>Tipo</th><th>Período</th><th>Valor</th><th>Medio</th><th>Estado</th><th></th></tr></thead><tbody id="cSubRows"></tbody></table></div>
+    </div>
+    <div data-subpanel="storage" class="hide">
+      <p id="stoSummary"></p>
+      <div class="table-wrap"><table><thead><tr><th>Canción</th><th>Tamaño</th><th>Subida</th></tr></thead><tbody id="stoRows"></tbody></table></div>
+      <p class="muted small">Superadmin ve tamaños y nombres, pero no puede descargar las canciones de las iglesias.</p>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="newChurchDlg" class="narrow">
+  <form class="dlg" id="newChurchForm">
+    <div class="dlg-head"><h2>Nueva iglesia</h2><button class="btn small" type="button" data-close>Cerrar</button></div>
+    <div><label class="lbl" for="n_name">Nombre</label><input id="n_name" class="input" required maxlength="80" /></div>
+    <div><label class="lbl" for="n_plan">Plan</label><select id="n_plan" class="input"></select></div>
+    <div class="grid">
+      <div><label class="lbl" for="n_city">Ciudad</label><input id="n_city" class="input" maxlength="60" /></div>
+      <div><label class="lbl" for="n_cname">Contacto</label><input id="n_cname" class="input" maxlength="80" /></div>
+      <div><label class="lbl" for="n_cphone">Teléfono / WhatsApp</label><input id="n_cphone" class="input" maxlength="20" /></div>
+      <div><label class="lbl" for="n_cmail">Correo</label><input id="n_cmail" class="input" type="email" /></div>
+    </div>
+    <p class="muted small" style="margin: 0">Después: registra su primer pago (o una cortesía) y genera la invitación de su administrador.</p>
+    <div id="nerr" class="alert error hide"></div>
+    <button class="btn primary" type="submit">Crear iglesia</button>
+  </form>
+</dialog>
+
+<dialog id="payDlg" class="narrow">
+  <form class="dlg" id="payForm">
+    <div class="dlg-head"><h2>Registrar pago</h2><button class="btn small" type="button" data-close>Cerrar</button></div>
+    <div class="grid">
+      <div><label class="lbl" for="p_church">Iglesia</label><select id="p_church" class="input" required></select></div>
+      <div><label class="lbl" for="p_plan">Plan</label><select id="p_plan" class="input"></select></div>
+      <div><label class="lbl" for="p_period">Período</label><select id="p_period" class="input"><option value="mensual">Mensual</option><option value="anual">Anual</option><option value="personalizado">Personalizado</option></select></div>
+      <div><label class="lbl" for="p_start">Desde (vacío = al vencer el actual)</label><input id="p_start" class="input" type="date" /></div>
+      <div id="p_endBox" class="hide"><label class="lbl" for="p_end">Hasta</label><input id="p_end" class="input" type="date" /></div>
+      <div><label class="lbl" for="p_price">Valor acordado (COP)</label><input id="p_price" class="input" type="number" min="0" step="100" required /></div>
+      <div><label class="lbl" for="p_disc">Descuento (COP)</label><input id="p_disc" class="input" type="number" min="0" step="100" value="0" /></div>
+      <div><label class="lbl" for="p_extra">Días adicionales</label><input id="p_extra" class="input" type="number" min="0" max="365" value="0" /></div>
+      <div><label class="lbl" for="p_method">Medio de pago</label><select id="p_method" class="input"><option value="transferencia">Transferencia</option><option value="nequi">Nequi</option><option value="daviplata">Daviplata</option><option value="efectivo">Efectivo</option><option value="otro">Otro</option><option value="cortesia">Cortesía (sin pago)</option></select></div>
+      <div><label class="lbl" for="p_ref">Referencia</label><input id="p_ref" class="input" maxlength="120" /></div>
+      <div><label class="lbl" for="p_paid">Fecha del pago</label><input id="p_paid" class="input" type="date" /></div>
+      <div><label class="lbl" for="p_receipt">Comprobante (PNG, JPG, WebP o PDF)</label><input id="p_receipt" class="input" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" /></div>
+      <div style="grid-column: 1 / -1"><label class="lbl" for="p_notes">Notas</label><textarea id="p_notes" class="input" maxlength="1000"></textarea></div>
+    </div>
+    <div id="perr" class="alert error hide"></div>
+    <button class="btn primary" type="submit">Registrar y activar</button>
+  </form>
+</dialog>
+
+<script>
+;(function () {
+  'use strict'
+  const $ = (id) => document.getElementById(id)
+  const enc = encodeURIComponent
+  const KEY = 'gosen.sa.session'
+  const STATES = { interna: 'Interna', activa: 'Activa', gracia: 'En gracia', vencida: 'Vencida', sin_suscripcion: 'Sin pago', suspendida: 'Suspendida', archivada: 'Archivada' }
+  const KINDS = { alta: 'Alta', renovacion: 'Renovación', cambio_plan: 'Cambio de plan', cortesia: 'Cortesía' }
+  const ROLES = { admin: 'Administrador', member: 'Integrante' }
+  const INV = { pendiente: 'Pendiente', reservada: 'En uso', usada: 'Usada', vencida: 'Vencida', anulada: 'Anulada', bloqueada: 'Bloqueada' }
+  const money = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(n) || 0)
+  const gb = (b) => (b == null ? '—' : (b / 1073741824 < 10 ? (b / 1073741824).toFixed(2) : Math.round(b / 1073741824)) + ' GB')
+  const date = (d) => (d ? new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
+  const dateTime = (d) => (d ? new Date(d).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
+
+  /** Elemento con texto SIEMPRE como texto (nombres y correos los escriben otros). */
+  function h(tag, attrs, ...kids) {
+    const e = document.createElement(tag)
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue
+      if (k === 'class') e.className = v
+      else if (k.startsWith('on')) e.addEventListener(k.slice(2), v)
+      else e.setAttribute(k, v === true ? '' : v)
+    }
+    for (const k of kids.flat()) if (k != null && k !== false) e.append(k instanceof Node ? k : document.createTextNode(String(k)))
+    return e
+  }
+  const stateChip = (st) => h('span', { class: 'state ' + (st || '') }, STATES[st] || st || '—')
+
+  // --- Sesión: Neon (correo y contraseña) + sesión de Superadmin (código de 2FA) ----------------------
+  let s = null
+  try { s = JSON.parse(sessionStorage.getItem(KEY) || 'null') } catch (e) {}
+  const save = (v) => { s = v; try { v ? sessionStorage.setItem(KEY, JSON.stringify(v)) : sessionStorage.removeItem(KEY) } catch (e) {} }
+  const expiry = (jwt) => { try { return JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000 } catch (e) { return 0 } }
+  async function neonJwt() {
+    if (expiry(s.jwt) - Date.now() > 60000) return s.jwt
+    const r = await fetch('/api/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cookies: s.cookies }) })
+    if (!r.ok) { logout('Tu sesión caducó. Entra otra vez.'); throw new Error('Sesión caducada') }
+    save({ ...s, jwt: (await r.json()).jwt })
+    return s.jwt
+  }
+  let pendingRetry = null
+  async function api(path, opts = {}) {
+    const headers = { authorization: 'Bearer ' + (await neonJwt()), ...(opts.json !== undefined ? { 'content-type': 'application/json' } : {}), ...(s.sa ? { 'x-gosen-sa': s.sa } : {}), ...(opts.headers || {}) }
+    const r = await fetch(path, { method: opts.method || (opts.json !== undefined ? 'POST' : 'GET'), headers, body: opts.json !== undefined ? JSON.stringify(opts.json) : opts.body })
+    if (opts.raw && r.ok) return r
+    const d = await r.json().catch(() => ({}))
+    if (r.status === 401 && d.code === 'sa-session') {
+      // Venció la sesión de 2FA: se pide el código y se reintenta.
+      save({ ...s, sa: null })
+      await askTotp()
+      return api(path, opts)
+    }
+    if (!r.ok) { const e = new Error(d.error || 'Error ' + r.status); e.code = d.code; throw e }
+    return d
+  }
+  function showOnly(id) {
+    for (const x of ['loginForm', 'totpForm', 'enrollForm', 'recoveryCard']) $(x).classList.toggle('hide', x !== id)
+    $('auth').classList.toggle('hide', !id)
+    $('app').classList.toggle('hide', !!id)
+  }
+  function logout(msg) {
+    if (s && s.sa) fetch('/api/sa/logout', { method: 'POST', headers: { authorization: 'Bearer ' + s.jwt, 'x-gosen-sa': s.sa } }).catch(() => {})
+    save(null)
+    showOnly('loginForm')
+    const e = $('lerr')
+    e.textContent = msg || ''
+    e.classList.toggle('hide', !msg)
+  }
+  document.addEventListener('click', (ev) => { if (ev.target.closest('[data-logout]')) logout('') })
+
+  $('loginForm').onsubmit = async (ev) => {
+    ev.preventDefault()
+    $('lerr').classList.add('hide')
+    $('lbtn').disabled = true
+    try {
+      const r = await fetch('/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: $('email').value, password: $('pass').value }) })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(d.error || 'No se pudo entrar.')
+      save({ jwt: d.jwt, cookies: d.cookies, email: $('email').value.trim().toLowerCase(), sa: null })
+      $('pass').value = ''
+      await afterLogin()
+    } catch (err) {
+      $('lerr').textContent = err.message
+      $('lerr').classList.remove('hide')
+    } finally {
+      $('lbtn').disabled = false
+    }
+  }
+
+  async function afterLogin() {
+    const st = await api('/api/sa/2fa')
+    if (!st.required) return logout('Esta cuenta no es de Superadmin.')
+    if (!st.enabled) return startEnroll()
+    if (!s.sa) await askTotp()
+    await loadAll()
+  }
+
+  async function startEnroll() {
+    const d = await api('/api/sa/2fa/enroll', { json: {} })
+    $('secret').textContent = d.secret.replace(/(.{4})/g, '$1 ').trim()
+    $('otpLink').href = d.uri
+    showOnly('enrollForm')
+  }
+  $('enrollForm').onsubmit = async (ev) => {
+    ev.preventDefault()
+    $('eerr').classList.add('hide')
+    try {
+      const d = await api('/api/sa/2fa/confirm', { json: { code: $('enrollCode').value } })
+      if (!d.ok) throw new Error(d.error)
+      const box = $('codes')
+      box.replaceChildren(...d.recovery_codes.map((c) => h('span', null, c)))
+      showOnly('recoveryCard')
+    } catch (err) {
+      $('eerr').textContent = err.message
+      $('eerr').classList.remove('hide')
+    }
+  }
+  $('codesDone').onclick = async () => { await askTotp(); await loadAll() }
+
+  let totpWaiter = null
+  function askTotp() {
+    showOnly('totpForm')
+    $('totp').value = ''
+    $('terr').classList.add('hide')
+    setTimeout(() => $('totp').focus(), 50)
+    return new Promise((resolve) => { totpWaiter = resolve })
+  }
+  $('totpForm').onsubmit = async (ev) => {
+    ev.preventDefault()
+    $('terr').classList.add('hide')
+    try {
+      const r = await fetch('/api/sa/login', { method: 'POST', headers: { authorization: 'Bearer ' + (await neonJwt()), 'content-type': 'application/json' }, body: JSON.stringify({ code: $('totp').value }) })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok || !d.ok) throw new Error(d.error || 'Código incorrecto.')
+      save({ ...s, sa: d.token })
+      showOnly(null)
+      const w = totpWaiter
+      totpWaiter = null
+      if (w) w()
+    } catch (err) {
+      $('terr').textContent = err.message
+      $('terr').classList.remove('hide')
+    }
+  }
+
+  // --- Datos y vistas ------------------------------------------------------------------------------------
+  let data = null
+  const commercialPlans = () => (data.plans || []).filter((p) => !p.is_internal)
+  const planName = (id) => (data.plans || []).find((p) => p.id === id)?.name || id
+  function flash(text, ok = true) {
+    const m = $('msg')
+    m.textContent = text
+    m.className = 'alert ' + (ok ? 'ok' : 'error')
+    clearTimeout(flash.t)
+    flash.t = setTimeout(() => m.classList.add('hide'), 6000)
+  }
+  async function loadAll() {
+    showOnly(null)
+    $('who').textContent = s.email || ''
+    data = await api('/api/sa/overview')
+    renderChurches()
+    renderPlans()
+    renderSettings()
+    await renderPayments()
+    renderAuditFilter()
+  }
+
+  function renderChurches() {
+    $('slots').textContent = `Cupo comercial: ${data.commercial.used} de ${data.commercial.max}`
+    $('newChurchBtn').disabled = data.commercial.used >= data.commercial.max
+    $('newChurchBtn').title = $('newChurchBtn').disabled ? 'No queda cupo comercial: cámbialo en Ajustes o archiva una iglesia.' : ''
+    const rows = data.churches.map((c) => {
+      const lim = c.limits || {}
+      const pct = lim.storage_bytes && c.usage ? Math.min(100, (c.usage.bytes / lim.storage_bytes) * 100) : 0
+      return h('tr', { class: 'clickable', tabindex: '0', onclick: () => openChurch(c.id), onkeydown: (e) => e.key === 'Enter' && openChurch(c.id) },
+        h('td', null, h('strong', null, c.name), c.internal ? h('div', { class: 'muted small' }, 'Interna · no ocupa cupo') : h('div', { class: 'muted small mono' }, c.id)),
+        h('td', null, planName(c.plan_id)),
+        h('td', null, stateChip(c.subscription && c.subscription.state)),
+        h('td', null, c.subscription && c.subscription.ends_on ? date(c.subscription.ends_on) : '—'),
+        h('td', null, `${c.members}${lim.max_members ? ' / ' + lim.max_members : ''}`),
+        h('td', null, h('div', null, `${gb(c.usage && c.usage.bytes)}${lim.storage_bytes ? ' / ' + gb(lim.storage_bytes) : ''}`), lim.storage_bytes ? h('div', { class: 'bar' }, h('i', { style: `width:${pct}%` })) : null),
+        h('td', null, String(c.pending_invitations || 0)))
+    })
+    $('churchRows').replaceChildren(...rows)
+  }
+
+  // Detalle de una iglesia.
+  let current = null
+  async function openChurch(id) {
+    current = data.churches.find((c) => c.id === id)
+    if (!current) return
+    $('cTitle').textContent = current.name
+    const chip = stateChip(current.subscription && current.subscription.state)
+    $('cState').replaceWith(Object.assign(chip, { id: 'cState' }))
+    $('c_plan').replaceChildren(...data.plans.filter((p) => p.is_internal === current.internal).map((p) => h('option', { value: p.id }, `${p.name}${p.is_internal ? '' : ' · ' + money(p.price_month_cop) + '/mes'}`)))
+    $('c_name').value = current.name
+    $('c_plan').value = current.plan_id
+    $('c_members').value = current.max_members_override ?? ''
+    $('c_storage').value = current.storage_gb_override ?? ''
+    $('c_city').value = current.city || ''
+    $('c_cname').value = current.contact_name || ''
+    $('c_cphone').value = current.contact_phone || ''
+    $('c_cmail').value = current.contact_email || ''
+    $('c_notes').value = current.notes || ''
+    for (const b of ['suspendBtn', 'archiveBtn']) $(b).classList.toggle('hide', current.internal)
+    $('activateBtn').classList.toggle('hide', current.status === 'activa')
+    $('suspendBtn').classList.toggle('hide', current.internal || current.status === 'suspendida')
+    $('invResult').classList.add('hide')
+    selectSub('perfil')
+    $('churchDlg').showModal()
+  }
+  function selectSub(name) {
+    for (const b of document.querySelectorAll('#churchDlg [data-sub]')) b.setAttribute('aria-selected', String(b.dataset.sub === name))
+    for (const p of document.querySelectorAll('#churchDlg [data-subpanel]')) p.classList.toggle('hide', p.dataset.subpanel !== name)
+    if (name === 'admins') loadInvitations()
+    if (name === 'members') loadMembers()
+    if (name === 'subs') loadChurchSubs()
+    if (name === 'storage') loadStorage()
+  }
+  document.querySelectorAll('#churchDlg [data-sub]').forEach((b) => (b.onclick = () => selectSub(b.dataset.sub)))
+  document.querySelectorAll('dialog [data-close]').forEach((b) => (b.onclick = () => b.closest('dialog').close()))
+
+  $('churchForm').onsubmit = async (ev) => {
+    ev.preventDefault()
+    try {
+      await api('/api/sa/churches/' + enc(current.id), {
+        method: 'PATCH',
+        json: { name: $('c_name').value, plan_id: $('c_plan').value, max_members_override: $('c_members').value, storage_gb_override: $('c_storage').value, city: $('c_city').value, contact_name: $('c_cname').value, contact_phone: $('c_cphone').value, contact_email: $('c_cmail').value, notes: $('c_notes').value }
+      })
+      flash('Iglesia guardada.')
+      $('churchDlg').close()
+      await loadAll()
+    } catch (err) { alert(err.message) }
+  }
+  async function setStatus(status, ask) {
+    const reason = ask ? prompt(ask) : ''
+    if (reason === null) return
+    try {
+      await api(`/api/sa/churches/${enc(current.id)}/status`, { json: { status, reason } })
+      flash(status === 'activa' ? 'Iglesia reactivada.' : status === 'suspendida' ? 'Iglesia suspendida: sus integrantes no pueden usar la nube (sus datos se conservan).' : 'Iglesia archivada (sus datos se conservan).')
+      $('churchDlg').close()
+      await loadAll()
+    } catch (err) { alert(err.message) }
+  }
+  $('suspendBtn').onclick = () => setStatus('suspendida', 'Motivo de la suspensión (lo verá Gosen en el registro):')
+  $('activateBtn').onclick = () => setStatus('activa', '')
+  $('archiveBtn').onclick = () => confirm('¿Archivar esta iglesia? Deja de ocupar cupo y no puede usar la nube. No se borra nada.') && setStatus('archivada', 'Motivo:')
+
+  async function loadInvitations() {
+    const rows = await api(`/api/sa/churches/${enc(current.id)}/invitations`)
+    $('invRows').replaceChildren(...rows.map((i) => h('tr', null,
+      h('td', null, ROLES[i.role] || i.role), h('td', { class: 'mono' }, '…' + i.hint), h('td', null, date(i.created_at)), h('td', null, date(i.expires_at)),
+      h('td', null, INV[i.status] || i.status), h('td', null, i.used_email || i.reserved_email || '—'),
+      h('td', null, ['pendiente', 'reservada'].includes(i.status) ? h('button', { class: 'btn small danger', type: 'button', onclick: async () => { if (!confirm('¿Anular esta invitación?')) return; await api('/api/sa/invitations/' + i.id, { method: 'DELETE' }); loadInvitations() } }, 'Anular') : null))))
+  }
+  $('invBtn').onclick = async () => {
+    try {
+      const d = await api(`/api/sa/churches/${enc(current.id)}/invitations`, { json: { role: $('invRole').value, days: Number($('invDays').value) || 14, church_name: current.name } })
+      const box = $('invResult')
+      box.className = 'alert ok'
+      box.replaceChildren(
+        h('div', null, 'Código (se muestra solo ahora): ', h('strong', { class: 'mono' }, d.code)),
+        h('div', { class: 'row', style: 'margin-top:8px' },
+          h('button', { class: 'btn small', type: 'button', onclick: () => navigator.clipboard.writeText(d.text) }, 'Copiar mensaje'),
+          h('a', { class: 'btn small primary', href: d.whatsapp, target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => navigator.clipboard.writeText(d.link) }, 'Copiar enlace')))
+      loadInvitations()
+    } catch (err) { alert(err.message) }
+  }
+
+  async function loadMembers() {
+    const rows = await api(`/api/sa/churches/${enc(current.id)}/members`)
+    $('memRows').replaceChildren(...rows.map((m) => h('tr', null,
+      h('td', null, m.email), h('td', null, m.name || '—'), h('td', null, m.is_admin ? 'Administrador' : 'Integrante'),
+      h('td', null, m.registered ? 'Creada' : 'Sin crear'), h('td', null, m.verified ? 'Sí' : 'No'),
+      h('td', null, h('button', { class: 'btn small', type: 'button', onclick: async () => { try { await api('/api/sa/members', { json: { email: m.email, role: m.is_admin ? 'member' : 'admin' } }); loadMembers() } catch (err) { alert(err.message) } } }, m.is_admin ? 'Quitar admin' : 'Hacer admin')))))
+  }
+
+  function subRow(x, withChurch) {
+    const period = `${date(x.starts_on)} → ${date(x.ends_on)}`
+    return h('tr', null,
+      h('td', null, date(x.created_at)), withChurch ? h('td', null, x.church) : null, h('td', null, planName(x.plan_id)), h('td', null, KINDS[x.kind] || x.kind),
+      h('td', null, period), h('td', null, money(x.price_cop - (x.discount_cop || 0)), x.discount_cop ? h('div', { class: 'muted small' }, 'desc. ' + money(x.discount_cop)) : null, x.extra_days ? h('div', { class: 'muted small' }, `+${x.extra_days} días`) : null),
+      h('td', null, x.payment_method || '—', x.payment_reference ? h('div', { class: 'muted small mono' }, x.payment_reference) : null),
+      h('td', null, x.status === 'anulada' ? h('span', { class: 'state vencida', title: x.void_reason || '' }, 'Anulado') : h('span', { class: 'state activa' }, 'Pagado')),
+      h('td', null,
+        x.receipt_key ? h('button', { class: 'btn small', type: 'button', onclick: () => openReceipt(x.receipt_key) }, 'Comprobante') : null,
+        x.status === 'pagada' ? h('button', { class: 'btn small danger', type: 'button', onclick: () => voidSub(x.id) }, 'Anular') : null))
+  }
+  async function loadChurchSubs() {
+    const rows = await api('/api/sa/subscriptions?church=' + enc(current.id))
+    $('cSubRows').replaceChildren(...rows.map((x) => subRow(x, false)))
+  }
+  async function voidSub(id) {
+    const reason = prompt('Motivo de la anulación (por ejemplo, pago duplicado):')
+    if (!reason) return
+    try { await api(`/api/sa/subscriptions/${id}/void`, { json: { reason } }); flash('Pago anulado.'); await loadAll() } catch (err) { alert(err.message) }
+  }
+  async function openReceipt(key) {
+    const r = await api('/api/sa/receipt?key=' + enc(key), { raw: true })
+    const url = URL.createObjectURL(await r.blob())
+    window.open(url, '_blank', 'noopener')
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
+  }
+  async function loadStorage() {
+    const d = await api(`/api/sa/churches/${enc(current.id)}/storage`)
+    const lim = current.limits && current.limits.storage_bytes
+    $('stoSummary').textContent = `${gb(d.bytes)} usados${lim ? ' de ' + gb(lim) : ''} · ${d.songs} canciones`
+    $('stoRows').replaceChildren(...d.top.map((t) => h('tr', null, h('td', null, t.title), h('td', null, gb(t.size)), h('td', null, date(t.uploaded)))))
+  }
+
+  // Nueva iglesia.
+  $('newChurchBtn').onclick = () => {
+    $('n_plan').replaceChildren(...commercialPlans().filter((p) => p.active).map((p) => h('option', { value: p.id }, `${p.name} · ${money(p.price_month_cop)}/mes`)))
+    $('newChurchForm').reset()
+    $('nerr').classList.add('hide')
+    $('newChurchDlg').showModal()
+  }
+  $('newChurchForm').onsubmit = async (ev) => {
+    ev.preventDefault()
+    try {
+      const d = await api('/api/sa/churches', { json: { name: $('n_name').value, plan_id: $('n_plan').value, city: $('n_city').value, contact_name: $('n_cname').value, contact_phone: $('n_cphone').value, contact_email: $('n_cmail').value } })
+      $('newChurchDlg').close()
+      flash(`Iglesia «${d.name}» creada. Ahora registra su pago y genera la invitación del administrador.`)
+      await loadAll()
+      openChurch(d.id)
+    } catch (err) {
+      $('nerr').textContent = err.message
+      $('nerr').classList.remove('hide')
+    }
+  }
+
+  // Pagos.
+  function openPay(churchId) {
+    const churches = data.churches.filter((c) => !c.internal && c.status !== 'archivada')
+    $('p_church').replaceChildren(...churches.map((c) => h('option', { value: c.id }, c.name)))
+    $('p_plan').replaceChildren(...commercialPlans().map((p) => h('option', { value: p.id }, p.name)))
+    $('payForm').reset()
+    $('perr').classList.add('hide')
+    if (churchId) $('p_church').value = churchId
+    const c = churches.find((x) => x.id === $('p_church').value)
+    if (c) $('p_plan').value = c.plan_id
+    $('p_paid').value = new Date().toISOString().slice(0, 10)
+    suggestPrice()
+    $('payDlg').showModal()
+  }
+  function suggestPrice() {
+    const p = commercialPlans().find((x) => x.id === $('p_plan').value)
+    const period = $('p_period').value
+    $('p_endBox').classList.toggle('hide', period !== 'personalizado')
+    if (!p) return
+    $('p_price').value = period === 'anual' ? p.price_year_cop ?? p.price_month_cop * 12 : p.price_month_cop
+  }
+  $('p_plan').onchange = suggestPrice
+  $('p_period').onchange = suggestPrice
+  $('p_church').onchange = () => { const c = data.churches.find((x) => x.id === $('p_church').value); if (c) $('p_plan').value = c.plan_id; suggestPrice() }
+  $('payBtn').onclick = () => openPay(null)
+  $('cPayBtn').onclick = () => { $('churchDlg').close(); openPay(current.id) }
+  $('payForm').onsubmit = async (ev) => {
+    ev.preventDefault()
+    $('perr').classList.add('hide')
+    try {
+      let receipt_key = null
+      const file = $('p_receipt').files[0]
+      if (file) {
+        const r = await api(`/api/sa/receipt?church=${enc($('p_church').value)}`, { method: 'POST', body: file, headers: { 'content-type': file.type } })
+        receipt_key = r.key
+      }
+      const d = await api('/api/sa/subscriptions', {
+        json: {
+          church_id: $('p_church').value, plan_id: $('p_plan').value, period: $('p_period').value, starts_on: $('p_start').value || null,
+          ends_on: $('p_end').value || null, price_cop: Number($('p_price').value) || 0, discount_cop: Number($('p_disc').value) || 0,
+          extra_days: Number($('p_extra').value) || 0, payment_method: $('p_method').value, payment_reference: $('p_ref').value,
+          paid_on: $('p_paid').value || null, receipt_key, notes: $('p_notes').value
+        }
+      })
+      $('payDlg').close()
+      flash(`Pago registrado: ${KINDS[d.kind] || d.kind}, del ${date(d.starts_on)} al ${date(d.ends_on)}. La iglesia ya tiene su plan activo.`)
+      await loadAll()
+    } catch (err) {
+      $('perr').textContent = err.message
+      $('perr').classList.remove('hide')
+    }
+  }
+  async function renderPayments() {
+    const due = data.churches.filter((c) => !c.internal && c.status !== 'archivada')
+      .sort((a, b) => String((a.subscription && a.subscription.ends_on) || '0').localeCompare(String((b.subscription && b.subscription.ends_on) || '0')))
+    $('dueRows').replaceChildren(...due.map((c) => {
+      const st = c.subscription || {}
+      const phone = (c.contact_phone || '').replace(/\D/g, '')
+      const msg = `Hola, ${c.contact_name || ''}. Te escribimos de Gosen Tracks: la suscripción de ${c.name} ${st.days_left != null && st.days_left >= 0 ? 'vence el ' + date(st.ends_on) : 'está vencida'}. ¿Te ayudamos con la renovación?`
+      return h('tr', null, h('td', null, c.name), h('td', null, stateChip(st.state)), h('td', null, date(st.ends_on)),
+        h('td', null, st.days_left == null ? '—' : String(st.days_left)),
+        h('td', null, phone ? h('a', { class: 'btn small', href: `https://wa.me/${phone}?text=${enc(msg)}`, target: '_blank', rel: 'noopener' }, 'WhatsApp') : h('span', { class: 'muted small' }, 'Sin teléfono')))
+    }))
+    const subs = await api('/api/sa/subscriptions')
+    $('subRows').replaceChildren(...subs.map((x) => subRow(x, true)))
+  }
+
+  // Planes.
+  function renderPlans() {
+    $('planCards').replaceChildren(...data.plans.map((p) => {
+      const f = h('form', { class: 'card', style: 'padding:14px' })
+      const field = (id, label, value, type = 'number') => h('div', null, h('label', { class: 'lbl', for: id }, label), h('input', { id, class: 'input', type, value: value ?? '' }))
+      const uid = 'pl_' + p.id + '_'
+      f.append(
+        h('div', { class: 'card-head' }, h('h3', null, p.name), p.is_internal ? h('span', { class: 'state interna' }, 'Interno') : null, h('span', { class: 'grow' })),
+        h('div', { class: 'grid' },
+          field(uid + 'name', 'Nombre', p.name, 'text'),
+          field(uid + 'pm', 'Precio mensual (COP)', p.price_month_cop),
+          field(uid + 'py', 'Precio anual (COP, vacío = 12 meses)', p.price_year_cop),
+          field(uid + 'mm', 'Integrantes (vacío = sin límite)', p.max_members),
+          field(uid + 'gb', 'Almacenamiento GB (vacío = sin límite)', p.storage_gb)),
+        h('div', { class: 'features', style: 'margin:12px 0' }, ...data.features.map((x) =>
+          h('label', null, h('input', { type: 'checkbox', value: x.id, checked: p.features.includes(x.id) }), x.label))),
+        h('div', { class: 'row' }, h('label', null, h('input', { type: 'checkbox', id: uid + 'active', checked: p.active }), ' Disponible para nuevas suscripciones'), h('span', { class: 'grow' }), h('button', { class: 'btn primary', type: 'submit' }, 'Guardar plan')))
+      f.onsubmit = async (ev) => {
+        ev.preventDefault()
+        try {
+          await api('/api/sa/plans', { json: {
+            id: p.id, name: $(uid + 'name').value, price_month_cop: Number($(uid + 'pm').value) || 0, price_year_cop: $(uid + 'py').value,
+            max_members: $(uid + 'mm').value, storage_gb: $(uid + 'gb').value, active: $(uid + 'active').checked, sort: p.sort,
+            features: [...f.querySelectorAll('.features input:checked')].map((i) => i.value) } })
+          flash(`Plan «${$(uid + 'name').value}» guardado.`)
+          await loadAll()
+        } catch (err) { alert(err.message) }
+      }
+      return f
+    }))
+  }
+
+  // Ajustes.
+  function renderSettings() {
+    const st = data.settings || {}
+    $('s_max').value = st.max_commercial_churches
+    $('s_grace').value = st.grace_days
+    $('s_rem').value = st.reminder_days
+    $('s_inv').value = st.invite_days_default
+    $('s_invmax').value = st.invite_days_max
+    $('s_wa').value = st.contact_whatsapp || ''
+    $('s_mail').value = st.contact_email || ''
+    $('s_verify').value = String(st.require_email_verification !== false)
+  }
+  $('settingsForm').onsubmit = async (ev) => {
+    ev.preventDefault()
+    const st = data.settings || {}
+    const want = {
+      max_commercial_churches: Number($('s_max').value), grace_days: Number($('s_grace').value), reminder_days: Number($('s_rem').value),
+      invite_days_default: Number($('s_inv').value), invite_days_max: Number($('s_invmax').value),
+      contact_whatsapp: $('s_wa').value.replace(/\D/g, '') || null, contact_email: $('s_mail').value.trim() || null,
+      require_email_verification: $('s_verify').value === 'true'
+    }
+    try {
+      for (const [key, value] of Object.entries(want)) if (JSON.stringify(st[key] ?? null) !== JSON.stringify(value)) await api('/api/sa/settings', { json: { key, value } })
+      flash('Ajustes guardados.')
+      await loadAll()
+    } catch (err) { alert(err.message) }
+  }
+  $('resetBtn').onclick = async () => {
+    const email = $('resetEmail').value.trim()
+    if (!email || !confirm(`¿Quitar la verificación en dos pasos de ${email}? Tendrá que activarla de nuevo.`)) return
+    try { await api('/api/sa/reset-2fa', { json: { email } }); flash('Verificación quitada.'); $('resetEmail').value = '' } catch (err) { alert(err.message) }
+  }
+  $('backupBtn').onclick = async () => {
+    try {
+      const r = await api('/api/sa/backup', { method: 'POST', raw: true })
+      const url = URL.createObjectURL(await r.blob())
+      const a = h('a', { href: url, download: `gosen-respaldo-${new Date().toISOString().slice(0, 10)}.json` })
+      document.body.append(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 30000)
+      flash('Respaldo descargado (y guardado en la nube).')
+    } catch (err) { alert(err.message) }
+  }
+
+  // Registro.
+  function renderAuditFilter() {
+    $('auditChurch').replaceChildren(h('option', { value: '' }, 'Todas las iglesias'), ...data.churches.map((c) => h('option', { value: c.id }, c.name)))
+  }
+  const churchName = (id) => (data.churches.find((c) => c.id === id) || {}).name || id || '—'
+  async function loadAudit() {
+    const rows = await api('/api/sa/audit' + ($('auditChurch').value ? '?church=' + enc($('auditChurch').value) : ''))
+    $('auditRows').replaceChildren(...rows.map((a) => h('tr', null, h('td', null, dateTime(a.at)), h('td', null, a.actor || '—'), h('td', null, a.role || '—'),
+      h('td', null, churchName(a.church)), h('td', { class: 'mono small' }, a.action), h('td', { class: 'small' }, a.target || ''))))
+  }
+  $('auditBtn').onclick = loadAudit
+  $('auditChurch').onchange = loadAudit
+  $('verifyBtn').onclick = async () => {
+    const v = await api('/api/sa/audit/verify')
+    $('verifyMsg').textContent = v.intact ? `Registro íntegro: ${v.total} acciones, cadena de huellas correcta.` : `Atención: la cadena se rompe en la acción ${v.first_broken_id}. Revisa quién tiene acceso de dueño a la base.`
+  }
+
+  // Pestañas y tema.
+  document.querySelectorAll('nav.tabs [data-tab]').forEach((b) => (b.onclick = () => {
+    for (const x of document.querySelectorAll('nav.tabs [data-tab]')) x.setAttribute('aria-selected', String(x === b))
+    for (const p of document.querySelectorAll('[data-panel]')) p.classList.toggle('hide', p.dataset.panel !== b.dataset.tab)
+    if (b.dataset.tab === 'audit') loadAudit()
+  }))
+  $('themeBtn').onclick = () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'
+    document.documentElement.dataset.theme = next
+    document.documentElement.dataset.themeChosen = '1'
+    if (window.gosenPrivacy && window.gosenPrivacy.allows('preferencias')) { try { localStorage.setItem('gosen.web.theme', next) } catch (e) {} }
+  }
+
+  window.__gosenSa = { state: () => ({ data, session: s && { email: s.email, sa: !!s.sa } }) }
+  if (s && s.jwt) afterLogin().catch((err) => logout(err.message))
+  else showOnly('loginForm')
+})()
+</script>
+</body>
+</html>

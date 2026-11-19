@@ -4,6 +4,7 @@
  *
  * Cada servicio guarda nombre, fecha, hora, descripción, integrantes (correo + función; nombre y
  * etiqueta solo como respaldo para mostrar) y sus canciones (por la clave de la canción en la nube).
+ * Cada iglesia tiene su carpeta (`prefix`): la interna `services/`, las demás `c/<id>/services/`.
  * Si dos equipos del admin lo cambian, gana el cambio más nuevo (updatedAt): uno viejo no pisa a uno nuevo.
  */
 export const SERVICES = 'services/'
@@ -71,11 +72,11 @@ export function normalizeService(raw, id, who) {
 }
 
 /** Todos los servicios (para cualquier integrante autorizado). */
-export async function listServices(bucket) {
+export async function listServices(bucket, prefix = SERVICES) {
   const out = []
   let cursor
   do {
-    const page = await bucket.list({ prefix: SERVICES, cursor })
+    const page = await bucket.list({ prefix, cursor })
     for (const o of page.objects) {
       const obj = await bucket.get(o.key)
       if (!obj) continue
@@ -90,8 +91,8 @@ export async function listServices(bucket) {
   return out.sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999') || (a.time ?? '').localeCompare(b.time ?? '') || a.name.localeCompare(b.name))
 }
 
-async function readService(bucket, id) {
-  const obj = await bucket.get(`${SERVICES}${id}.json`)
+async function readService(bucket, id, prefix = SERVICES) {
+  const obj = await bucket.get(`${prefix}${id}.json`)
   if (!obj) return null
   try {
     return JSON.parse(await obj.text())
@@ -101,13 +102,13 @@ async function readService(bucket, id) {
 }
 
 /** Guarda el servicio. Si en la nube hay uno más nuevo, no lo pisa: devuelve { conflict: actual }. */
-export async function putService(bucket, doc) {
-  const current = await readService(bucket, doc.id)
+export async function putService(bucket, doc, prefix = SERVICES) {
+  const current = await readService(bucket, doc.id, prefix)
   if (current && Date.parse(current.updatedAt) > Date.parse(doc.updatedAt)) return { conflict: current }
-  await bucket.put(`${SERVICES}${doc.id}.json`, JSON.stringify(doc), { httpMetadata: { contentType: 'application/json' } })
+  await bucket.put(`${prefix}${doc.id}.json`, JSON.stringify(doc), { httpMetadata: { contentType: 'application/json' } })
   return { service: doc }
 }
 
-export async function deleteService(bucket, id) {
-  await bucket.delete(`${SERVICES}${id}.json`)
+export async function deleteService(bucket, id, prefix = SERVICES) {
+  await bucket.delete(`${prefix}${id}.json`)
 }

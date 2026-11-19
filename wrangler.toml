@@ -28,6 +28,11 @@ class_name = "LiveRoom"
 name = "REHEARSAL"
 class_name = "RehearsalRoom"
 
+# Límite de intentos por IP en las rutas de acceso (entrar, códigos, Superadmin).
+[[durable_objects.bindings]]
+name = "LIMITER"
+class_name = "Limiter"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["LiveRoom"]
@@ -36,3 +41,8 @@ new_sqlite_classes = ["LiveRoom"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["RehearsalRoom"]
+
+# Límite de intentos (v37: plataforma multiiglesia).
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Limiter"]
