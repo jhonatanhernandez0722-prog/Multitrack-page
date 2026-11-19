@@ -459,6 +459,9 @@
   .foot h4 { margin: 0 0 12px; font: 600 13px var(--font-label); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
   .foot a { display: block; color: var(--text-2); text-decoration: none; padding: 4px 0; }
   .foot a:hover { color: var(--accent-tx); }
+  .legal-row { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .legal-row a, .legal-row button { color: var(--text-2); background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .legal-row a:hover, .legal-row button:hover { color: var(--accent-tx); }
   .legal { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--text-3); font-size: 14px; }
 
   /* --- Tamaños ----------------------------------------------------------------------------------- */
@@ -517,6 +520,7 @@
       <a href="#funciones">Funciones</a>
       <a href="#instrumentos">Instrumentos</a>
       <a href="#plataformas">Plataformas</a>
+      <a href="/legal">Legal</a>
     </nav>
     <div class="nav-end">
       <button class="theme-btn" id="theme" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Tema claro / oscuro">
@@ -719,7 +723,7 @@
         <button type="button" class="foot-link" data-privacy-settings>Configurar cookies</button>
       </div>
     </div>
-    <div class="legal"><span>© <span id="year">2026</span> Gosen Tracks</span><span>Hecho con cuidado para el servicio del domingo.</span></div>
+    <div class="legal"><span>© <span id="year">2026</span> Gosen Tracks</span><nav class="legal-row" aria-label="Documentos legales"><a href="/legal/terminos">Términos</a><a href="/legal/privacidad">Privacidad</a><a href="/legal/cookies">Cookies</a><a href="/legal/reembolsos">Reembolsos</a><button type="button" data-privacy-settings>Configurar cookies</button></nav></div>
   </div>
 </footer>
 
