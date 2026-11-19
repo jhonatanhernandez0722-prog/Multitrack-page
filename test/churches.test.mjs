@@ -84,6 +84,15 @@ globalThis.fetch = async (url, init = {}) => {
         : needSa()
     case 'gosen_sa_update_church':
       return saOk ? reply(null) : needSa()
+    case 'gosen_plans_public':
+      return reply({
+        plans: [
+          { id: 'inicial', name: 'Gosen Inicial', price_month: 45000, price_year: 450000, max_members: 10, storage_gb: 50, features: INICIAL, notas_internas: 'no publicar' },
+          { id: 'equipo', name: 'Gosen Equipo', price_month: 69900, price_year: null, max_members: 25, storage_gb: 150, features: EQUIPO }
+        ],
+        features: [{ id: 'reproductor', label: 'Reproductor multitrack' }],
+        contact: { whatsapp: '+57 300 123 4567', email: 'ventas@gosen.co', secreto: 'x' }
+      })
     case 'gosen_sa_export':
       return saOk ? reply({ exported_at: new Date().toISOString(), churches: [{ id: ALFA }] }) : needSa()
     case 'gosen_sa_audit':
@@ -255,6 +264,25 @@ console.log('\nSuperadmin')
   ok(bk.status === 200 && /attachment/.test(bk.headers.get('content-disposition')) && !!(await bucket.head(bk.headers.get('x-gosen-backup'))), 'el respaldo se descarga y queda una copia privada en la nube')
   const audit = await jsonOf(await call('GET', `/api/sa/audit?church=${ALFA}`, { token: 'jwt-sa', headers: H }))
   ok(audit.some((a) => a.action === 'iglesia.creada') && audit.some((a) => a.action === 'cancion.subida' || a.action === 'cancion.descargada'), 'el registro junta las acciones de cuentas (Neon) y de contenido (subidas, descargas…)')
+}
+
+console.log('\nPlanes y precios en la página principal (/api/plans, sin cuenta)')
+{
+  await bucket.delete('system/public-plans.json')
+  const r0 = await call('GET', '/api/plans', { token: null })
+  const d0 = await jsonOf(r0)
+  ok(
+    r0.status === 200 && d0.plans.map((p) => `${p.name}:${p.price_month}:${p.max_members}:${p.storage_gb}`).join('|') === 'Gosen Inicial:39900:10:50|Gosen Equipo:69900:25:150|Gosen Premium:119900:25:300',
+    'sin cuenta y antes de que Superadmin abra el panel: los planes iniciales (Inicial $39.900 · Equipo $69.900 · Premium $119.900)'
+  )
+  ok(d0.plans[2].features.includes('holyrics') && !d0.plans[0].features.includes('letras_acordes') && d0.features.length === 20, 'con lo que incluye cada uno (20 funciones con nombre)')
+  ok(/max-age=300/.test(r0.headers.get('cache-control') || ''), 'se guarda en caché unos minutos (la página carga rápido)')
+  const sa = (await jsonOf(await call('POST', '/api/sa/login', { token: 'jwt-sa', body: { code: '654321' } }))).token
+  await call('GET', '/api/sa/overview', { token: 'jwt-sa', headers: { 'x-gosen-sa': sa } })
+  const d1 = await jsonOf(await call('GET', '/api/plans', { token: null }))
+  ok(d1.plans.length === 2 && d1.plans[0].price_month === 45000 && d1.plans[0].price_year === 450000, 'al abrir Superadmin, la página muestra los precios que dice la base (Inicial a $45.000, $450.000 al año)')
+  ok(!JSON.stringify(d1).includes('no publicar') && !('secreto' in d1.contact) && d1.contact.whatsapp === '+57 300 123 4567', 'solo se publica lo de los planes y el contacto comercial (nada interno)')
+  ok(!rpcLog.some((x) => x.name === 'gosen_plans_public' && !x.jwt), 'la página pública nunca consulta la base: usa la copia que guardó Superadmin')
 }
 
 console.log('\nPáginas y límite de intentos')

@@ -29,6 +29,11 @@
  *   GET  /api/sa/subscriptions?church=    POST /api/sa/subscriptions {…}    POST /api/sa/subscriptions/<id>/void {reason}
  *   POST /api/sa/receipt?church=&type=    GET /api/sa/receipt?key=           (comprobantes en R2, privados)
  *   GET  /api/sa/audit?church=            GET /api/sa/audit/verify          POST /api/sa/backup   POST /api/sa/reset-2fa {email}
+ *
+ * Público (sin cuenta):
+ *   GET  /api/plans                       → planes con precio, límites y funciones, y el contacto de Gosen (página principal).
+ *        Sale de una copia que el Worker guarda en R2 cada vez que Superadmin abre o cambia los planes o el contacto;
+ *        mientras no exista, se muestran los planes iniciales (los mismos de neon/v37-iglesias.sql).
  */
 import { neonRpc } from './legal/legal.js'
 import { INTERNAL, brandingPrefix, can, churchOf, planMessage } from './tenancy.js'
@@ -39,6 +44,88 @@ const RECEIPT_MAX = 5 * 1024 * 1024
 const RECEIPT_TYPES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'application/pdf': 'pdf' }
 const CHURCH_ID = /^[a-z0-9][a-z0-9-]{2,39}$/
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// --- Planes públicos (página principal) ----------------------------------------------------------------------
+
+const PUBLIC_PLANS_KEY = 'system/public-plans.json'
+const BASE_FEATURES = ['reproductor', 'biblioteca', 'click_guia', 'mezclador', 'repertorios', 'ensayo_individual', 'programacion_basica']
+const TEAM_FEATURES = [...BASE_FEATURES, 'ensayo_multiple', 'programacion_completa', 'asignacion_integrantes', 'exportar_excel', 'letras_acordes',
+  'letras_secciones', 'transposicion_acordes', 'letras_sincronizadas', 'personalizacion']
+/** Los planes iniciales de neon/v37-iglesias.sql: se muestran hasta que Superadmin abra el panel por primera vez. */
+export const DEFAULT_PUBLIC_PLANS = {
+  plans: [
+    { id: 'inicial', name: 'Gosen Inicial', price_month: 39900, price_year: null, max_members: 10, storage_gb: 50, features: BASE_FEATURES },
+    { id: 'equipo', name: 'Gosen Equipo', price_month: 69900, price_year: null, max_members: 25, storage_gb: 150, features: TEAM_FEATURES },
+    { id: 'premium', name: 'Gosen Premium', price_month: 119900, price_year: null, max_members: 25, storage_gb: 300,
+      features: [...TEAM_FEATURES, 'holyrics', 'admin_avanzado', 'config_avanzada', 'soporte_prioritario'] }
+  ],
+  features: [
+    ['reproductor', 'Reproductor multitrack'], ['biblioteca', 'Biblioteca de canciones'], ['click_guia', 'Click y guía'], ['mezclador', 'Mezclador'],
+    ['repertorios', 'Repertorios'], ['ensayo_individual', 'Ensayo individual'], ['programacion_basica', 'Programación básica'],
+    ['ensayo_multiple', 'Ensayo múltiple sincronizado'], ['programacion_completa', 'Programación completa de servicios'],
+    ['asignacion_integrantes', 'Asignación de músicos y cantantes'], ['exportar_excel', 'Exportación a Excel'],
+    ['letras_acordes', 'Creación y edición de letras y acordes'], ['letras_secciones', 'Organización por secciones'],
+    ['transposicion_acordes', 'Transposición de acordes'], ['letras_sincronizadas', 'Letras y acordes sincronizados con el reproductor'],
+    ['personalizacion', 'Personalización de la iglesia'], ['holyrics', 'Holyrics Connect e integración con Holyrics'],
+    ['admin_avanzado', 'Herramientas avanzadas de administración'], ['config_avanzada', 'Mayor capacidad de configuración'],
+    ['soporte_prioritario', 'Soporte prioritario']
+  ].map(([id, label]) => ({ id, label })),
+  contact: { whatsapp: null, email: null }
+}
+
+const cleanText = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null)
+const cleanCount = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) || Number(v) < 0 ? null : Number(v))
+
+/** Solo lo que se puede publicar: nombres, precios, límites, funciones y el contacto comercial de Gosen. */
+export function cleanPublicPlans(d) {
+  if (!d || !Array.isArray(d.plans)) return null
+  const plans = d.plans
+    .filter((p) => p && typeof p.id === 'string' && cleanText(p.name, 60))
+    .map((p) => ({
+      id: p.id.slice(0, 40),
+      name: cleanText(p.name, 60),
+      price_month: cleanCount(p.price_month) ?? 0,
+      price_year: cleanCount(p.price_year),
+      max_members: cleanCount(p.max_members),
+      storage_gb: cleanCount(p.storage_gb),
+      features: (Array.isArray(p.features) ? p.features : []).filter((f) => typeof f === 'string' && /^[a-z_]{3,40}$/.test(f))
+    }))
+    .slice(0, 12)
+  const features = (Array.isArray(d.features) ? d.features : [])
+    .filter((f) => f && typeof f.id === 'string' && /^[a-z_]{3,40}$/.test(f.id) && cleanText(f.label, 90))
+    .map((f) => ({ id: f.id, label: cleanText(f.label, 90) }))
+  const c = d.contact || {}
+  const whatsapp = cleanText(c.whatsapp, 30)
+  const email = cleanText(c.email, 120)
+  return {
+    plans,
+    features,
+    contact: { whatsapp: whatsapp && /^\+?[0-9 ]{7,20}$/.test(whatsapp) ? whatsapp : null, email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null }
+  }
+}
+
+/** GET /api/plans */
+export async function publicPlans(env) {
+  try {
+    const o = await env.TRACKS.get(PUBLIC_PLANS_KEY)
+    const saved = o ? cleanPublicPlans(JSON.parse(await o.text())) : null
+    if (saved && saved.plans.length) return saved
+  } catch {
+    // Copia dañada o R2 sin respuesta: se muestran los planes iniciales.
+  }
+  return DEFAULT_PUBLIC_PLANS
+}
+
+/** Guarda la copia pública con lo que dice la base (con la sesión de Superadmin). Si falla, queda la anterior. */
+async function savePublicPlans(env, call) {
+  try {
+    const r = await call('gosen_plans_public')
+    const clean = r.data ? cleanPublicPlans(r.data) : null
+    if (clean && clean.plans.length) await env.TRACKS.put(PUBLIC_PLANS_KEY, JSON.stringify(clean), { httpMetadata: { contentType: 'application/json' } })
+  } catch {
+    // No se interrumpe lo que Superadmin estaba haciendo.
+  }
+}
 
 /** Respuesta de una función de Neon: datos, falta de SQL o el error (los mensajes ya están en español). */
 function reply(json, r, ok = (d) => d) {
@@ -257,6 +344,7 @@ export async function superadminApi(req, env, p, h) {
         c.usage = null
       }
     }
+    await savePublicPlans(env, call)
     return json(data)
   }
 
@@ -307,12 +395,17 @@ export async function superadminApi(req, env, p, h) {
   }
   if (p === '/api/sa/plans' && req.method === 'POST') {
     const r = await call('gosen_sa_upsert_plan', { p_sa: sa, p_plan: await body(req) })
-    if (!r.missing && !r.error) await h.bumpEpoch(env)
+    if (!r.missing && !r.error) {
+      await h.bumpEpoch(env)
+      await savePublicPlans(env, call)
+    }
     return reply(json, r, () => ({ ok: true }))
   }
   if (p === '/api/sa/settings' && req.method === 'POST') {
     const b = await body(req)
-    return reply(json, await call('gosen_sa_set_setting', { p_sa: sa, p_key: String(b.key || ''), p_value: b.value ?? null }), () => ({ ok: true }))
+    const r = await call('gosen_sa_set_setting', { p_sa: sa, p_key: String(b.key || ''), p_value: b.value ?? null })
+    if (!r.missing && !r.error) await savePublicPlans(env, call)
+    return reply(json, r, () => ({ ok: true }))
   }
   if (p === '/api/sa/subscriptions' && req.method === 'GET') {
     const c = new URL(req.url).searchParams.get('church')

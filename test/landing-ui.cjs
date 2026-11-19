@@ -1,7 +1,8 @@
 /**
  * Prueba de la página pública (/) en un navegador real (Electron), contra el servidor local de pruebas:
  * portada, las 5 demostraciones (avanzan solas, cambian de pestaña), tema claro/oscuro guardado,
- * movimiento reducido, celular y que el panel siga en /admin. Deja capturas en test-output/.
+ * movimiento reducido, celular, planes y precios (de /api/plans) y que el panel siga en /admin.
+ * Deja capturas en test-output/.
  *
  * Uso (con el Electron de la app): electron test/landing-ui.cjs
  */
@@ -109,6 +110,20 @@ app.whenReady().then(async () => {
     await sleep(1200)
     await d.shot('landing-funciones-oscuro')
     ok((await d.js(`document.querySelectorAll('#row1 .chip').length + document.querySelectorAll('#row2 .chip').length`)) >= 62, 'galería con las 31 categorías de instrumentos de la nube')
+    // Planes y precios: públicos, con lo que incluye cada uno.
+    ok(await d.js(`!!document.querySelector('.nav-links a[href="#planes"]')`), 'el menú tiene «Planes»')
+    await d.js(`document.getElementById('planes').scrollIntoView(); 0`)
+    await d.waitFor(`document.querySelectorAll('#plans .plan').length === 3`, 'tarjetas de planes')
+    await sleep(1200)
+    const plans = await d.js(`[...document.querySelectorAll('#plans .plan')].map((c) => ({ name: c.querySelector('h3').textContent, price: c.querySelector('.price b').textContent, limits: c.querySelector('.limits').innerText.replace(/\\s+/g, ' '), from: c.querySelector('.from')?.textContent ?? '', items: [...c.querySelectorAll('li')].map((l) => l.textContent) }))`)
+    ok(plans.map((p) => `${p.name} ${p.price}`).join(' · ') === 'Gosen Inicial $39.900 · Gosen Equipo $69.900 · Gosen Premium $119.900', `los 3 planes con su precio mensual: ${plans.map((p) => `${p.name} ${p.price}`).join(' · ')}`)
+    ok(/10 integrantes/.test(plans[0].limits) && /50 GB/.test(plans[0].limits) && /300 GB/.test(plans[2].limits), `cada uno con sus integrantes y su espacio (${plans.map((p) => p.limits).join(' | ')})`)
+    ok(
+      plans[0].items.includes('Reproductor multitrack') && plans[1].from === 'Todo lo de Gosen Inicial, más:' && plans[1].items.includes('Ensayo múltiple sincronizado') && !plans[1].items.includes('Reproductor multitrack') && plans[2].items.includes('Holyrics Connect e integración con Holyrics'),
+      'qué incluye: Inicial con lo básico; Equipo y Premium dicen «Todo lo de…, más:» y lo que agregan'
+    )
+    ok(await d.js(`!document.querySelector('#plans .btn') && document.getElementById('plansNote').innerText.includes('COP') && !!document.querySelector('#plansNote a[href="/legal/reembolsos"]')`), 'sin contacto configurado no hay botón vacío; nota de moneda y enlace a reembolsos')
+    await d.shot('landing-planes-oscuro')
     ok(d.errors.length === 0, `sin errores en la consola${d.errors.length ? ': ' + d.errors.join(' | ') : ''}`)
     d.win.destroy()
 
@@ -122,6 +137,11 @@ app.whenReady().then(async () => {
     await sleep(2500)
     ok(await m.js(`(() => { const b = document.getElementById('screenBox').getBoundingClientRect(); return b.width <= window.innerWidth && b.height > 150 })()`), 'celular: la demostración se escala al ancho de la pantalla')
     await m.shot('landing-celular-demo')
+    await m.js(`document.getElementById('planes').scrollIntoView(); 0`)
+    await m.waitFor(`document.querySelectorAll('#plans .plan').length === 3`, 'planes en celular')
+    await sleep(1200)
+    ok(await m.js(`(() => { const cs = [...document.querySelectorAll('#plans .plan')].map((c) => c.getBoundingClientRect()); return cs.every((r) => r.right <= window.innerWidth && r.left >= 0) && cs[1].top > cs[0].bottom - 1 })()`), 'celular: los planes van uno debajo del otro, sin salirse')
+    await m.shot('landing-celular-planes')
     m.win.destroy()
 
     // Movimiento reducido: sin animaciones, cada demostración muestra su resultado y sus pasos.

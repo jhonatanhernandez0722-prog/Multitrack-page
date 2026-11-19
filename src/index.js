@@ -8,7 +8,7 @@ import { claimsCurrent, consentState, legalApi, legalPage, legalSummary, neonRpc
 import { PRIVACY_JS } from './legal/privacyScript.js'
 import { INTERNAL, CHURCH_PREFIX, brandingPrefix, can, churchOf, churchOfSongKey, keyOwner, planMessage, servicesPrefix, songPrefix, trackSongKey } from './tenancy.js'
 import { overLimit } from './limiter.js'
-import { churchApi, superadminApi } from './churches.js'
+import { churchApi, publicPlans, superadminApi } from './churches.js'
 import SUPERADMIN_HTML from './superadmin.html'
 import JOIN_HTML from './unirse.html'
 import {
@@ -37,6 +37,7 @@ import {
  * POST /api/refresh {cookies}          → {jwt} (el JWT dura minutos; las subidas largas lo renuevan)
  * POST /api/proxy {url,method,…}       → petición a Neon (solo sus dominios) para la app de iPhone
  * GET  /api/categories                 → catálogo de categorías instrumentales
+ * GET  /api/plans                      → planes, precios y funciones (públicos; src/churches.js)
  * GET  /api/guess?file=                → nombre y categoría sugeridos para un archivo de audio
  * GET  /api/me                         → acceso, y los límites si es admin
  * GET  /api/live?token=                 → WebSocket: control en vivo entre los dispositivos del admin
@@ -609,6 +610,12 @@ export default {
     if (p === '/api/login' && req.method === 'POST') return (await overLimit(env, req, 'login')) || login(req, env)
     if (p === '/api/proxy' && req.method === 'POST') return (await overLimit(env, req, 'auth')) || proxy(req, env)
     if (p === '/api/categories') return json({ categories: CATEGORIES, families: FAMILIES })
+    // Planes y precios para la página principal (públicos: sin datos de ninguna iglesia).
+    if (p === '/api/plans' && req.method === 'GET') {
+      const r = json(await publicPlans(env))
+      r.headers.set('cache-control', 'public, max-age=300')
+      return r
+    }
     // Nombre y categoría sugeridos para un archivo (mismas reglas que al migrar un ZIP).
     if (p === '/api/guess') return json(guessTrack(q('file') || ''))
     if (p === '/api/refresh' && req.method === 'POST') {

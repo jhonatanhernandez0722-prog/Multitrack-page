@@ -442,6 +442,24 @@
   .plat p { color: var(--text-2); font-size: 14.5px; }
   .plat a { display: inline-flex; margin-top: 12px; font-weight: 600; color: var(--accent-tx); text-decoration: none; }
   .plat a:hover { text-decoration: underline; }
+
+  /* --- Planes y precios ---------------------------------------------------------- */
+  .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
+  .plan { display: flex; flex-direction: column; padding: 28px 26px; border-radius: var(--r-lg); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+  .plan h3 { font-size: 22px; }
+  .plan .price { display: flex; align-items: baseline; gap: 6px; margin: 16px 0 4px; }
+  .plan .price b { font-size: clamp(34px, 3.4vw, 42px); letter-spacing: -0.03em; line-height: 1; }
+  .plan .price span { color: var(--text-3); font-size: 15px; }
+  .plan .year { color: var(--text-2); font-size: 14.5px; min-height: 1.5em; }
+  .plan .limits { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 18px; }
+  .plan .limits span { padding: 6px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-tx); font-size: 14px; font-weight: 600; }
+  .plan .from { font-size: 14.5px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .plan ul { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 9px; }
+  .plan li { display: flex; gap: 10px; color: var(--text-2); font-size: 15px; line-height: 1.4; }
+  .plan li svg { color: var(--play); margin-top: 1px; }
+  .plan .btn { margin-top: auto; width: 100%; }
+  .plans-note { margin-top: 22px; color: var(--text-3); font-size: 14.5px; text-align: center; }
+  .plans-note a { color: var(--accent-tx); }
   .cta { position: relative; overflow: hidden; padding: 70px 50px; border-radius: 32px; text-align: center; color: #fff; background: radial-gradient(600px 300px at 20% 0%, rgba(236, 72, 153, 0.45), transparent 60%), linear-gradient(135deg, #8b6cff, #5a2ee0 60%, #3b1fa8); box-shadow: 0 40px 80px -40px rgba(90, 46, 224, 0.8); }
   .cta h2 { font-size: clamp(32px, 4.4vw, 54px); margin-bottom: 14px; }
   .cta p { font-size: 19px; opacity: 0.9; max-width: 620px; margin: 0 auto 28px; }
@@ -477,6 +495,7 @@
     .tab .ico { grid-row: auto; width: 34px; height: 34px; }
     .features { grid-template-columns: repeat(2, 1fr); }
     .platforms { grid-template-columns: repeat(2, 1fr); }
+    .plans { grid-template-columns: 1fr; max-width: 560px; margin: 0 auto; }
     .nav-links { display: none; }
   }
   @media (max-width: 860px) {
@@ -520,6 +539,7 @@
       <a href="#funciones">Funciones</a>
       <a href="#instrumentos">Instrumentos</a>
       <a href="#plataformas">Plataformas</a>
+      <a href="#planes">Planes</a>
       <a href="/legal">Legal</a>
     </nav>
     <div class="nav-end">
@@ -682,6 +702,18 @@
     </div>
   </section>
 
+  <section class="block" id="planes">
+    <div class="wrap">
+      <div class="head center reveal">
+        <span class="eyebrow">Planes</span>
+        <h2>Un plan para cada iglesia.</h2>
+        <p>Precio mensual por iglesia, para todo su equipo. Elige lo que necesitas hoy y cambia de plan cuando crezcan.</p>
+      </div>
+      <div class="plans" id="plans" aria-live="polite"><p class="plans-note">Cargando los planes…</p></div>
+      <p class="plans-note" id="plansNote">Precios en pesos colombianos (COP). Pago mensual o anual, sin cobros automáticos: la suscripción se renueva solo cuando tu iglesia paga. <a href="/legal/reembolsos">Reembolsos y cancelaciones</a></p>
+    </div>
+  </section>
+
   <section class="wrap">
     <div class="cta reveal">
       <div class="eq" aria-hidden="true" id="ctaEq"></div>
@@ -707,6 +739,7 @@
         <a href="#demos">Cómo se usa</a>
         <a href="#funciones">Funciones</a>
         <a href="#instrumentos">Instrumentos</a>
+        <a href="#planes">Planes y precios</a>
       </div>
       <div>
         <h4>Tu iglesia</h4>
@@ -858,6 +891,48 @@
     })
   }
   fillGallery(FALLBACK)
+
+  // --- Planes y precios (los define Superadmin; /api/plans) -------------------------------------
+  function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] }) }
+  function cop(n) { return '$' + String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') }
+  var CHECK = '<svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>'
+  function fillPlans(d) {
+    var box = $('#plans')
+    var plans = (d && d.plans) || []
+    if (!plans.length) { box.innerHTML = '<p class="plans-note">Escríbenos para conocer los planes.</p>'; return }
+    var label = {}, order = {}
+    ;(d.features || []).forEach(function (f, i) { label[f.id] = f.label; order[f.id] = i })
+    var c = d.contact || {}
+    var wa = c.whatsapp ? String(c.whatsapp).replace(/[^0-9]/g, '') : ''
+    box.innerHTML = plans.map(function (p, i) {
+      var prev = plans[i - 1]
+      var has = function (list, f) { return list.indexOf(f) >= 0 }
+      var builds = prev && prev.features.every(function (f) { return has(p.features, f) })
+      var shown = (builds ? p.features.filter(function (f) { return !has(prev.features, f) }) : p.features)
+        .filter(function (f) { return label[f] })
+        .sort(function (a, b) { return order[a] - order[b] })
+      var limits = [
+        p.max_members == null ? 'Integrantes sin límite' : 'Hasta ' + p.max_members + ' integrantes',
+        p.storage_gb == null ? 'Espacio sin límite' : p.storage_gb + ' GB en la nube'
+      ]
+      var msg = 'Hola, quiero información del plan ' + p.name + ' de Gosen Tracks.'
+      var cta = wa ? '<a class="btn' + (i === 1 ? ' primary' : '') + '" href="https://wa.me/' + wa + '?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">Consultar por WhatsApp</a>'
+        : c.email ? '<a class="btn' + (i === 1 ? ' primary' : '') + '" href="mailto:' + esc(c.email) + '?subject=' + encodeURIComponent('Plan ' + p.name) + '&body=' + encodeURIComponent(msg) + '">Consultar por correo</a>'
+        : ''
+      return '<article class="plan reveal" style="--delay:' + (i * 0.08) + 's" data-plan="' + esc(p.id) + '">' +
+        '<h3>' + esc(p.name) + '</h3>' +
+        '<div class="price"><b>' + cop(p.price_month) + '</b><span>al mes</span></div>' +
+        '<div class="year">' + (p.price_year ? 'o ' + cop(p.price_year) + ' al año' : '') + '</div>' +
+        '<div class="limits">' + limits.map(function (t) { return '<span>' + t + '</span>' }).join('') + '</div>' +
+        (builds ? '<div class="from">Todo lo de ' + esc(prev.name) + ', más:</div>' : '') +
+        '<ul>' + shown.map(function (f) { return '<li>' + CHECK + '<span>' + esc(label[f]) + '</span></li>' }).join('') + '</ul>' +
+        cta + '</article>'
+    }).join('')
+    var cards = box.querySelectorAll('.reveal')
+    if (!reduce && 'IntersectionObserver' in window && io) cards.forEach(function (el) { io.observe(el) })
+    else cards.forEach(function (el) { el.classList.add('in') })
+  }
+  fetch('/api/plans').then(function (r) { return r.ok ? r.json() : null }).then(fillPlans).catch(function () { fillPlans(null) })
   fetch('/api/categories').then(function (r) { return r.ok ? r.json() : null }).then(function (d) { if (d && d.categories && d.categories.length) fillGallery(d.categories, d.families) }).catch(function () {})
 
   // ==========================================================================================

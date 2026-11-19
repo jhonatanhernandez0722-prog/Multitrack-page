@@ -53,6 +53,9 @@ Diseño completo: `docs/multiiglesia.md` en el repositorio de la app. En resumen
   y el estado de la suscripción. Cuotas de almacenamiento por plan, comprobadas al subir.
 - Una sala de ensayo por iglesia. Límite de intentos por IP en las rutas de acceso (Durable Object
   `Limiter`, migración `v3`: la aplica `wrangler deploy`).
+- Planes y precios en la página principal (sección «Planes»): `GET /api/plans`, público. Sale de una copia que el
+  Worker guarda en R2 (`system/public-plans.json`) cada vez que Superadmin abre o cambia los planes o el contacto;
+  mientras no exista, muestra los planes iniciales. Si hay WhatsApp o correo de contacto, cada plan trae su botón.
 - Antes de desplegar: ejecutar `neon/v37-iglesias.sql` (repositorio de la app) en el SQL Editor de Neon,
   con el correo del superadministrador en la última línea.
 
