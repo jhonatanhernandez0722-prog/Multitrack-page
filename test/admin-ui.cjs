@@ -207,8 +207,8 @@ app.whenReady().then(async () => {
 
     // 8) Tema claro/oscuro, el mismo de la página principal.
     const t0 = await js(`document.documentElement.dataset.theme`)
-    await js(`$('themeBtn').click(); 0`)
-    ok((await js(`document.documentElement.dataset.theme`)) !== t0 && (await js(`localStorage.getItem('gosen.web.theme')`)) === (await js(`document.documentElement.dataset.theme`)), 'el panel cambia entre tema claro y oscuro y lo recuerda')
+    await js(`window.gosenPrivacy.set(true); $('themeBtn').click(); 0`)
+    ok((await js(`document.documentElement.dataset.theme`)) !== t0 && (await js(`localStorage.getItem('gosen.web.theme')`)) === (await js(`document.documentElement.dataset.theme`)), 'el panel cambia entre tema claro y oscuro y, con permiso para las preferencias, lo recuerda')
     await js(`$('metadataDialog').open && $('metadataDialog').close(); document.documentElement.dataset.theme = 'light'; document.getElementById('list').scrollIntoView({ block: 'center' }); 0`)
     await sleep(500)
     await shot('admin-claro')

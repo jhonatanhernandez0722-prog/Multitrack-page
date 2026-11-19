@@ -59,12 +59,30 @@ La ficha de cada canción (`metadata/<clave>` en R2) es la fuente de verdad:
 Safari en `https://gosen-tracks.gosentracks.workers.dev/iphone/` (Compartir → Agregar a pantalla de inicio).
 `/api/proxy` hace de puente hacia Neon (solo sus dominios) para el inicio de sesión desde Safari.
 
+## Legal, privacidad y descargas
+
+- `/legal` — términos, política de privacidad y tratamiento de datos, cookies y reembolsos, con versiones
+  e historial (`src/legal/documents.js`). Mientras falten datos del responsable (`src/legal/owner.js`) o la
+  fecha de vigencia, se publican como **borrador** y no se piden aceptaciones.
+- Al entrar al panel (con los documentos vigentes) se piden dos casillas independientes, desmarcadas:
+  términos y autorización de datos. Se registran en Neon con versión y huella exacta
+  (`sql/legal-consentimientos.sql`: ejecutarlo una vez en el SQL Editor de Neon). El servidor exige esas
+  aceptaciones para entregar la sesión del panel y los enlaces de descarga.
+- Descargas: solo administradores, desde «Descargar» en cada canción (enlaces firmados de 5 minutos: el ZIP
+  original y las pistas reemplazadas).
+- Cookies: no hay analítica ni publicidad; las preferencias (tema, vista) solo se guardan con permiso
+  («Configurar cookies» al pie). Las fuentes se sirven desde `public/fonts/` (sin Google Fonts).
+- Análisis legal, inventario de datos y pendientes: `docs/cumplimiento-legal.md`.
+
 ## Pruebas
 
 ```powershell
 node --import ./test/register.mjs test/worker.test.mjs   # Worker con R2 y Neon simulados
 electron test/admin-ui.cjs                                # panel del admin en un navegador real
 electron test/landing-ui.cjs                              # página pública: demostraciones, temas, celular
+node --import ./test/register.mjs test/legal.test.mjs    # documentos, aceptaciones y descargas (Worker)
+GOSEN_PGLITE=<carpeta con @electric-sql/pglite> node test/sql.test.mjs   # el SQL de aceptaciones en Postgres
+electron test/legal-ui.cjs                                # aceptación, cookies y descargas en un navegador
 ```
 
 ## Contenido compartido

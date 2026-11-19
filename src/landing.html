@@ -6,9 +6,8 @@
 <title>Gosen Tracks · Multitracks en vivo para tu iglesia</title>
 <meta name="description" content="Gosen Tracks: multitracks en vivo con voces guía que cuentan a tempo, saltos de sección en el compás, listas para el culto, pads y mezcla por instrumento. En Windows, Mac, Android y iPhone." />
 <link rel="icon" href="/logo.png" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/fonts/fonts.css" />
+<script src="/web/privacidad.js" defer></script>
 <script>
   // Tema antes de pintar (sin parpadeo): el guardado o el del sistema.
   ;(function () {
@@ -453,7 +452,9 @@
   .cta .eq i { width: 10px; height: 100%; border-radius: 6px 6px 0 0; background: #fff; transform-origin: bottom; animation: level 0.9s ease-in-out infinite alternate; }
 
   footer { padding: 60px 0 40px; border-top: 1px solid var(--line); margin-top: 110px; }
-  .foot { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 30px; }
+  .foot { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 30px; }
+  .foot button.foot-link { display: block; padding: 4px 0; border: 0; background: none; color: var(--text-2); font: inherit; cursor: pointer; text-align: left; }
+  .foot button.foot-link:hover { color: var(--accent-tx); }
   .foot p { color: var(--text-2); font-size: 15px; margin-top: 12px; max-width: 360px; }
   .foot h4 { margin: 0 0 12px; font: 600 13px var(--font-label); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
   .foot a { display: block; color: var(--text-2); text-decoration: none; padding: 4px 0; }
@@ -709,6 +710,14 @@
         <a href="/iphone/">App para iPhone</a>
         <a href="#plataformas">Plataformas</a>
       </div>
+      <div>
+        <h4>Legal</h4>
+        <a href="/legal/terminos">Términos y condiciones</a>
+        <a href="/legal/privacidad">Privacidad y datos personales</a>
+        <a href="/legal/cookies">Política de cookies</a>
+        <a href="/legal/reembolsos">Reembolsos y cancelaciones</a>
+        <button type="button" class="foot-link" data-privacy-settings>Configurar cookies</button>
+      </div>
     </div>
     <div class="legal"><span>© <span id="year">2026</span> Gosen Tracks</span><span>Hecho con cuidado para el servicio del domingo.</span></div>
   </div>
@@ -726,7 +735,10 @@
   $('#theme').addEventListener('click', function () {
     var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'
     document.documentElement.dataset.theme = next
-    try { localStorage.setItem('gosen.web.theme', next) } catch (e) {}
+    document.documentElement.dataset.themeChosen = '1'
+    if (window.gosenPrivacy && window.gosenPrivacy.allows('preferencias')) {
+      try { localStorage.setItem('gosen.web.theme', next) } catch (e) {}
+    }
     drawWaves()
   })
 

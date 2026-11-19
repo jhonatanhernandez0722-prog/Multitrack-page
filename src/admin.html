@@ -14,9 +14,8 @@
     document.documentElement.dataset.theme = t
   })()
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/fonts/fonts.css" />
+<script src="/web/privacidad.js" defer></script>
 <style>
   /* Tokens compartidos con src/renderer/src/styles/global.css. */
   :root {
@@ -117,6 +116,27 @@
   .auth-card h1 { text-align: center; font-family: var(--font-label); font-size: 26px; letter-spacing: 0.2em; }
   .auth-card h1 span { color: var(--accent); }
   .auth-card p { margin: 0; text-align: center; }
+  /* Aceptación de términos y privacidad: dos casillas independientes, cada una con su enlace debajo. */
+  .consent-card { width: min(520px, 100%); }
+  .consent-card h1 { letter-spacing: 0.12em; }
+  .consent-card p.lead { text-align: left; color: var(--text-2); font-size: 15px; }
+  .consent-item { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+  .consent-item.done { opacity: 0.7; }
+  .check { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; font-size: 15px; line-height: 1.45; }
+  .check input { width: 22px; height: 22px; margin: 1px 0 0; flex: none; accent-color: var(--accent); cursor: pointer; }
+  .consent-link { margin-left: 34px; color: var(--accent); font-size: 14px; }
+  .consent-why { text-align: left !important; font-size: 13px; color: var(--text-3); }
+  .legal-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 13px; }
+  .legal-links a, .legal-links button { color: var(--text-3); background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+  .sidebar-footer .legal-links { justify-content: flex-start; margin-top: 8px; }
+  .privacy-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .privacy-table th, .privacy-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .privacy-table th { color: var(--text-3); font-family: var(--font-label); letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px; }
+  .privacy-scroll { max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+  .doc-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ok-text { color: var(--play); }
+  .dl-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .dl-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); }
 
   /* --- Panel y navegación como en la app --------------------------------- */
   .app-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); height: 100vh; }
@@ -337,6 +357,31 @@
     <div id="lerr" class="alert error small hide"></div>
     <button id="lbtn" class="btn primary lg">Entrar</button>
     <p class="muted small">Usa la misma cuenta de administrador de la app.</p>
+    <nav class="legal-links" aria-label="Documentos legales">
+      <a href="/legal/terminos" target="_blank" rel="noopener">Términos</a>
+      <a href="/legal/privacidad" target="_blank" rel="noopener">Privacidad</a>
+      <a href="/legal/cookies" target="_blank" rel="noopener">Cookies</a>
+      <button type="button" data-privacy-settings>Configurar cookies</button>
+    </nav>
+  </form>
+
+  <form id="consentForm" class="auth-card consent-card hide" novalidate aria-labelledby="consentHeading">
+    <img src="/logo.png" alt="" class="auth-logo" />
+    <h1 id="consentHeading">ANTES DE <span>CONTINUAR</span></h1>
+    <p id="consentIntro" class="lead">Para usar el panel y descargar multitracks necesitamos tu aceptación de los documentos vigentes. Son dos casillas independientes: marca cada una solo si estás de acuerdo.</p>
+    <div class="consent-item" id="cTermsItem">
+      <label class="check"><input type="checkbox" id="cTerms" /> <span>He leído y acepto los términos y condiciones</span></label>
+      <a class="consent-link" id="cTermsLink" href="/legal/terminos" target="_blank" rel="noopener">Leer los términos y condiciones (se abre en otra pestaña)</a>
+    </div>
+    <div class="consent-item" id="cPrivacyItem">
+      <label class="check"><input type="checkbox" id="cPrivacy" /> <span>He leído la política de privacidad y autorizo el tratamiento de mis datos personales conforme a lo allí informado</span></label>
+      <a class="consent-link" id="cPrivacyLink" href="/legal/privacidad" target="_blank" rel="noopener">Leer la política de privacidad (se abre en otra pestaña)</a>
+    </div>
+    <p id="consentWhy" class="consent-why" aria-live="polite"></p>
+    <div id="cerr" class="alert error small hide" role="alert"></div>
+    <button id="cbtn" class="btn primary lg" type="submit" disabled>Aceptar y continuar</button>
+    <button id="cno" class="btn" type="button">Ahora no (salir)</button>
+    <p class="consent-why">Los documentos legales y el correo de contacto para tus datos siguen disponibles aunque no aceptes.</p>
   </form>
 </div>
 
@@ -358,6 +403,13 @@
     </nav>
     <div class="sidebar-footer">
       <span class="muted small">Biblioteca compartida con la app</span>
+      <nav class="legal-links" aria-label="Documentos legales">
+        <a href="/legal/terminos" target="_blank" rel="noopener">Términos</a>
+        <a href="/legal/privacidad" target="_blank" rel="noopener">Privacidad</a>
+        <a href="/legal/cookies" target="_blank" rel="noopener">Cookies</a>
+        <a href="/legal/reembolsos" target="_blank" rel="noopener">Reembolsos</a>
+        <button type="button" data-privacy-settings>Configurar cookies</button>
+      </nav>
     </div>
   </aside>
 
@@ -374,6 +426,7 @@
           <svg class="i moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
           <svg class="i sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
         </button>
+        <button id="privacyBtn" class="btn small" type="button" title="Tus aceptaciones, retirar la autorización y el registro de evidencias">Privacidad</button>
         <button id="logout" class="btn small">Salir</button>
       </div>
     </header>
@@ -432,6 +485,47 @@
     </section>
   </main>
 </div>
+
+<dialog id="downloadDialog" class="metadata-dialog" aria-labelledby="downloadHeading">
+  <form method="dialog" class="metadata-form">
+    <div class="dialog-head">
+      <h2 id="downloadHeading">Descargar</h2>
+      <button class="btn small icon-only" value="close" aria-label="Cerrar">×</button>
+    </div>
+    <p class="muted small" id="downloadNote"></p>
+    <ul class="dl-list" id="downloadList"></ul>
+    <p class="muted small">Los enlaces vencen en 5 minutos. El contenido tiene licencia para la iglesia: no lo compartas fuera de ella (ver los <a href="/legal/terminos" target="_blank" rel="noopener">términos</a>).</p>
+  </form>
+</dialog>
+
+<dialog id="privacyDialog" class="metadata-dialog" aria-labelledby="privacyHeading">
+  <form method="dialog" class="metadata-form">
+    <div class="dialog-head">
+      <h2 id="privacyHeading">Privacidad y aceptaciones</h2>
+      <button class="btn small icon-only" value="close" aria-label="Cerrar">×</button>
+    </div>
+    <section>
+      <h3>Tus aceptaciones</h3>
+      <div id="myConsents" class="muted small">Cargando…</div>
+      <p class="consent-why">Puedes retirar tu aceptación cuando quieras. Al hacerlo se cierra el panel en este navegador y no podrás usarlo ni descargar hasta aceptar de nuevo; lo que aceptaste antes queda en el registro como evidencia. Para pedir la supresión de tus datos, escribe al correo indicado en la <a href="/legal/privacidad" target="_blank" rel="noopener">política de privacidad</a>.</p>
+    </section>
+    <section>
+      <h3>Registro de evidencias (administradores)</h3>
+      <div class="library-actions">
+        <input id="evEmail" class="input search" type="email" placeholder="Correo de la cuenta (vacío: las últimas)" aria-label="Correo de la cuenta" />
+        <button id="evSearch" class="btn small" type="button">Consultar</button>
+        <button id="evVerify" class="btn small" type="button">Verificar integridad</button>
+      </div>
+      <p id="evStatus" class="muted small" role="status" aria-live="polite"></p>
+      <div class="privacy-scroll"><table class="privacy-table"><thead><tr><th>Fecha (UTC)</th><th>Cuenta</th><th>Documento</th><th>Versión</th><th>Acción</th><th>Formulario</th><th>Evento</th></tr></thead><tbody id="evRows"></tbody></table></div>
+      <p class="consent-why">El registro no se puede modificar ni borrar desde el panel. Solo muestra lo necesario para demostrar cada aceptación (sin contraseñas, IP ni datos del navegador).</p>
+    </section>
+    <nav class="legal-links" aria-label="Documentos legales">
+      <a href="/legal" target="_blank" rel="noopener">Documentos legales y versiones</a>
+      <button type="button" data-privacy-settings>Configurar cookies</button>
+    </nav>
+  </form>
+</dialog>
 
 <dialog id="coverPickDialog" class="metadata-dialog" aria-labelledby="coverPickHeading">
   <form method="dialog" class="metadata-form">
@@ -568,6 +662,14 @@
         throw new Error('Sesión caducada.')
       }
       const r = await fetch('/api/panel-session', { method: 'POST', headers: { authorization: 'Bearer ' + jwt } })
+      if (r.status === 428) {
+        // Faltan aceptaciones (o hay una versión nueva): se piden antes de seguir.
+        const d = await r.json().catch(() => ({}))
+        showConsent(d)
+        const err = new Error(d.error || 'Acepta los documentos para continuar.')
+        err.code = 'consent-required'
+        throw err
+      }
       if (!r.ok) return jwt
       save({ ...session, panel: await r.json() })
       return session.panel.token
@@ -578,7 +680,29 @@
     const r = await fetch(path, { ...opts, headers: { authorization: 'Bearer ' + (await token()), ...(opts.headers || {}) } })
     const d = await r.json().catch(() => ({}))
     if (r.status === 401) logout('Tu sesión caducó. Entra otra vez.')
-    if (!r.ok) throw new Error(d.error || 'Error ' + r.status)
+    if (r.status === 428) {
+      // La sesión del panel ya no cubre las versiones vigentes: se pide una nueva aceptación.
+      save({ ...session, panel: null })
+      if (session) start()
+    }
+    if (!r.ok) {
+      const err = new Error(d.error || 'Error ' + r.status)
+      err.code = d.code
+      err.status = r.status
+      throw err
+    }
+    return d
+  }
+  /** Llamada con la sesión de Neon (las aceptaciones se registran a nombre de la cuenta). */
+  async function neonApi(path, opts = {}) {
+    const r = await fetch(path, { ...opts, headers: { authorization: 'Bearer ' + (await neonJwt()), 'content-type': 'application/json', ...(opts.headers || {}) } })
+    const d = await r.json().catch(() => ({}))
+    if (r.status === 401) logout('Tu sesión caducó. Entra otra vez.')
+    if (!r.ok) {
+      const err = new Error(d.error || 'Error ' + r.status)
+      err.code = d.code
+      throw err
+    }
     return d
   }
 
@@ -590,7 +714,76 @@
     save(null)
     $('panel').classList.add('hide')
     $('login').classList.remove('hide')
+    $('loginForm').classList.remove('hide')
+    $('consentForm').classList.add('hide')
     showError(msg)
+  }
+
+  // --- Aceptación de términos y privacidad (casillas independientes, desmarcadas) ----------------
+  let consentDocs = []
+  const WHY = {
+    terminos: 'Sin aceptar los términos no puedes usar el panel ni descargar: allí están las reglas de uso y las licencias del contenido.',
+    privacidad: 'Sin autorizar el tratamiento de tus datos no podemos mantener tu cuenta de administrador (tu correo y tu nombre).'
+  }
+  function showConsent(d) {
+    consentDocs = (d && Array.isArray(d.documents) ? d.documents : []).filter((x) => x.accepted === false)
+    const need = new Set(consentDocs.map((x) => x.id))
+    $('loginForm').classList.add('hide')
+    $('panel').classList.add('hide')
+    $('login').classList.remove('hide')
+    $('consentForm').classList.remove('hide')
+    for (const [id, item, box, link] of [['terminos', 'cTermsItem', 'cTerms', 'cTermsLink'], ['privacidad', 'cPrivacyItem', 'cPrivacy', 'cPrivacyLink']]) {
+      const doc = consentDocs.find((x) => x.id === id)
+      $(item).classList.toggle('hide', !need.has(id))
+      $(box).checked = false
+      if (doc) $(link).textContent = `Leer ${id === 'terminos' ? 'los términos y condiciones' : 'la política de privacidad'} · versión ${doc.version} (se abre en otra pestaña)`
+    }
+    const renewed = consentDocs.some((x) => x.last && x.last.action === 'acepta')
+    $('consentIntro').textContent = renewed
+      ? 'Publicamos una versión nueva de un documento que habías aceptado. Revísala y, si estás de acuerdo, acéptala para seguir.'
+      : 'Para usar el panel y descargar multitracks necesitamos tu aceptación de los documentos vigentes. Marca cada casilla solo si estás de acuerdo.'
+    $('cerr').classList.add('hide')
+    if (d && d.code === 'sql-missing') {
+      $('cerr').textContent = d.error
+      $('cerr').classList.remove('hide')
+    }
+    $('consentForm').dataset.operation = crypto.randomUUID()
+    $('consentForm').dataset.channel = renewed ? 'panel-web:nueva-version' : 'panel-web:inicio-sesion'
+    updateConsent()
+  }
+  function updateConsent() {
+    const missing = consentDocs.filter((x) => !$(x.id === 'terminos' ? 'cTerms' : 'cPrivacy').checked)
+    $('cbtn').disabled = missing.length > 0
+    $('consentWhy').textContent = missing.map((x) => WHY[x.id]).join(' ')
+  }
+  $('cTerms').onchange = updateConsent
+  $('cPrivacy').onchange = updateConsent
+  $('cno').onclick = () => logout('No aceptaste los documentos: el panel y las descargas no están disponibles. Puedes consultarlos cuando quieras.')
+  $('consentForm').onsubmit = async (e) => {
+    e.preventDefault()
+    const accept = consentDocs
+      .filter((x) => $(x.id === 'terminos' ? 'cTerms' : 'cPrivacy').checked)
+      .map((x) => ({ document: x.id, version: x.version, sha256: x.sha256 }))
+    // Ninguna aceptación obligatoria puede faltar (el servidor también lo comprueba).
+    if (!consentDocs.length || accept.length !== consentDocs.length) return updateConsent()
+    $('cbtn').disabled = true
+    $('cerr').classList.add('hide')
+    try {
+      const r = await neonApi('/api/legal/accept', { method: 'POST', body: JSON.stringify({ operation: $('consentForm').dataset.operation, channel: $('consentForm').dataset.channel, accept }) })
+      if (!r.ok) throw new Error('No quedó registrada la aceptación. Intenta de nuevo.')
+      save({ ...session, panel: null })
+      $('consentForm').classList.add('hide')
+      $('loginForm').classList.remove('hide')
+      await start()
+    } catch (err) {
+      $('cerr').textContent = err.message
+      $('cerr').classList.remove('hide')
+      if (err.code === 'outdated') {
+        const st = await neonApi('/api/legal/status').catch(() => null)
+        if (st) showConsent(st)
+      }
+      updateConsent()
+    }
   }
 
   $('loginForm').onsubmit = async (e) => {
@@ -612,13 +805,20 @@
 
   async function start() {
     try {
+      const who = await neonApi('/api/me')
+      if (!who.admin) return logout('Esta cuenta no es de administrador.')
+      const legal = await neonApi('/api/legal/status')
+      if (legal.active && !legal.ok) return showConsent(legal)
       const me = await api('/api/me')
       if (!me.admin) return logout('Esta cuenta no es de administrador.')
       $('who').textContent = me.email
       $('login').classList.add('hide')
       $('panel').classList.remove('hide')
       await refresh()
-    } catch (err) { logout(err.message) }
+    } catch (err) {
+      if (err.code === 'consent-required') return
+      logout(err.message)
+    }
   }
 
   // --- Almacenamiento y lista ------------------------------------------------
@@ -661,7 +861,9 @@
   } catch {}
   for (const id of ['sortBy', 'filterBy']) {
     $(id).onchange = () => {
-      try { localStorage.setItem('gosen.cloud.view', JSON.stringify({ sort: $('sortBy').value, filter: $('filterBy').value })) } catch {}
+      if (window.gosenPrivacy && window.gosenPrivacy.allows('preferencias')) {
+        try { localStorage.setItem('gosen.cloud.view', JSON.stringify({ sort: $('sortBy').value, filter: $('filterBy').value })) } catch {}
+      }
       renderList()
     }
   }
@@ -691,6 +893,7 @@
       row.innerHTML = `<span class="thumb">${icon('music')}</span><span class="track-info"><span class="name"></span><span class="track-meta"></span></span><span class="meta date"></span><span class="meta size"></span>
         <button class="btn small cover-btn" title="Elegir la portada que verán los músicos"></button>
         <button class="btn small edit-btn" title="Editar nombre y metadatos"></button>
+        <button class="btn small dl-btn" title="Descargar el multitrack (solo administradores)">Descargar</button>
         <button class="btn small icon-only danger" title="Borrar" aria-label="Borrar">${icon('trash')}</button>`
       row.querySelector('.name').textContent = o.title || o.name.replace(/\.zip$/i, '')
       const details = []
@@ -743,12 +946,141 @@
       const editBtn = row.querySelector('.edit-btn')
       editBtn.innerHTML = `${icon('edit')} Editar`
       editBtn.onclick = () => openMetadata(o)
+      const dlBtn = row.querySelector('.dl-btn')
+      dlBtn.onclick = () => downloadSong(o, dlBtn)
       row.querySelector('.danger').onclick = async () => {
         if (!confirm(`¿Borrar "${o.name}" de la nube?\nDesaparecerá de los equipos de todos los músicos.`)) return
         try { await api('/api/file/' + enc(o.key), { method: 'DELETE' }); await refresh() } catch (err) { alert(err.message) }
       }
       list.appendChild(row)
     }
+  }
+
+  // --- Descargas (solo admin): enlaces firmados de 5 minutos ------------------------------------------
+  async function downloadSong(o, btn) {
+    btn.disabled = true
+    try {
+      const d = await api('/api/download/' + enc(o.key), { method: 'POST' })
+      const files = d.files || []
+      if (files.length === 1) {
+        const a = document.createElement('a')
+        a.href = files[0].url
+        a.download = files[0].name
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        return
+      }
+      // Tiene pistas reemplazadas (no están en el ZIP original): se ofrecen aparte.
+      $('downloadHeading').textContent = 'Descargar · ' + (o.title || o.name.replace(/\.zip$/i, ''))
+      $('downloadNote').textContent = 'Esta canción tiene pistas que se reemplazaron después de subir el ZIP. Descarga el ZIP y las pistas nuevas.'
+      const list = $('downloadList')
+      list.innerHTML = ''
+      for (const f of files) {
+        const li = document.createElement('li')
+        li.innerHTML = '<span></span><a class="btn small"></a>'
+        li.querySelector('span').textContent = f.label + (f.size ? ' · ' + fmtMB(f.size) : '')
+        const a = li.querySelector('a')
+        a.href = f.url
+        a.download = f.name
+        a.textContent = 'Descargar'
+        list.appendChild(li)
+      }
+      $('downloadDialog').showModal()
+    } catch (err) {
+      if (err.code !== 'consent-required') alert(err.message)
+    } finally {
+      btn.disabled = false
+    }
+  }
+
+  // --- Privacidad: mis aceptaciones, retiro y registro de evidencias --------------------------------
+  const DOC_NAMES = { terminos: 'Términos y condiciones', privacidad: 'Política de privacidad (autorización de datos)' }
+  const fmtUtc = (iso) => (iso ? new Date(iso).toISOString().replace('T', ' ').slice(0, 19) : '')
+  async function loadMyConsents() {
+    const box = $('myConsents')
+    box.textContent = 'Cargando…'
+    try {
+      const st = await neonApi('/api/legal/status')
+      if (!st.active) {
+        box.textContent = 'Los documentos todavía son un borrador: aún no se piden ni se registran aceptaciones.'
+        return
+      }
+      box.innerHTML = ''
+      for (const d of st.documents) {
+        const row = document.createElement('div')
+        row.className = 'doc-status'
+        row.innerHTML = '<span><strong></strong><br /><span class="muted small"></span></span>'
+        row.querySelector('strong').textContent = DOC_NAMES[d.id] || d.title
+        row.querySelector('.muted').textContent = d.accepted
+          ? `Aceptada la versión ${d.version} el ${fmtUtc(d.last && d.last.at)} UTC`
+          : d.last && d.last.action === 'revoca'
+            ? `Retirada el ${fmtUtc(d.last.at)} UTC`
+            : 'Pendiente'
+        if (d.accepted) {
+          const b = document.createElement('button')
+          b.type = 'button'
+          b.className = 'btn small'
+          b.textContent = 'Retirar'
+          b.onclick = () => revokeConsent(d)
+          row.appendChild(b)
+        }
+        box.appendChild(row)
+      }
+    } catch (err) {
+      box.textContent = err.message
+    }
+  }
+  async function revokeConsent(d) {
+    const what = d.id === 'privacidad' ? 'tu autorización para el tratamiento de tus datos' : 'tu aceptación de los términos y condiciones'
+    if (!confirm(`¿Retirar ${what}?\n\nSe cerrará el panel en este navegador y no podrás usarlo ni descargar hasta aceptar de nuevo.`)) return
+    try {
+      await neonApi('/api/legal/revoke', { method: 'POST', body: JSON.stringify({ operation: crypto.randomUUID(), document: d.id }) })
+      $('privacyDialog').close()
+      logout('Retiraste tu aceptación. Quedó registrada. Para volver a usar el panel, entra y acepta de nuevo.')
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+  async function searchEvidence() {
+    $('evStatus').textContent = 'Consultando…'
+    $('evRows').innerHTML = ''
+    try {
+      const email = $('evEmail').value.trim()
+      const d = await neonApi('/api/legal/evidence' + (email ? '?email=' + enc(email) : ''))
+      for (const r of d.rows || []) {
+        const tr = document.createElement('tr')
+        for (const v of [fmtUtc(r.recorded_at), r.anonymized ? '(anonimizada)' : r.subject_email, r.document, r.version, r.action, r.channel, r.event_id]) {
+          const td = document.createElement('td')
+          td.textContent = v ?? ''
+          tr.appendChild(td)
+        }
+        $('evRows').appendChild(tr)
+      }
+      $('evStatus').textContent = (d.rows || []).length ? `${d.rows.length} registro(s).` : 'Sin registros.'
+    } catch (err) {
+      $('evStatus').textContent = err.message
+    }
+  }
+  $('evSearch').onclick = searchEvidence
+  $('evVerify').onclick = async () => {
+    $('evStatus').textContent = 'Verificando…'
+    try {
+      const v = await neonApi('/api/legal/verify')
+      $('evStatus').innerHTML = ''
+      const span = document.createElement('span')
+      span.className = v.ok ? 'ok-text' : ''
+      span.textContent = v.ok
+        ? `Registro íntegro: ${v.total} registro(s), cadena de huellas correcta y ${v.anchors} anclaje(s) coinciden.`
+        : `Atención: ${!v.intact ? `la cadena se rompe en el registro ${v.firstBroken}` : ''}${!v.intact && v.missingAnchors ? ' y ' : ''}${v.missingAnchors ? `${v.missingAnchors} anclaje(s) no coinciden con la base` : ''}. Revisa quién tiene acceso de dueño a la base.`
+      $('evStatus').appendChild(span)
+    } catch (err) {
+      $('evStatus').textContent = err.message
+    }
+  }
+  $('privacyBtn').onclick = () => {
+    $('privacyDialog').showModal()
+    loadMyConsents()
   }
 
   let migratingMetadata = false
@@ -1156,7 +1488,10 @@
   $('themeBtn').onclick = () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'
     document.documentElement.dataset.theme = next
-    try { localStorage.setItem('gosen.web.theme', next) } catch {}
+    document.documentElement.dataset.themeChosen = '1'
+    if (window.gosenPrivacy && window.gosenPrivacy.allows('preferencias')) {
+      try { localStorage.setItem('gosen.web.theme', next) } catch {}
+    }
   }
   $('reload').onclick = () => refresh().catch((err) => alert(err.message))
 

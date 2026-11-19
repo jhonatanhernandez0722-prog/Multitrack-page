@@ -4,6 +4,8 @@ import LANDING_HTML from './landing.html'
 import LOGO from './logo.png'
 import { CATEGORIES, FAMILIES, guessTrack, isAudioFile } from './catalog.js'
 import { extractSongJson } from './zipMetadata.js'
+import { claimsCurrent, consentState, legalApi, legalPage, legalSummary } from './legal/legal.js'
+import { PRIVACY_JS } from './legal/privacyScript.js'
 import {
   INDEX,
   METADATA,
@@ -51,6 +53,10 @@ import {
  * POST   /api/upload/done?key=&uploadId= {parts}
  * POST   /api/upload/abort?key=&uploadId=
  * DELETE /api/file/<key>
+ * POST   /api/download/<key>              → (admin, con los términos y la privacidad aceptados) enlaces de
+ *                                       descarga de 5 minutos: el ZIP original y las pistas reemplazadas
+ * GET    /api/dl/<token>                  → la descarga (el enlace firmado hace de permiso)
+ * Documentos legales y aceptaciones: ver src/legal/legal.js (/legal, /api/legal…).
  */
 const CORS = {
   'access-control-allow-origin': '*',
@@ -67,6 +73,8 @@ const json = (data, status = 200) =>
  */
 const ACCESS_TTL_MS = 60_000
 const accessCache = new Map()
+/** Vida de un enlace de descarga. */
+const DOWNLOAD_LINK_MS = 5 * 60 * 1000
 
 function jwtExpiry(jwt) {
   try {
@@ -108,23 +116,44 @@ async function panelKey(env) {
   return sessionKeyPromise
 }
 
-/** Sesión del panel (2 h) para un admin ya comprobado con Neon. */
-async function issuePanelSession(env, who) {
-  const exp = Date.now() + PANEL_SESSION_MS
-  const payload = b64url(new TextEncoder().encode(JSON.stringify({ email: who.email || null, exp })))
+/** Firma `data` con la clave del Worker: "<prefijo>.<datos>.<firma>". */
+async function signToken(env, prefix, data) {
+  const payload = b64url(new TextEncoder().encode(JSON.stringify(data)))
   const sig = b64url(await crypto.subtle.sign('HMAC', await panelKey(env), new TextEncoder().encode(payload)))
-  return { token: `gps.${payload}.${sig}`, exp }
+  return `${prefix}.${payload}.${sig}`
+}
+
+/** Los datos de un token firmado por este Worker (o null si la firma no es válida o ya caducó). */
+async function verifyToken(env, token, prefix) {
+  const [pre, payload, sig] = String(token).split('.')
+  if (pre !== prefix || !payload || !sig) return null
+  try {
+    const bytes = Uint8Array.from(atob(sig.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))
+    const ok = await crypto.subtle.verify('HMAC', await panelKey(env), bytes, new TextEncoder().encode(payload))
+    if (!ok) return null
+    const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(payload.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))))
+    return typeof data.exp === 'number' && data.exp > Date.now() ? data : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Sesión del panel (2 h) para un admin ya comprobado con Neon. `legal`: las versiones de términos y
+ * privacidad que tenía aceptadas al abrirla (las descargas lo exigen).
+ */
+async function issuePanelSession(env, who, legal = null) {
+  const now = Date.now()
+  const exp = now + PANEL_SESSION_MS
+  return { token: await signToken(env, 'gps', { email: who.email || null, exp, iat: now, ...(legal ? { legal } : {}) }), exp }
 }
 
 /** Acceso de una sesión del panel (o null si no es válida o caducó). */
 async function panelAccess(env, token) {
-  const [, payload, sig] = token.split('.')
-  if (!payload || !sig) return null
-  const bytes = Uint8Array.from(atob(sig.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))
-  const ok = await crypto.subtle.verify('HMAC', await panelKey(env), bytes, new TextEncoder().encode(payload)).catch(() => false)
-  if (!ok) return null
-  const data = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
-  return typeof data.exp === 'number' && data.exp > Date.now() ? { allowed: true, admin: true, email: data.email } : null
+  const data = await verifyToken(env, token, 'gps')
+  // Un enlace de descarga (t: 'dl') nunca sirve como sesión.
+  if (!data || data.t) return null
+  return { allowed: true, admin: true, email: data.email, iat: data.iat || 0, legal: data.legal || null }
 }
 
 async function access(req, env) {
@@ -354,6 +383,66 @@ async function serveFile(req, env, key) {
   })
 }
 
+// --- Descargas desde la web (solo administradores) -------------------------------------------------
+// Los multitracks se compran con licencia para la iglesia: solo un admin, con los términos y la
+// privacidad vigentes aceptados, pide enlaces; cada enlace es firmado, de un archivo y dura 5 minutos.
+
+const safeName = (s) =>
+  String(s || '')
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120) || 'multitrack'
+
+async function downloadLinks(env, key, me, bearer) {
+  // Solo canciones (ZIP en la raíz del bucket), nunca fichas, portadas, servicios ni claves del sistema.
+  if (!key || key.includes('/') || isAuxiliary(key) || !/\.zip$/i.test(key)) return json({ error: 'No existe' }, 404)
+  const head = await env.TRACKS.head(key)
+  if (!head) return json({ error: 'No existe' }, 404)
+  const consentOk = bearer.startsWith('gps.') ? await claimsCurrent(env, me.legal, me.email, me.iat) : (await consentState(env, bearer)).ok
+  if (!consentOk) {
+    return json({ error: 'Para descargar, acepta los términos y la política de privacidad vigentes (vuelve a entrar al panel).', code: 'consent-required' }, 428)
+  }
+  const sheet = await readSheet(env.TRACKS, key)
+  const doc = sheet?.doc ?? {}
+  const base = safeName(doc.title ? `${doc.title}${doc.artist ? ` - ${doc.artist}` : ''}` : (head.customMetadata?.name || key).replace(/\.zip$/i, ''))
+  const exp = Date.now() + DOWNLOAD_LINK_MS
+  const files = [{ label: 'Multitrack (ZIP original)', key, name: `${base}.zip`, size: head.size }]
+  // Pistas que el admin reemplazó después de subir el ZIP: el ZIP original no las tiene.
+  for (const t of Array.isArray(doc.tracks) ? doc.tracks : []) {
+    const obj = t?.source && typeof t.source === 'object' ? t.source.object : null
+    if (typeof obj !== 'string' || !obj.startsWith(TRACK_FILES)) continue
+    const ext = (/\.[a-z0-9]{2,5}$/i.exec(obj) || [''])[0]
+    files.push({ label: `Pista reemplazada: ${t.name || 'pista'}`, key: obj, name: `${base} - ${safeName(t.name)}${ext}`, size: t.source.size ?? null })
+  }
+  const out = []
+  for (const f of files) {
+    const token = await signToken(env, 'gdl', { t: 'dl', k: f.key, n: f.name, e: me.email || null, exp })
+    out.push({ label: f.label, name: f.name, size: f.size, url: `/api/dl/${token}` })
+  }
+  return json({ files: out, expires: exp })
+}
+
+/** Entrega un archivo con un enlace firmado vigente. */
+async function downloadFile(env, token) {
+  const data = await verifyToken(env, token, 'gdl')
+  if (!data || data.t !== 'dl' || typeof data.k !== 'string') return json({ error: 'El enlace de descarga no es válido o ya venció. Pide otro desde el panel.' }, 403)
+  if (data.k.startsWith(SYSTEM)) return json({ error: 'No existe' }, 404)
+  const obj = await env.TRACKS.get(data.k)
+  if (!obj) return json({ error: 'No existe' }, 404)
+  const name = safeName(data.n)
+  const ascii = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7e]/g, '_').replace(/"/g, "'")
+  return new Response(obj.body, {
+    headers: {
+      'content-type': /\.zip$/i.test(name) ? 'application/zip' : 'application/octet-stream',
+      'content-length': String(obj.size),
+      'content-disposition': `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+      'cache-control': 'private, no-store',
+      'x-content-type-options': 'nosniff'
+    }
+  })
+}
+
 /** Ficha para guardar: los datos de la canción nuevos, conservando sus pistas. */
 async function saveSongFields(env, key, fields) {
   const sheet = await readSheet(env.TRACKS, key)
@@ -390,6 +479,12 @@ export default {
     if (p === '/') return new Response(LANDING_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } })
     if (p === '/admin' || p === '/admin/') return new Response(ADMIN_HTML, { headers: { 'content-type': 'text/html; charset=utf-8' } })
     if (p === '/logo.png') return new Response(LOGO, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } })
+    // Documentos legales (públicos), preferencias de privacidad de la web y su estado.
+    const legal = await legalPage(p, env)
+    if (legal) return legal
+    if (p === '/web/privacidad.js') return new Response(PRIVACY_JS, { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'public, max-age=3600' } })
+    if (p === '/api/legal' && req.method === 'GET') return json(await legalSummary(env))
+    if (p.startsWith('/api/dl/') && req.method === 'GET') return downloadFile(env, decodeURIComponent(p.slice('/api/dl/'.length)))
     if (p === '/api/login' && req.method === 'POST') return login(req, env)
     if (p === '/api/proxy' && req.method === 'POST') return proxy(req, env)
     if (p === '/api/categories') return json({ categories: CATEGORIES, families: FAMILIES })
@@ -430,6 +525,11 @@ export default {
 
     const me = await access(req, env)
     if (!me) return json({ error: 'Sin acceso' }, 401)
+    const bearer = (req.headers.get('authorization') || '').replace(/^Bearer /, '')
+
+    // Aceptaciones de términos y privacidad (con la sesión de Neon de la cuenta).
+    const legalRes = await legalApi(req, env, p, bearer, me, json)
+    if (legalRes) return legalRes
 
     // Servicios: los lee todo el equipo; los crea, cambia y borra el admin.
     if (p === '/api/services' && req.method === 'GET') return json(await listServices(env.TRACKS))
@@ -483,7 +583,12 @@ export default {
       if (!me.admin) return json({ error: 'Solo el administrador' }, 403)
       // Solo con la sesión de Neon: una sesión del panel no se renueva sola (como mucho dura 2 horas).
       if ((req.headers.get('authorization') || '').startsWith('Bearer gps.')) return json({ error: 'Inicia sesión otra vez' }, 401)
-      return json(await issuePanelSession(env, me))
+      // Con los documentos en vigor, el panel se usa tras aceptar términos y privacidad (se valida aquí).
+      const consent = await consentState(env, bearer)
+      if (!consent.ok) {
+        return json({ error: consent.error || 'Para usar el panel, acepta los términos y la política de privacidad vigentes.', code: consent.code || 'consent-required', documents: consent.documents }, 428)
+      }
+      return json(await issuePanelSession(env, me, consent.active ? consent.claims : null))
     }
     if (p === '/api/me')
       return json(me.admin ? { ...me, maxTotalBytes: Number(env.MAX_TOTAL_BYTES), maxFileBytes: Number(env.MAX_FILE_BYTES) } : me)
@@ -509,6 +614,8 @@ export default {
     }
 
     if (!me.admin) return json({ error: 'Solo el administrador' }, 403)
+
+    if (p.startsWith('/api/download/') && req.method === 'POST') return downloadLinks(env, decodeURIComponent(p.slice('/api/download/'.length)), me, bearer)
 
     // Lo que la app detecta al analizar el audio (tempo y duración) y las secciones que marca el admin.
     if (p.startsWith('/api/detected/') && req.method === 'POST') {

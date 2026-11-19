@@ -99,8 +99,9 @@ app.whenReady().then(async () => {
     await d.waitFor(`document.getElementById('jBig')?.textContent === 'Coro'`, 'salto al Coro', 15000)
     ok(await d.js(`document.getElementById('jBar').textContent.startsWith('Compás 17 · 1')`), 'demostración de salto: cambia al Coro justo en el tiempo 1 del compás')
     // Tema oscuro: se guarda.
-    await d.js(`document.getElementById('theme').click(); 0`)
-    ok(await d.js(`document.documentElement.dataset.theme === 'dark' && localStorage.getItem('gosen.web.theme') === 'dark'`), 'el selector cambia a oscuro y lo recuerda')
+    // Con permiso para recordar preferencias (ver test/legal-ui.cjs: sin permiso no se guarda).
+    await d.js(`window.gosenPrivacy.set(true); document.getElementById('theme').click(); 0`)
+    ok(await d.js(`document.documentElement.dataset.theme === 'dark' && localStorage.getItem('gosen.web.theme') === 'dark'`), 'con permiso para las preferencias, el selector cambia a oscuro y lo recuerda')
     await d.js(`window.scrollTo(0, 0); 0`)
     await sleep(900)
     await d.shot('landing-oscuro')
