@@ -124,6 +124,10 @@ app.whenReady().then(async () => {
     )
     ok(await d.js(`!document.querySelector('#plans .btn') && document.getElementById('plansNote').innerText.includes('COP') && !!document.querySelector('#plansNote a[href="/legal/reembolsos"]')`), 'sin contacto configurado no hay botón vacío; nota de moneda y enlace a reembolsos')
     await d.shot('landing-planes-oscuro')
+    ok(
+      await d.js(`document.querySelectorAll('#iphone .ios-step').length === 4 && document.getElementById('iosUrl').textContent === location.origin + '/iphone/' && document.querySelectorAll('a[href="#iphone"]').length >= 2 && !!document.querySelector('#iphone a[href="/iphone/"]')`),
+      'paso a paso para instalar en iPhone: 4 pasos, el enlace real para copiar, y «App para iPhone» / «Instalar en iPhone» llevan ahí'
+    )
     ok(d.errors.length === 0, `sin errores en la consola${d.errors.length ? ': ' + d.errors.join(' | ') : ''}`)
     d.win.destroy()
 
@@ -142,6 +146,13 @@ app.whenReady().then(async () => {
     await sleep(1200)
     ok(await m.js(`(() => { const cs = [...document.querySelectorAll('#plans .plan')].map((c) => c.getBoundingClientRect()); return cs.every((r) => r.right <= window.innerWidth && r.left >= 0) && cs[1].top > cs[0].bottom - 1 })()`), 'celular: los planes van uno debajo del otro, sin salirse')
     await m.shot('landing-celular-planes')
+    ok(
+      await m.js(`(() => { const cs = [...document.querySelectorAll('#iphone .ios-step')].map((c) => c.getBoundingClientRect()); return cs.length === 4 && cs.every((r) => r.right <= window.innerWidth && r.left >= 0) && cs[1].top > cs[0].bottom - 1 })()`),
+      'celular: los pasos para instalar en iPhone van uno debajo del otro, sin salirse'
+    )
+    await m.js(`document.getElementById('iphone').scrollIntoView(); document.querySelectorAll('#iphone .reveal').forEach((el) => el.classList.add('in')); 0`)
+    await new Promise((r) => setTimeout(r, 700))
+    await m.shot('landing-iphone-movil')
     m.win.destroy()
 
     // Movimiento reducido: sin animaciones, cada demostración muestra su resultado y sus pasos.
