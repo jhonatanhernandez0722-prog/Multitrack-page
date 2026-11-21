@@ -2,8 +2,9 @@
  * Servicios (programación del equipo): la fuente única es la nube. El admin los crea y edita desde la
  * app; todos los integrantes autorizados los leen. Uno por archivo en R2: services/<id>.json.
  *
- * Cada servicio guarda nombre, fecha, hora, descripción, integrantes (correo + función; nombre y
- * etiqueta solo como respaldo para mostrar) y sus canciones (por la clave de la canción en la nube).
+ * Cada servicio guarda nombre, fecha, hora, descripción, integrantes (correo + función, o «p:<id>» si
+ * es una persona sin correo de Integrantes; nombre y etiqueta como respaldo para mostrar) y sus
+ * canciones (por la clave de la canción en la nube).
  * Cada iglesia tiene su carpeta (`prefix`): la interna `services/`, las demás `c/<id>/services/`.
  * Si dos equipos del admin lo cambian, gana el cambio más nuevo (updatedAt): uno viejo no pisa a uno nuevo.
  */
@@ -13,6 +14,8 @@ const ID_RE = /^[A-Za-z0-9-]{8,64}$/
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 const EMAIL_RE = /^[^@\s]+@[^@\s]+$/
+/** Persona sin correo (v39, Integrantes › Personas sin correo): se identifica por su id. */
+const PERSON_RE = /^p:[0-9a-f-]{36}$/
 const SLUG_RE = /^[a-z0-9-]{1,32}$/
 const END_ACTIONS = ['wait', 'continue', 'overlap', 'crossfade', 'trigger']
 
@@ -33,7 +36,7 @@ export function normalizeService(raw, id, who) {
   const members = []
   for (const m of Array.isArray(raw.members) ? raw.members.slice(0, 200) : []) {
     const email = typeof m?.email === 'string' ? m.email.trim().toLowerCase() : ''
-    if (!EMAIL_RE.test(email) || seen.has(email)) continue
+    if ((!EMAIL_RE.test(email) && !PERSON_RE.test(email)) || seen.has(email)) continue
     seen.add(email)
     members.push({
       email,

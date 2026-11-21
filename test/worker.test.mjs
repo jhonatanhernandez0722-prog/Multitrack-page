@@ -315,14 +315,17 @@ console.log('\nServicios compartidos (los ve todo el equipo, los gestiona el adm
       { email: 'Natalia@Iglesia.com', role: 'consola', name: 'Natalia', tag: 'consola' },
       { email: 'natalia@iglesia.com', role: 'musicos' },
       { email: 'no-es-correo', role: 'consola' },
-      { email: 'loly@iglesia.com', role: 'voz-principal', tag: 'voz-principal' }
+      { email: 'loly@iglesia.com', role: 'voz-principal', tag: 'voz-principal' },
+      { email: 'p:00000000-0000-4000-8000-0000000000aa', role: 'musicos', name: 'Pedro (sin correo)', tag: 'guitarrista' },
+      { email: 'p:no-es-un-id', role: 'musicos' }
     ],
     items: [{ id: 'i1', title: 'Eres Todopoderoso', cloudKey: '1-Eres.zip', onEnd: 'crossfade', transitionSeconds: 4, gapSeconds: 3 }, { id: 'i2', title: '' }],
     updatedAt: '2026-11-12T10:00:00.000Z'
   }
   const r = await call('POST', `/api/services/${id}`, { body })
   const saved = await r.json()
-  ok(r.ok && saved.members.length === 2 && saved.members[0].email === 'natalia@iglesia.com' && saved.items.length === 1 && 'updatedBy' in saved, 'el admin publica un servicio (integrantes sin repetir, canciones válidas, quién lo cambió)')
+  ok(r.ok && saved.members.length === 3 && saved.members[0].email === 'natalia@iglesia.com' && saved.items.length === 1 && 'updatedBy' in saved, 'el admin publica un servicio (integrantes sin repetir, canciones válidas, quién lo cambió)')
+  ok(saved.members[2].email === 'p:00000000-0000-4000-8000-0000000000aa' && saved.members[2].name === 'Pedro (sin correo)' && saved.members[2].role === 'musicos', 'también con personas sin correo (Integrantes v39), con su nombre y función')
   isAdmin = false
   const list = await (await call('GET', '/api/services')).json()
   ok(list.length === 1 && list[0].name === 'Servicio de oración' && list[0].items[0].cloudKey === '1-Eres.zip' && list[0].members[1].role === 'voz-principal', 'un integrante (no admin) ve el servicio con fecha, canciones y participantes')
