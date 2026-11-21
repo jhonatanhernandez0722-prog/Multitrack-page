@@ -128,6 +128,15 @@ app.whenReady().then(async () => {
       await d.js(`document.querySelectorAll('#iphone .ios-step').length === 4 && document.getElementById('iosUrl').textContent === location.origin + '/iphone/' && document.querySelectorAll('a[href="#iphone"]').length >= 2 && !!document.querySelector('#iphone a[href="/iphone/"]')`),
       'paso a paso para instalar en iPhone: 4 pasos, el enlace real para copiar, y «App para iPhone» / «Instalar en iPhone» llevan ahí'
     )
+    await d.js(`document.querySelector('.nav a[data-ios-pop]').click(); 0`)
+    await new Promise((r) => setTimeout(r, 200))
+    ok(
+      await d.js(`(() => { const p = document.getElementById('iosPop'); const b = document.querySelector('.nav a[data-ios-pop]').getBoundingClientRect(); const r = p.getBoundingClientRect(); return !p.hidden && r.top >= b.bottom && r.top - b.bottom < 30 && r.right <= innerWidth && p.innerText.includes('Agregar a pantalla de inicio') })()`),
+      'al tocar «App para iPhone», el paso a paso aparece justo debajo del botón'
+    )
+    await d.shot('landing-iphone-pop')
+    await d.js(`document.querySelector('#iosPop .ios-pop-x').click(); 0`)
+    ok(await d.js(`document.getElementById('iosPop').hidden`), 'y se cierra con la ×')
     ok(d.errors.length === 0, `sin errores en la consola${d.errors.length ? ': ' + d.errors.join(' | ') : ''}`)
     d.win.destroy()
 
@@ -150,6 +159,21 @@ app.whenReady().then(async () => {
       await m.js(`(() => { const cs = [...document.querySelectorAll('#iphone .ios-step')].map((c) => c.getBoundingClientRect()); return cs.length === 4 && cs.every((r) => r.right <= window.innerWidth && r.left >= 0) && cs[1].top > cs[0].bottom - 1 })()`),
       'celular: los pasos para instalar en iPhone van uno debajo del otro, sin salirse'
     )
+    await m.js(`document.querySelector('.cta a[data-ios-pop]').scrollIntoView({ block: 'center' }); document.querySelector('.cta').classList.add('in'); document.querySelector('.cta a[data-ios-pop]').click(); 0`)
+    await new Promise((r) => setTimeout(r, 300))
+    ok(
+      await m.js(`(() => { const r = document.getElementById('iosPop').getBoundingClientRect(); return !document.getElementById('iosPop').hidden && r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && innerHeight - r.bottom < 40 })()`),
+      'celular: «Instalar en iPhone» muestra el paso a paso abajo de la pantalla, sin salirse'
+    )
+    await m.shot('landing-iphone-pop-movil')
+    await m.js(`document.querySelector('#iosPop .ios-pop-x').click(); window.scrollTo(0, 0); 0`)
+    await new Promise((r) => setTimeout(r, 300))
+    const heroBtn = await m.js(`(() => { const b = document.querySelector('.hero-cta a[data-ios-pop]'); const r = b.getBoundingClientRect(); return { w: Math.round(r.width), top: Math.round(r.top + scrollY), right: Math.round(r.right), vw: innerWidth, vh: innerHeight } })()`)
+    ok(
+      heroBtn.w > 0 && heroBtn.top < heroBtn.vh && heroBtn.right <= heroBtn.vw,
+      `celular: «Instalar en iPhone» está arriba, en la portada, visible al abrir la página (${JSON.stringify(heroBtn)})`
+    )
+    await m.js(`document.querySelector('#iosPop .ios-pop-x').click(); 0`)
     await m.js(`document.getElementById('iphone').scrollIntoView(); document.querySelectorAll('#iphone .reveal').forEach((el) => el.classList.add('in')); 0`)
     await new Promise((r) => setTimeout(r, 700))
     await m.shot('landing-iphone-movil')
