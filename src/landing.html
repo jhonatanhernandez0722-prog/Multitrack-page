@@ -558,10 +558,65 @@
     .marquee { flex-wrap: wrap; width: auto; justify-content: center; }
     .marquee [aria-hidden] { display: none; }
   }
+
+  /* --- Descargas, arriba del todo: la app para cada sistema y lo que trae la última versión ------- */
+  :root { --dl-h: 46px; }
+  html { scroll-padding-top: calc(80px + var(--dl-h)); }
+  main { padding-top: var(--dl-h); }
+  .dl-bar { position: relative; z-index: 2; color: #fff; background: linear-gradient(90deg, #4c1fd1, var(--accent) 55%, #9b6bff); box-shadow: 0 6px 18px -12px rgba(40, 20, 110, 0.6); }
+  .dl-in { display: flex; align-items: center; gap: 10px; min-height: var(--dl-h); }
+  .dl-title { display: inline-flex; align-items: center; gap: 8px; font: 600 15px var(--font); white-space: nowrap; min-width: 0; }
+  .dl-ver { font: 600 12px var(--mono); padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); }
+  .dl-ver[hidden] { display: none; }
+  .dl-links { display: flex; gap: 6px; margin-left: auto; }
+  .dl-btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 13px; border-radius: 999px;
+    color: #fff; text-decoration: none; font: 600 14px var(--font); white-space: nowrap;
+    background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: background 0.2s var(--ease), transform 0.2s var(--ease);
+  }
+  .dl-btn:hover { background: rgba(255, 255, 255, 0.28); transform: translateY(-1px); }
+  .dl-btn.mine { background: #fff; color: #4c1fd1; border-color: #fff; }
+  .dl-btn svg.i { width: 15px; height: 15px; }
+  .dl-btn:focus-visible, .dl-news:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  .dl-news { height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.4); background: transparent; color: #fff; font: 600 13.5px var(--font); cursor: pointer; white-space: nowrap; }
+  .dl-news[hidden] { display: none; }
+  .dl-news:hover { background: rgba(255, 255, 255, 0.16); }
+  .dl-notes {
+    position: absolute; z-index: 60; top: calc(var(--dl-h) + 8px); right: max(16px, calc((100% - 1180px) / 2));
+    width: min(440px, calc(100% - 32px)); max-height: min(60vh, 520px); overflow: auto; padding: 18px 20px;
+    border-radius: var(--r); background: var(--panel); color: var(--text); border: 1px solid var(--line-strong); box-shadow: var(--shadow-lg);
+  }
+  .dl-notes[hidden] { display: none; }
+  .dl-notes h3 { font-size: 16px; margin: 0 0 4px; }
+  .dl-notes .when { display: block; font: 500 12px var(--mono); color: var(--text-3); margin-bottom: 6px; }
+  .dl-notes ul { margin: 0 0 14px; padding-left: 20px; display: grid; gap: 6px; font-size: 14.5px; color: var(--text-2); }
+  .dl-notes section:last-child ul { margin-bottom: 0; }
+  @media (max-width: 860px) { .dl-title .dl-label { display: none; } }
+  @media (max-width: 560px) {
+    .dl-btn { padding: 0 9px; font-size: 13px; gap: 4px; }
+    .dl-btn svg.i { display: none; }
+    .dl-ver { display: none !important; }
+    .dl-links { gap: 5px; }
+  }
+  @media (max-width: 430px) { .dl-news { display: none !important; } }
 </style>
 </head>
 <body>
 <header class="nav" id="nav">
+  <div class="dl-bar" id="dlBar">
+    <div class="wrap dl-in">
+      <span class="dl-title"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M4 20h16" /></svg><span class="dl-label">Descarga Gosen Tracks</span> <span class="dl-ver" id="dlVer" hidden></span></span>
+      <nav class="dl-links" aria-label="Descargar la app">
+        <a class="dl-btn" data-os="windows" href="/descargar/windows" title="Para Windows 10 y 11"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg>Windows</a>
+        <a class="dl-btn" data-os="mac" href="/descargar/mac" title="Para Mac con chip Apple (M1 o posterior)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3c-1 .1-2.2.8-2.9 1.6-.6.7-1.2 1.9-1 3 1.1 0 2.3-.6 3-1.5.6-.8 1-1.9.9-3.1zM19.5 17c-.5 1.2-1.1 2.3-2 3.3-.7.8-1.5 1.6-2.6 1.6s-1.5-.7-2.8-.7-1.7.7-2.8.7c-1.1 0-1.9-.9-2.6-1.7C4.6 17.5 3.6 13 5.4 10c.9-1.5 2.4-2.4 4-2.4 1.1 0 2.2.8 2.9.8s2-.9 3.4-.8c.6 0 2.3.2 3.4 1.8-2.9 1.8-2.4 6 .4 7.6z" /></svg>Mac</a>
+        <a class="dl-btn" data-os="android" href="/descargar/android" title="APK para Android 8 o posterior"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></svg>Android</a>
+        <a class="dl-btn" data-os="iphone" href="#iphone" data-ios-pop aria-haspopup="dialog" title="Se instala desde Safari"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 5h4" /></svg>iPhone</a>
+      </nav>
+      <button class="dl-news" id="dlNews" type="button" aria-expanded="false" aria-controls="dlNotes" hidden>Novedades</button>
+    </div>
+    <div class="dl-notes" id="dlNotes" role="dialog" aria-label="Novedades de Gosen Tracks" hidden></div>
+  </div>
   <div class="wrap nav-in">
     <a class="brand" href="/" aria-label="Gosen Tracks, inicio"><img src="/logo.png" alt="" /><span>Gosen <b>Tracks</b></span></a>
     <nav class="nav-links" aria-label="Secciones">
@@ -725,9 +780,9 @@
         <p>La misma biblioteca y las mismas listas en todos los equipos de tu iglesia.</p>
       </div>
       <div class="platforms">
-        <div class="plat reveal"><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg></div><h3>Windows</h3><p>Reproductor completo, salidas por canal y control de la consola.</p></div>
-        <div class="plat reveal" style="--delay: 0.08s"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M16 3c-1 .1-2.2.8-2.9 1.6-.6.7-1.2 1.9-1 3 1.1 0 2.3-.6 3-1.5.6-.8 1-1.9.9-3.1zM19.5 17c-.5 1.2-1.1 2.3-2 3.3-.7.8-1.5 1.6-2.6 1.6s-1.5-.7-2.8-.7-1.7.7-2.8.7c-1.1 0-1.9-.9-2.6-1.7C4.6 17.5 3.6 13 5.4 10c.9-1.5 2.4-2.4 4-2.4 1.1 0 2.2.8 2.9.8s2-.9 3.4-.8c.6 0 2.3.2 3.4 1.8-2.9 1.8-2.4 6 .4 7.6z" /></svg></div><h3>Mac</h3><p>Para equipos con chip Apple, firmada y lista para abrir.</p></div>
-        <div class="plat reveal" style="--delay: 0.16s"><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></svg></div><h3>Android</h3><p>Para ensayar en casa con tus pistas, el click y la guía.</p></div>
+        <div class="plat reveal"><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4" /></svg></div><h3>Windows</h3><p>Reproductor completo, salidas por canal y control de la consola.</p><a href="/descargar/windows">Descargar para Windows →</a></div>
+        <div class="plat reveal" style="--delay: 0.08s"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M16 3c-1 .1-2.2.8-2.9 1.6-.6.7-1.2 1.9-1 3 1.1 0 2.3-.6 3-1.5.6-.8 1-1.9.9-3.1zM19.5 17c-.5 1.2-1.1 2.3-2 3.3-.7.8-1.5 1.6-2.6 1.6s-1.5-.7-2.8-.7-1.7.7-2.8.7c-1.1 0-1.9-.9-2.6-1.7C4.6 17.5 3.6 13 5.4 10c.9-1.5 2.4-2.4 4-2.4 1.1 0 2.2.8 2.9.8s2-.9 3.4-.8c.6 0 2.3.2 3.4 1.8-2.9 1.8-2.4 6 .4 7.6z" /></svg></div><h3>Mac</h3><p>Para equipos con chip Apple, firmada y lista para abrir.</p><a href="/descargar/mac">Descargar para Mac →</a></div>
+        <div class="plat reveal" style="--delay: 0.16s"><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></svg></div><h3>Android</h3><p>Para ensayar en casa con tus pistas, el click y la guía.</p><a href="/descargar/android">Descargar para Android →</a></div>
         <div class="plat reveal" style="--delay: 0.24s"><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 5h4" /></svg></div><h3>iPhone</h3><p>Se instala desde Safari: Compartir → Agregar a pantalla de inicio.</p><a href="#iphone" data-ios-pop aria-haspopup="dialog">Ver cómo instalarla →</a></div>
       </div>
     </div>
@@ -1398,6 +1453,58 @@
 })()
 </script>
 <script>
+  // Descargas: se resalta el botón del sistema de quien visita y se muestra la última versión con sus novedades.
+  ;(() => {
+    const ua = navigator.userAgent
+    const plat = navigator.userAgentData?.platform || navigator.platform || ''
+    const os = /iPhone|iPad|iPod/.test(ua) || (plat === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'iphone' : /Android/i.test(ua) ? 'android' : /Mac/i.test(plat) ? 'mac' : /Win/i.test(plat) ? 'windows' : ''
+    if (os) document.querySelector(`.dl-btn[data-os="${os}"]`)?.classList.add('mine')
+    const ver = document.getElementById('dlVer')
+    const news = document.getElementById('dlNews')
+    const panel = document.getElementById('dlNotes')
+    const when = (d) => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || '')
+      return m ? new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+    }
+    fetch('/api/app/latest')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((latest) => {
+        if (!latest || !latest.version) return
+        ver.textContent = 'v' + latest.version
+        ver.hidden = false
+        const notes = (latest.notes || []).slice(0, 4)
+        if (!notes.length) return
+        const el = (tag, text, cls) => {
+          const n = document.createElement(tag)
+          if (text) n.textContent = text
+          if (cls) n.className = cls
+          return n
+        }
+        for (const n of notes) {
+          const sec = el('section')
+          sec.append(el('h3', n.title || 'Versión ' + n.version), el('span', `Versión ${n.version}${n.date ? ' · ' + when(n.date) : ''}`, 'when'))
+          const ul = el('ul')
+          for (const it of n.items || []) ul.append(el('li', it))
+          sec.append(ul)
+          panel.append(sec)
+        }
+        news.hidden = false
+      })
+      .catch(() => {})
+    const close = () => {
+      panel.hidden = true
+      news.setAttribute('aria-expanded', 'false')
+    }
+    news.addEventListener('click', () => {
+      panel.hidden = !panel.hidden
+      news.setAttribute('aria-expanded', String(!panel.hidden))
+    })
+    document.addEventListener('keydown', (e) => e.key === 'Escape' && close())
+    document.addEventListener('click', (e) => {
+      if (!panel.hidden && !panel.contains(e.target) && e.target !== news) close()
+    })
+  })()
+
   ;(() => {
     const url = location.origin + '/iphone/'
     const host = location.host + '/iphone'

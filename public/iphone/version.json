@@ -1,0 +1,53 @@
+{
+  "version": "0.40.0",
+  "notes": [
+    {
+      "version": "0.40.0",
+      "date": "2026-11-21",
+      "title": "Actualizaciones desde la app",
+      "items": [
+        "Cuando haya una versión nueva, aparece «Actualizar» en el menú: con un toque se descarga, se instala y la app se vuelve a abrir sola.",
+        "Al abrir una versión nueva, la app muestra lo que trae (como esta ventana).",
+        "En Configuración › Versión de Gosen se ve la versión instalada y se puede buscar una nueva.",
+        "La página de Gosen tiene arriba los botones para descargar la app en Windows, Mac, Android y iPhone."
+      ]
+    },
+    {
+      "version": "0.39.3",
+      "date": "2026-11-21",
+      "title": "Multicanal en un solo paso",
+      "items": [
+        "Activar Multicanal ya manda cada pista a su canal de la consola: abre sola la interfaz (X-USB) con sus 32 canales, sin «Activar» aparte.",
+        "Consola más limpia: sin la tarjeta «Rutas de la señal»; el lado del PAD está en «Audio por USB» y el aviso de canales repetidos en Multicanal."
+      ]
+    },
+    {
+      "version": "0.39.2",
+      "date": "2026-11-21",
+      "title": "Mensajes para quien está en consola",
+      "items": [
+        "Los mensajes de acompañamiento saludan a la persona que está de verdad en la consola del servicio.",
+        "Los mensajes nunca tapan botones, la onda ni las pistas."
+      ]
+    },
+    {
+      "version": "0.39.1",
+      "date": "2026-11-21",
+      "title": "Correcciones del equipo de consola",
+      "items": [
+        "Todos los mensajes llevan el nombre o apodo de quien opera.",
+        "Las personas sin correo ya se pueden elegir en los servicios.",
+        "El botón de Notas aparece aunque la base de datos se haya actualizado después de abrir la app."
+      ]
+    },
+    {
+      "version": "0.39.0",
+      "date": "2026-11-21",
+      "title": "Equipo de consola",
+      "items": [
+        "Responsable de consola en cada servicio, notas por canción e indicaciones del servicio (como apagar las luces en la tercera alabanza).",
+        "Mensajes de ánimo cada 5 minutos (configurable), con el nombre de quien opera."
+      ]
+    }
+  ]
+}

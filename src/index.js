@@ -11,6 +11,7 @@ import { overLimit } from './limiter.js'
 import { churchApi, publicPlans, superadminApi } from './churches.js'
 import SUPERADMIN_HTML from './superadmin.html'
 import JOIN_HTML from './unirse.html'
+import { downloadRedirect, latestRelease } from './appRelease.js'
 import {
   INDEX,
   METADATA,
@@ -39,6 +40,8 @@ import {
  * POST /api/proxy {url,method,…}       → petición a Neon (solo sus dominios) para la app de iPhone
  * GET  /api/categories                 → catálogo de categorías instrumentales
  * GET  /api/plans                      → planes, precios y funciones (públicos; src/churches.js)
+ * GET  /api/app/latest                 → última versión de la app publicada (GitHub Releases; src/appRelease.js)
+ * GET  /descargar/<windows|mac|android|iphone> → instalador de la última versión (iPhone: /iphone/)
  * GET  /api/guess?file=                → nombre y categoría sugeridos para un archivo de audio
  * GET  /api/me                         → acceso, y los límites si es admin
  * GET  /api/live?token=                 → WebSocket: control en vivo entre los dispositivos del admin
@@ -611,6 +614,16 @@ export default {
     if (p === '/api/login' && req.method === 'POST') return (await overLimit(env, req, 'login')) || login(req, env)
     if (p === '/api/proxy' && req.method === 'POST') return (await overLimit(env, req, 'auth')) || proxy(req, env)
     if (p === '/api/categories') return json({ categories: CATEGORIES, families: FAMILIES })
+    // Versiones de la app (públicas): la última publicada y su descarga por plataforma.
+    if (p === '/api/app/latest' && req.method === 'GET') {
+      const latest = await latestRelease(env)
+      if (!latest) return json({ error: 'Todavía no hay una versión publicada.' }, 404)
+      const r = json(latest)
+      r.headers.set('cache-control', 'public, max-age=300')
+      return r
+    }
+    const dl = /^\/descargar\/(windows|mac|android|iphone)\/?$/.exec(p)
+    if (dl && req.method === 'GET') return downloadRedirect(dl[1], env)
     // Planes y precios para la página principal (públicos: sin datos de ninguna iglesia).
     if (p === '/api/plans' && req.method === 'GET') {
       const r = json(await publicPlans(env))

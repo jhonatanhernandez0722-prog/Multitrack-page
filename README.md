@@ -77,6 +77,22 @@ La ficha de cada canción (`metadata/<clave>` en R2) es la fuente de verdad:
   la app descarga solo esa pista.
 - `GET /api/tracks` incluye `rev` por canción: si no cambia, la app no vuelve a mirar su ficha.
 
+## Descargas de la app y actualizaciones (v0.40)
+
+- Los instaladores (Windows, Mac y Android) se publican en **GitHub Releases** de este repositorio, con la
+  etiqueta `app-v<versión>` y nombres fijos: `Gosen-Multitrack-Windows.exe`, `Gosen-Multitrack-Mac.zip` y
+  `Gosen-Tracks-Android.apk`. Junto a ellos va `latest.json`, con la versión, las novedades y el tamaño y
+  sha256 de cada archivo.
+- Los publica la app con `node scripts/publish-release.mjs`. Publicar una versión **no** requiere volver a
+  desplegar el Worker.
+- `GET /api/app/latest` (`src/appRelease.js`) lee `latest.json` de la última publicación, lo valida (solo
+  archivos de las publicaciones de este repositorio) y lo guarda en caché unos minutos. Lo usan la barra
+  de descargas de la página y el botón «Actualizar» de las apps.
+- `GET /descargar/<windows|mac|android>` lleva al instalador de la última versión; `/descargar/iphone`
+  lleva a `/iphone/`.
+- La barra de descargas va arriba del todo en la página principal: un botón por sistema, el del
+  visitante resaltado, el número de versión y «Novedades».
+
 ## App para iPhone
 
 `public/iphone/` es la PWA (se genera en la app con `npm run dist:iphone` y se copia aquí). Se instala desde

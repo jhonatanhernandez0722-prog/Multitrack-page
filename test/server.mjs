@@ -30,6 +30,27 @@ const consents = []
 const realFetch = globalThis.fetch
 globalThis.fetch = async (url, init) => {
   const u = String(url)
+  // Última versión publicada (GitHub Releases), para la barra de descargas.
+  if (u.endsWith('/releases/latest/download/latest.json')) {
+    const base = 'https://github.com/jhonatanhernandez0722-prog/Multitrack-page/releases/download/app-v0.40.0/'
+    const sha = 'd'.repeat(64)
+    return new Response(
+      JSON.stringify({
+        version: '0.40.0',
+        date: '2026-11-21',
+        notes: [
+          { version: '0.40.0', date: '2026-11-21', title: 'Actualizaciones desde la app', items: ['Con un toque se descarga, se instala y la app se vuelve a abrir sola.'] },
+          { version: '0.39.3', date: '2026-11-21', title: 'Multicanal en un solo paso', items: ['Activar Multicanal ya manda a la consola.'] }
+        ],
+        files: {
+          windows: { name: 'Gosen-Multitrack-Windows.exe', url: base + 'Gosen-Multitrack-Windows.exe', size: 100, sha256: sha },
+          mac: { name: 'Gosen-Multitrack-Mac.zip', url: base + 'Gosen-Multitrack-Mac.zip', size: 100, sha256: sha },
+          android: { name: 'Gosen-Tracks-Android.apk', url: base + 'Gosen-Tracks-Android.apk', size: 100, sha256: sha }
+        }
+      }),
+      { headers: { 'content-type': 'application/json' } }
+    )
+  }
   if (u.endsWith('/rpc/gosen_my_access')) return new Response(JSON.stringify({ allowed: true, admin: true, email: 'admin@iglesia.com' }))
   const rpc = u.split('/rpc/')[1]
   if (rpc === 'gosen_record_consent') {

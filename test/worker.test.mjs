@@ -452,5 +452,66 @@ console.log('\nBorrar una canción')
   ok((await getJson('/api/tracks')).length === 1, 'la otra canción sigue')
 }
 
+console.log('\nVersiones de la app para descargar (GitHub Releases)')
+{
+  const { resetLatestCache } = await import('../src/appRelease.js')
+  const realFetch = globalThis.fetch
+  const repo = 'jhonatanhernandez0722-prog/Multitrack-page'
+  const base = `https://github.com/${repo}/releases/download/app-v0.40.0/`
+  const sha = 'c'.repeat(64)
+  let latest = null
+  let asked = 0
+  globalThis.fetch = async (url, init) => {
+    const u = String(url)
+    if (u === `https://github.com/${repo}/releases/latest/download/latest.json`) {
+      asked++
+      return latest ? new Response(JSON.stringify(latest), { headers: { 'content-type': 'application/json' } }) : new Response('Not Found', { status: 404 })
+    }
+    return realFetch(url, init)
+  }
+  try {
+    resetLatestCache()
+    const none = await call('GET', '/api/app/latest')
+    ok(none.status === 404, 'sin ninguna versión publicada: /api/app/latest lo dice (404) y la app no avisa de nada')
+    const noFile = await call('GET', '/descargar/windows')
+    ok(noFile.status === 503 && /todavía no está publicada/.test(await noFile.text()), '«Descargar» sin versión publicada: una página que lo explica (no un error)')
+    latest = {
+      version: '0.40.0',
+      date: '2026-11-21',
+      notes: [{ version: '0.40.0', date: '2026-11-21', title: 'Actualizaciones desde la app', items: ['Botón «Actualizar»', 42] }],
+      files: {
+        windows: { name: 'Gosen-Multitrack-Windows.exe', url: base + 'Gosen-Multitrack-Windows.exe', size: 157757991, sha256: sha },
+        mac: { name: 'Gosen-Multitrack-Mac.zip', url: base + 'Gosen-Multitrack-Mac.zip', size: 193169115, sha256: sha },
+        android: { name: 'Gosen-Tracks-Android.apk', url: 'https://otro-sitio.example.com/Gosen.apk', size: 6414659, sha256: sha }
+      }
+    }
+    resetLatestCache()
+    const r = await call('GET', '/api/app/latest')
+    const body = await r.json()
+    ok(
+      r.status === 200 && body.version === '0.40.0' && body.files.windows.url === base + 'Gosen-Multitrack-Windows.exe' && body.notes[0].items.join() === 'Botón «Actualizar»',
+      'publicada una versión, /api/app/latest da su número, sus novedades y cada instalador con su sha256'
+    )
+    ok(!body.files.android, 'un archivo que no es de las publicaciones de Gosen se descarta (nadie lo descargaría)')
+    ok(/max-age=300/.test(r.headers.get('cache-control') ?? ''), 'y se guarda en caché unos minutos')
+    const win = await call('GET', '/descargar/windows')
+    ok(win.status === 302 && win.headers.get('location') === base + 'Gosen-Multitrack-Windows.exe', '/descargar/windows lleva al instalador de la última versión')
+    const mac = await call('GET', '/descargar/mac/')
+    ok(mac.status === 302 && mac.headers.get('location') === base + 'Gosen-Multitrack-Mac.zip', '/descargar/mac también')
+    ok((await call('GET', '/descargar/android')).status === 503, 'sin un APK válido, Android dice que todavía no está publicada')
+    const iph = await call('GET', '/descargar/iphone')
+    ok(iph.status === 302 && iph.headers.get('location') === '/iphone/', 'iPhone lleva a su app web (se instala desde Safari)')
+    ok((await call('GET', '/descargar/linux')).status !== 302, 'una plataforma que no existe no redirige a ningún lado')
+    const before = asked
+    await call('GET', '/api/app/latest')
+    ok(asked === before, 'no se le pregunta a GitHub en cada visita (memoria de un minuto)')
+    latest = null
+    resetLatestCache()
+    ok((await call('GET', '/api/app/latest')).status === 404, 'si GitHub no responde y no hay nada guardado, no se inventa nada')
+  } finally {
+    globalThis.fetch = realFetch
+  }
+}
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nTodas las comprobaciones pasaron')
 process.exit(failures ? 1 : 0)

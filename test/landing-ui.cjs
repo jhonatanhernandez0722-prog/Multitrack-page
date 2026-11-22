@@ -128,6 +128,36 @@ app.whenReady().then(async () => {
       await d.js(`document.querySelectorAll('#iphone .ios-step').length === 4 && document.getElementById('iosUrl').textContent === location.origin + '/iphone/' && document.querySelectorAll('a[href="#iphone"]').length >= 2 && !!document.querySelector('#iphone a[href="/iphone/"]')`),
       'paso a paso para instalar en iPhone: 4 pasos, el enlace real para copiar, y «App para iPhone» / «Instalar en iPhone» llevan ahí'
     )
+    // Descargas arriba del todo: un botón por sistema, la versión publicada y sus novedades.
+    await d.js(`document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0); document.querySelectorAll('.hero .reveal').forEach((e) => e.classList.add('in')); 0`)
+    await sleep(900)
+    await d.waitFor(`!document.getElementById('dlVer').hidden`, 'versión publicada en la barra de descargas')
+    const bar = await d.js(`(() => {
+      const b = document.getElementById('dlBar').getBoundingClientRect()
+      const nav = document.querySelector('.nav-in').getBoundingClientRect()
+      // Posición del título en la página (sin contar lo desplazado) frente al final del menú fijo.
+      const h1 = { top: document.querySelector('.hero h1').getBoundingClientRect().top + scrollY - nav.bottom + b.bottom }
+      const links = [...document.querySelectorAll('.dl-btn')].map((a) => ({ t: a.textContent.trim(), href: a.getAttribute('href'), pop: a.hasAttribute('data-ios-pop') }))
+      return { top: Math.round(b.top), bottom: Math.round(b.bottom), navTop: Math.round(nav.top), h1: Math.round(h1.top), links, ver: document.getElementById('dlVer').textContent, mine: document.querySelector('.dl-btn.mine')?.dataset.os ?? '' }
+    })()`)
+    ok(bar.top === 0 && bar.navTop >= bar.bottom - 1, `la barra de descargas va arriba del todo, sobre el menú (${bar.top}–${bar.bottom} px)`)
+    ok(
+      bar.links.map((l) => l.t).join() === 'Windows,Mac,Android,iPhone' && bar.links[0].href === '/descargar/windows' && bar.links[1].href === '/descargar/mac' && bar.links[2].href === '/descargar/android' && bar.links[3].pop,
+      'un botón para descargar en cada sistema (Windows, Mac, Android) y el de iPhone con su paso a paso'
+    )
+    ok(bar.ver === 'v0.40.0' && bar.mine === 'windows', `muestra la versión publicada (${bar.ver}) y resalta el sistema de quien visita (${bar.mine || 'ninguno'})`)
+    ok(bar.h1 > bar.bottom + 40, `el título de la portada no queda tapado por la barra ni el menú (${bar.h1 - bar.bottom} px de aire)`)
+    await d.js(`document.getElementById('dlNews').click(); 0`)
+    await sleep(200)
+    ok(
+      await d.js(`(() => { const p = document.getElementById('dlNotes'); const r = p.getBoundingClientRect(); return !p.hidden && p.innerText.includes('Actualizaciones desde la app') && p.innerText.includes('se vuelve a abrir sola') && r.right <= innerWidth && r.top >= document.getElementById('dlBar').getBoundingClientRect().bottom })()`),
+      '«Novedades» muestra lo que trae la última versión, debajo de la barra'
+    )
+    await d.shot('landing-descargas')
+    await d.js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); 0`)
+    ok(await d.js(`document.getElementById('dlNotes').hidden`), 'y se cierra con Escape')
+    const dl = await fetch(`${base}/descargar/windows`, { redirect: 'manual' })
+    ok(dl.status === 302 && /releases\/download\/app-v0\.40\.0\/Gosen-Multitrack-Windows\.exe$/.test(dl.headers.get('location') ?? ''), '«Windows» descarga el instalador de la última versión')
     await d.js(`document.querySelector('.nav a[data-ios-pop]').click(); 0`)
     await new Promise((r) => setTimeout(r, 200))
     ok(
@@ -145,6 +175,11 @@ app.whenReady().then(async () => {
     await m.waitFor(`!!window.__gosenLanding`, 'página en celular')
     await sleep(800)
     ok(await m.js(`document.documentElement.scrollWidth <= window.innerWidth + 1`), `celular: sin desplazamiento horizontal (${await m.js('document.documentElement.scrollWidth')} px)`)
+    ok(
+      await m.js(`(() => { const bar = document.getElementById('dlBar').getBoundingClientRect(); const bs = [...document.querySelectorAll('.dl-btn')].map((b) => b.getBoundingClientRect()); return bs.length === 4 && bs.every((r) => r.left >= 0 && r.right <= innerWidth && r.top >= bar.top && r.bottom <= bar.bottom) && bar.height < 60 })()`),
+      'celular: los 4 botones de descarga caben en una línea arriba del todo'
+    )
+    await m.shot('landing-descargas-celular')
     await m.shot('landing-celular')
     await m.js(`document.getElementById('demos').scrollIntoView(); 0`)
     await sleep(2500)
