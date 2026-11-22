@@ -1686,7 +1686,9 @@
         id: t.id,
         name: t.name,
         category: t.category,
-        source: t.range ? 'zip' : { object: t.file, sha256: t.sha256 },
+        // Sin archivo: la nube conserva el audio que ya tiene (la ficha puede entregar la versión
+        // optimizada .m4a en lugar del maestro). Solo se manda archivo al reemplazar o agregar una pista.
+        source: null,
         replace: null
       }))
       trackOriginal = draftKey(trackDraft)

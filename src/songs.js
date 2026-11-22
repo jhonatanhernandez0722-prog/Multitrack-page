@@ -187,11 +187,17 @@ export async function songManifest(bucket, key) {
 /**
  * Valida las pistas que manda el admin. Las del ZIP deben existir en él; las sueltas, estar subidas
  * en tracks/<clave>/ con el tamaño indicado. Devuelve la lista limpia o lanza un error legible.
+ *
+ * Una pista que ya estaba en la canción conserva su audio si no se manda otro: sin `source`, o con el
+ * mismo archivo que ya tenía, o con el de su versión optimizada (.m4a, que la ficha entrega en lugar
+ * del maestro y que el panel devolvía al renombrar). Así renombrar u ordenar nunca cambia el audio.
+ * `current`: las pistas de la ficha actual; `optimized`: las versiones optimizadas de la ficha.
  */
-export async function normalizeTracks(bucket, key, raw, idx) {
+export async function normalizeTracks(bucket, key, raw, idx, current = [], optimized = {}) {
   if (!Array.isArray(raw) || !raw.length) throw new Error('La canción necesita al menos una pista.')
   if (raw.length > MAX_TRACKS) throw new Error(`Una canción puede tener como máximo ${MAX_TRACKS} pistas.`)
   const entries = new Set(idx.entries.map((e) => e.name))
+  const before = new Map((Array.isArray(current) ? current : []).map((t) => [t.id, t]))
   const seen = new Set()
   const out = []
   for (const t of raw) {
@@ -202,6 +208,21 @@ export async function normalizeTracks(bucket, key, raw, idx) {
     const name = typeof t.name === 'string' ? t.name.trim() : ''
     if (!name || name.length > 80) throw new Error('Cada pista necesita un nombre (máximo 80 caracteres).')
     if (!CATEGORY_IDS.has(t.category)) throw new Error(`La categoría de "${name}" no es válida.`)
+    const prev = before.get(id)
+    const asked = t.source && typeof t.source === 'object' ? String(t.source.object ?? '') : null
+    const keep =
+      prev &&
+      (!asked ||
+        (prev.source && typeof prev.source === 'object' && prev.source.object === asked) ||
+        (optimized && typeof optimized === 'object' && optimized[id]?.file === asked))
+    if (keep && prev.source && typeof prev.source === 'object') {
+      out.push({ id, name, category: t.category, source: prev.source })
+      continue
+    }
+    if (keep && (prev.source === 'zip' || !prev.source) && entries.has(id)) {
+      out.push({ id, name, category: t.category, source: 'zip' })
+      continue
+    }
     if (t.source && typeof t.source === 'object') {
       const object = String(t.source.object ?? '')
       const sha256 = String(t.source.sha256 ?? '').toLowerCase()

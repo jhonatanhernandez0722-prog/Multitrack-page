@@ -217,6 +217,26 @@ console.log('\nVersiones optimizadas (AAC-LC en M4A) hechas por la app del admin
   await call('PUT', `/api/song/${enc}/tracks`, { body: { tracks: sheetTracks.map((x) => (x.id === bajo.id ? { ...x, name: 'Bajo eléctrico' } : x)) } })
   ok(env.TRACKS.objects.has(st.key) && (await getJson(`/api/song/${enc}`)).tracks.find((x) => x.id === bajo.id).version === `a${sha}`, 'renombrar pistas no borra ni invalida la versión optimizada')
   void cur
+  // Lo que manda el panel web: las pistas tal como las entrega la ficha. Una con versión optimizada
+  // llega con su archivo .m4a: antes se rechazaba («El archivo de "…" no es válido»).
+  const fromPanel = cur.tracks.map((x) => ({
+    id: x.id,
+    name: x.id === bajo.id ? 'Bajo (panel)' : x.name + ' ✓',
+    category: x.category,
+    ...(x.range ? {} : { source: { object: x.file, sha256: x.sha256 } })
+  }))
+  const renamed = await call('PUT', `/api/song/${enc}/tracks`, { body: { tracks: fromPanel } })
+  const after = await getJson(`/api/song/${enc}`)
+  const ab = after.tracks.find((x) => x.id === bajo.id)
+  ok(renamed.status === 200 && ab.name === 'Bajo (panel)' && after.tracks.every((x) => x.id === bajo.id || x.name.endsWith(' ✓')), `el panel web renombra las pistas aunque una tenga versión optimizada (${renamed.status})`)
+  ok(ab.version === `a${sha}` && ab.master === bajo.version && env.TRACKS.objects.has(st.key), 'y la pista sigue con su audio original y su versión optimizada (no pasa a apuntar al .m4a)')
+  const sheet2 = JSON.parse(await (await env.TRACKS.get('metadata/1-Eres.zip')).text())
+  const sb = sheet2.tracks.find((x) => x.id === bajo.id)
+  ok(sb.source === 'zip' || (typeof sb.source === 'object' && !/\.m4a$/.test(sb.source.object)), 'en la ficha, el audio de la pista sigue siendo el maestro')
+  // El panel nuevo manda solo nombre, categoría y orden de las pistas que no se reemplazan.
+  const plain = await call('PUT', `/api/song/${enc}/tracks`, { body: { tracks: after.tracks.map((x) => ({ id: x.id, name: x.name.replace(' ✓', ''), category: x.category })) } })
+  const after2 = await getJson(`/api/song/${enc}`)
+  ok(plain.status === 200 && after2.tracks.every((x) => after.tracks.find((o) => o.id === x.id).version === x.version), 'sin mandar el archivo, cada pista conserva su audio (también las reemplazadas por un archivo suelto)')
   isAdmin = false
   const deny = await call('POST', `/api/optimized/${enc}`, { body: { track: bajo.id, file: st.key, size: m4a.length, sha256: sha, aac, source: bajo.version } })
   isAdmin = true

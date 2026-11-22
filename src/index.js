@@ -17,6 +17,7 @@ import {
   TRACK_FILES,
   deleteOrphanTrackFiles,
   normalizeTracks,
+  configuredTracks,
   readSheet,
   songFields,
   songManifest,
@@ -868,13 +869,14 @@ export default {
       const idx = await zipTrackIndex(env.TRACKS, key).catch((err) => ({ error: err }))
       if (!idx) return json({ error: 'Ese multitrack no existe' }, 404)
       if (idx.error) return json({ error: idx.error.message || 'No se pudo leer el ZIP.' }, 422)
+      const sheet = await readSheet(env.TRACKS, key)
       let tracks
       try {
-        tracks = await normalizeTracks(env.TRACKS, key, (await req.json().catch(() => ({}))).tracks, idx)
+        const body = (await req.json().catch(() => ({}))).tracks
+        tracks = await normalizeTracks(env.TRACKS, key, body, idx, configuredTracks(sheet?.doc ?? {}, idx), sheet?.doc?.optimized)
       } catch (err) {
         return json({ error: err.message }, 400)
       }
-      const sheet = await readSheet(env.TRACKS, key)
       await writeSheet(env.TRACKS, key, { ...(sheet?.doc ?? {}), tracks })
       // Las versiones optimizadas (M4A) de las pistas siguen en uso: no se borran.
       const optFiles = Object.values(sheet?.doc?.optimized ?? {}).map((o) => o?.file).filter(Boolean)
