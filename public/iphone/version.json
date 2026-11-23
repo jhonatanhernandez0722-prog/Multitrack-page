@@ -1,6 +1,17 @@
 {
-  "version": "0.40.0",
+  "version": "0.41.0",
   "notes": [
+    {
+      "version": "0.41.0",
+      "date": "2026-11-22",
+      "title": "Volumen parejo, MUTE a la vista y cuentas estables",
+      "items": [
+        "Cada canción tiene su propio Master. Fundido, ½ Volumen e Intensidad ya no pasan a la canción siguiente: eran la causa de que los músicos a veces oyeran muy bajo en los audífonos.",
+        "Una pista silenciada (MUTE) se ve a simple vista: su barra de volumen se pone roja, con el ícono de silencio. La que está en SOLO tiene borde dorado.",
+        "Cuentas más estables: con un token vencido (por ejemplo, el PC con la hora atrasada) o si Neon tarda en despertar, la app pide otro y reintenta sola. Ya no muestra «Solo el administrador…» ni «falta actualizar la base de datos» sin motivo.",
+        "Integrantes: botón «Reintentar» si Neon no responde, y los cambios de rol se ven sin cerrar la app."
+      ]
+    },
     {
       "version": "0.40.0",
       "date": "2026-11-21",
