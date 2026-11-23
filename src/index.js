@@ -640,16 +640,18 @@ export default {
       return jwt ? json({ jwt }) : json({ error: 'Sesión caducada' }, 401)
     }
 
-    // Control en vivo entre los dispositivos de la cuenta del admin (WebSocket; el navegador no puede
-    // mandar cabeceras al abrirlo, así que el JWT va en la dirección).
+    // Control en vivo PC ↔ celular (WebSocket; el navegador no puede mandar cabeceras al abrirlo, así que
+    // el JWT va en la dirección). Una sala por IGLESIA para sus administradores y su equipo de consola
+    // (función «Consola»): el operador maneja desde su celular el PC de consola aunque ese PC tenga
+    // abierta otra cuenta (p. ej. la del administrador). Los músicos no entran.
     if (p === '/api/live') {
       const token = q('token') || ''
       if (!token) return json({ error: 'Inicia sesión' }, 401)
       const who = await access(new Request(req.url, { headers: { authorization: `Bearer ${token}` } }), env)
       if (!who) return json({ error: 'Inicia sesión' }, 401)
-      if (!who.admin) return json({ error: 'Solo el administrador' }, 403)
+      if (!who.admin && who.tag !== 'consola') return json({ error: 'Solo el administrador y el equipo de consola' }, 403)
       if (!env.LIVE) return json({ error: 'El control en vivo no está activado en la nube' }, 503)
-      const room = env.LIVE.get(env.LIVE.idFromName(String(who.email || token.split('.')[1] || 'admin')))
+      const room = env.LIVE.get(env.LIVE.idFromName(who.church?.id ? `iglesia:${who.church.id}` : String(who.email || token.split('.')[1] || 'admin')))
       return room.fetch(req)
     }
 

@@ -1,7 +1,7 @@
 /**
- * Control en vivo entre los dispositivos de una misma cuenta (p. ej. el admin con la app en el PC y en
- * el celular): una sala por cuenta (Durable Object) con WebSocket. La sala solo reenvía: el PC que
- * reproduce publica su estado ("state") y los demás mandan órdenes ("cmd") que ejecuta el PC con su
+ * Control en vivo PC ↔ celular: una sala por iglesia (Durable Object) con WebSocket, para sus
+ * administradores y su equipo de consola. La sala solo reenvía: el PC que reproduce publica su estado
+ * ("state") y los celulares mandan órdenes ("cmd", dirigidas a un PC con "to") que ejecuta ese PC con su
  * propio reloj de audio. Quien entra recibe enseguida el último estado.
  */
 
@@ -23,7 +23,15 @@ export function relay(sockets, from, raw, last) {
     }
   }
   if (msg.type === 'state') return raw
-  if (msg.type === 'bye') return null
+  // Al dejar de reproducir un PC se olvida SU estado (no el de otro PC de la sala).
+  if (msg.type === 'bye') {
+    if (!last || !msg.device) return null
+    try {
+      return JSON.parse(last).state?.device === msg.device ? null : last
+    } catch {
+      return null
+    }
+  }
   return last
 }
 

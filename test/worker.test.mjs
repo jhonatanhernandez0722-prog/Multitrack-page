@@ -30,13 +30,15 @@ const env = {
   MAX_FILE_BYTES: '2147483648'
 }
 let isAdmin = true
+/** Control en vivo: función e iglesia de la cuenta (solo en esa prueba). */
+let liveWho = null
 const proxied = []
 let accessChecks = 0
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url)
   if (u.endsWith('/rpc/gosen_my_access')) {
     accessChecks++
-    return new Response(JSON.stringify({ allowed: true, admin: isAdmin }))
+    return new Response(JSON.stringify({ allowed: true, admin: isAdmin, ...(liveWho ? liveWho : {}) }))
   }
   proxied.push({ url: u, init })
   return new Response('{"ok":true}', { headers: { 'set-cookie': 'session=abc; Path=/', 'set-auth-jwt': 'jwt123' } })
@@ -243,7 +245,7 @@ console.log('\nVersiones optimizadas (AAC-LC en M4A) hechas por la app del admin
   ok(deny.status === 403, 'solo el admin registra versiones optimizadas')
 }
 
-console.log('\nControl en vivo entre los dispositivos del admin (PC ↔ celular)')
+console.log('\nControl en vivo PC ↔ celular (administradores y equipo de consola)')
 {
   const fake = () => ({ got: [], send(m) { this.got.push(m) } })
   const pc = fake()
@@ -262,9 +264,27 @@ console.log('\nControl en vivo entre los dispositivos del admin (PC ↔ celular)
   const noTok = await worker.fetch(new Request('https://gosen.test/api/live'), env)
   ok(noTok.status === 401, `sin sesión no se entra a la sala (${noTok.status})`)
   isAdmin = false
-  const musician = await worker.fetch(new Request('https://gosen.test/api/live?token=t'), env)
+  liveWho = { tag: 'guitarrista', church: { id: 'alfa', name: 'Alfa' } }
+  const musician = await worker.fetch(new Request('https://gosen.test/api/live?token=t2'), env)
+  ok(musician.status === 403, 'un músico no usa el control en vivo')
+  // El equipo de consola sí, en la sala de su iglesia (la misma del administrador).
+  const rooms = []
+  env.LIVE = { idFromName: (n) => (rooms.push(n), n), get: (id) => ({ fetch: async () => new Response(`sala ${id}`) }) }
+  liveWho = { tag: 'consola', church: { id: 'alfa', name: 'Alfa' } }
+  const consola = await worker.fetch(new Request('https://gosen.test/api/live?token=t3'), env)
   isAdmin = true
-  ok(musician.status === 403, 'solo el administrador usa el control en vivo')
+  liveWho = { church: { id: 'alfa', name: 'Alfa' } }
+  const admin = await worker.fetch(new Request('https://gosen.test/api/live?token=t4'), env)
+  ok(consola.status === 200 && admin.status === 200 && rooms.join() === 'iglesia:alfa,iglesia:alfa', `el equipo de consola entra al control en vivo, en la MISMA sala que el administrador de su iglesia (${rooms.join(' · ')})`)
+  delete env.LIVE
+  liveWho = null
+  // Dos PCs en la sala: el adiós de uno no borra el estado del otro.
+  const a = JSON.stringify({ type: 'state', state: { device: 'pc-a', song: 'Eres' } })
+  let mem = relay([pc, cel], pc, a, null)
+  mem = relay([pc, cel], pc, JSON.stringify({ type: 'bye', device: 'pc-b' }), mem)
+  ok(mem === a, 'si otro PC deja de reproducir, la sala sigue recordando el estado del que suena')
+  mem = relay([pc, cel], pc, JSON.stringify({ type: 'bye', device: 'pc-a' }), mem)
+  ok(mem === null, 'y lo olvida cuando ese mismo PC se despide')
 }
 
 console.log('\nPermisos')
