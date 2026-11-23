@@ -8,7 +8,8 @@
       "items": [
         "Los mensajes de acompañamiento de la consola salen cada minuto y medio (en Configuración se puede cambiar, de medio en medio minuto).",
         "«Apagar las luces» sale solo al llegar a la canción 3: ya no al final de la 2 ni repetida.",
-        "SOLO: la barra de la pista se rellena de dorado, con un ícono de audífonos. Las pistas que no suenan por un SOLO o un Fundido conservan su color (ya no se ven grises)."
+        "SOLO: la barra de la pista se rellena de dorado, con un ícono de audífonos. Las pistas que no suenan por un SOLO o un Fundido conservan su color (ya no se ven grises).",
+        "SOLO en varias pistas: suenan todas las que tengan SOLO, aunque alguna estuviera en MUTE."
       ]
     },
     {
