@@ -3,6 +3,11 @@ main = "src/index.js"
 compatibility_date = "2026-10-01"
 rules = [{ type = "Data", globs = ["**/*.png"], fallthrough = true }]
 
+# Dirección propia (el DNS de iccgosen.com está en Cloudflare). La de workers.dev sigue activa: las apps
+# la usan, así que no se quita.
+routes = [{ pattern = "multitracks.iccgosen.com", custom_domain = true }]
+workers_dev = true
+
 [[r2_buckets]]
 binding = "TRACKS"
 bucket_name = "gosen-tracks"
