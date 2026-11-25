@@ -17,7 +17,7 @@ export const OWNER = {
   city: null,
   country: 'Colombia',
   /** Correo para consultas, reclamos y solicitudes sobre datos personales. */
-  email: null,
+  email: 'gosensupport2027@iccgosen.com',
   /** Teléfono (opcional). */
   phone: null,
   /**

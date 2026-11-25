@@ -26,11 +26,11 @@ MAX_FILE_BYTES = "2147483648"
 # Primero SIEMPRE en pruebas ("sandbox", con las llaves de pruebas de Openpay); "production" solo al salir.
 # Los secretos NO van aquí: npx wrangler secret put OPENPAY_PRIVATE_KEY (y OPENPAY_WEBHOOK_USER,
 # OPENPAY_WEBHOOK_PASSWORD, GOSEN_SYSTEM_PASSWORD).
-OPENPAY_ENV = "sandbox"
-OPENPAY_MERCHANT_ID = ""
-OPENPAY_PUBLIC_KEY = ""
+OPENPAY_ENV = "production"
+OPENPAY_MERCHANT_ID = "mj0lmoi0p8sthttqzpvw"
+OPENPAY_PUBLIC_KEY = "pk_bc58d5ae862e4ab683b647dbb2835b10"
 # Cuenta de sistema que registra los pagos en Neon (la de neon/v43-suscripciones.sql).
-GOSEN_SYSTEM_EMAIL = ""
+GOSEN_SYSTEM_EMAIL = "sistema@iccgosen.com"
 
 # App para iPhone (PWA) en /iphone/: archivos estáticos generados con `npm run dist:iphone` en la app.
 # El panel (/) y la API (/api/…) los atiende el Worker.
