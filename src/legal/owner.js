@@ -8,11 +8,11 @@
  */
 export const OWNER = {
   /** Nombre o razón social exactos (persona natural: como en la cédula y el RUT). */
-  name: 'Miguel Ángel Hernández',
+  name: 'Miguel Ángel Hernández Hoyos',
   /** NIT (persona jurídica) o identificación del responsable. */
-  nit: null,
+  nit: 'C.C. 1.045.688.860',
   /** Dirección de contacto (física). */
-  address: null,
+  address: 'Calle 50 # 22-28',
   /** Ciudad de la dirección (opcional: si falta, no se muestra). */
   city: null,
   country: 'Colombia',
