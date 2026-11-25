@@ -1,6 +1,17 @@
 {
-  "version": "0.42.0",
+  "version": "0.43.0",
   "notes": [
+    {
+      "version": "0.43.0",
+      "date": "2026-11-24",
+      "title": "Prueba gratuita y planes en línea",
+      "items": [
+        "Prueba gratuita: con un código de prueba (PRB-…), una iglesia puede usar Gosen Tracks 5 días con todas las funciones e incluye 3 canciones de demostración.",
+        "Al crear tu cuenta aceptas, con dos casillas separadas, los términos y la política de privacidad.",
+        "Desde «Mi suscripción» y el aviso de arriba puedes contratar o renovar el plan de tu iglesia en la página de Gosen Tracks.",
+        "Las canciones de demostración se marcan «Demo» y solo se escuchan mientras dura la prueba."
+      ]
+    },
     {
       "version": "0.42.0",
       "date": "2026-11-22",

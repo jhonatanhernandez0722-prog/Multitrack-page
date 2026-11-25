@@ -111,18 +111,28 @@ app.whenReady().then(async () => {
     await d.shot('landing-funciones-oscuro')
     ok((await d.js(`document.querySelectorAll('#row1 .chip').length + document.querySelectorAll('#row2 .chip').length`)) >= 62, 'galería con las 31 categorías de instrumentos de la nube')
     // Planes y precios: públicos, con lo que incluye cada uno.
-    ok(await d.js(`!!document.querySelector('.nav-links a[href="#planes"]')`), 'el menú tiene «Planes»')
-    await d.js(`document.getElementById('planes').scrollIntoView(); 0`)
+    ok(await d.js(`!!document.querySelector('.nav-links a[href="#precios"]') && document.querySelector('.nav-links a[href="#precios"]').textContent === 'Precios'`), 'el menú tiene «Precios»')
+    ok(await d.js(`getComputedStyle(document.documentElement).scrollBehavior === 'smooth' && !!document.getElementById('precios') && !!document.getElementById('planes')`), '«Precios» baja con desplazamiento suave a la sección (y los enlaces viejos a #planes siguen sirviendo)')
+    await d.js(`document.getElementById('precios').scrollIntoView(); 0`)
     await d.waitFor(`document.querySelectorAll('#plans .plan').length === 3`, 'tarjetas de planes')
     await sleep(1200)
     const plans = await d.js(`[...document.querySelectorAll('#plans .plan')].map((c) => ({ name: c.querySelector('h3').textContent, price: c.querySelector('.price b').textContent, limits: c.querySelector('.limits').innerText.replace(/\\s+/g, ' '), from: c.querySelector('.from')?.textContent ?? '', items: [...c.querySelectorAll('li')].map((l) => l.textContent) }))`)
-    ok(plans.map((p) => `${p.name} ${p.price}`).join(' · ') === 'Gosen Inicial $39.900 · Gosen Equipo $69.900 · Gosen Premium $119.900', `los 3 planes con su precio mensual: ${plans.map((p) => `${p.name} ${p.price}`).join(' · ')}`)
+    ok(plans.map((p) => `${p.name} ${p.price}`).join(' · ') === 'Gosen Inicial $21.000 · Gosen Equipo $35.000 · Gosen Premium $53.000', `los 3 planes con su precio mensual: ${plans.map((p) => `${p.name} ${p.price}`).join(' · ')}`)
     ok(/10 integrantes/.test(plans[0].limits) && /50 GB/.test(plans[0].limits) && /300 GB/.test(plans[2].limits), `cada uno con sus integrantes y su espacio (${plans.map((p) => p.limits).join(' | ')})`)
     ok(
       plans[0].items.includes('Reproductor multitrack') && plans[1].from === 'Todo lo de Gosen Inicial, más:' && plans[1].items.includes('Ensayo múltiple sincronizado') && !plans[1].items.includes('Reproductor multitrack') && plans[2].items.includes('Holyrics Connect e integración con Holyrics'),
       'qué incluye: Inicial con lo básico; Equipo y Premium dicen «Todo lo de…, más:» y lo que agregan'
     )
     ok(await d.js(`!document.querySelector('#plans .btn') && document.getElementById('plansNote').innerText.includes('COP') && !!document.querySelector('#plansNote a[href="/legal/reembolsos"]')`), 'sin contacto configurado no hay botón vacío; nota de moneda y enlace a reembolsos')
+    ok(await d.js(`document.querySelector('#plansTrial a')?.getAttribute('href') === '/contratar?prueba=1' && /5 días/.test(document.querySelector('#plansTrial a').textContent)`), 'botón para iniciar la prueba gratuita de 5 días')
+    await d.js(`document.querySelector('[data-plan-period="anual"]').click(); 0`)
+    const yearly = await d.js(`[...document.querySelectorAll('#plans .plan')].map((c) => c.querySelector('.price b').textContent + ' ' + (c.querySelector('.save')?.textContent ?? ''))`)
+    ok(yearly.join(' | ') === '$231.000 Ahorras $21.000 al año (1 mes gratis) | $370.000 Ahorras $50.000 al año (1,4 meses gratis) | $568.000 Ahorras $68.000 al año (1,3 meses gratis)', `pago anual: precio y ahorro frente a 12 meses (${yearly.join(' | ')})`)
+    await d.js(`document.querySelector('[data-plan-currency="USD"]').click(); 0`)
+    const dollars = await d.js(`[...document.querySelectorAll('#plans .plan')].map((c) => c.querySelector('.price b').textContent + ' ' + (c.querySelector('.save')?.textContent ?? ''))`)
+    ok(dollars.join(' | ') === 'US$66.00 Ahorras US$5.88 al año | US$105.60 Ahorras US$14.28 al año | US$162.00 Ahorras US$17.88 al año', `en dólares, con sus propios precios (sin convertir): ${dollars.join(' | ')}`)
+    ok(await d.js(`/cobro se hace en pesos colombianos/.test(document.querySelector('#plans .plan .ref')?.textContent || '') && /USD/.test(document.getElementById('plansNote').innerText)`), 'en dólares se aclara que el cobro se hace en pesos (COP)')
+    await d.js(`document.querySelector('[data-plan-currency="COP"]').click(); document.querySelector('[data-plan-period="mensual"]').click(); 0`)
     await d.shot('landing-planes-oscuro')
     ok(
       await d.js(`document.querySelectorAll('#iphone .ios-step').length === 4 && document.getElementById('iosUrl').textContent === location.origin + '/iphone/' && document.querySelectorAll('a[href="#iphone"]').length >= 2 && !!document.querySelector('#iphone a[href="/iphone/"]')`),

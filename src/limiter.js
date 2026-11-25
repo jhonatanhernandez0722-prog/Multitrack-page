@@ -34,7 +34,10 @@ export const LIMITS = {
   panel: { limit: 20, windowMs: 60_000 },
   twofa: { limit: 10, windowMs: 5 * 60_000 },
   superadmin: { limit: 8, windowMs: 5 * 60_000 },
-  consent: { limit: 20, windowMs: 60_000 }
+  consent: { limit: 20, windowMs: 60_000 },
+  // Registro por la web (prueba y contratación) y pagos.
+  signup: { limit: 20, windowMs: 10 * 60_000 },
+  checkout: { limit: 10, windowMs: 10 * 60_000 }
 }
 
 /**

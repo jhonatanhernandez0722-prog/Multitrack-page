@@ -29,6 +29,12 @@
  *   GET  /api/sa/subscriptions?church=    POST /api/sa/subscriptions {…}    POST /api/sa/subscriptions/<id>/void {reason}
  *   POST /api/sa/receipt?church=&type=    GET /api/sa/receipt?key=           (comprobantes en R2, privados)
  *   GET  /api/sa/audit?church=            GET /api/sa/audit/verify          POST /api/sa/backup   POST /api/sa/reset-2fa {email}
+ *   v43 · prueba gratuita, canciones demo y cobro con Openpay:
+ *   GET  /api/sa/trials                   → códigos de prueba, pruebas, colección demo y canciones de Gosen para elegirla
+ *   POST /api/sa/trial-codes {days, note} → código (UNA vez), enlace y texto para WhatsApp     DELETE /api/sa/trial-codes/<id>
+ *   POST /api/sa/trials/<iglesia> {ends_at}  (alargar o terminar la prueba)    POST /api/sa/demos {key, title, active}
+ *   GET  /api/sa/billing                  → configuración del cobro, código de verificación del aviso, suscripciones y movimientos
+ *   GET  /api/sa/payments?church=         POST /api/sa/payments/<transacción>/refund {reason}
  *
  * Público (sin cuenta):
  *   GET  /api/plans                       → planes con precio, límites y funciones, y el contacto de Gosen (página principal).
@@ -36,7 +42,8 @@
  *        mientras no exista, se muestran los planes iniciales (los mismos de neon/v37-iglesias.sql).
  */
 import { neonRpc } from './legal/legal.js'
-import { INTERNAL, brandingPrefix, can, churchOf, planMessage } from './tenancy.js'
+import { INTERNAL, brandingPrefix, can, churchOf, keyOwner, planMessage } from './tenancy.js'
+import { saBilling, saRefund } from './billing.js'
 
 const SQL_MISSING = 'Falta ejecutar neon/v37-iglesias.sql en Neon (SQL Editor).'
 const LOGO_MAX = 1024 * 1024
@@ -51,14 +58,20 @@ const PUBLIC_PLANS_KEY = 'system/public-plans.json'
 const BASE_FEATURES = ['reproductor', 'biblioteca', 'click_guia', 'mezclador', 'repertorios', 'ensayo_individual', 'programacion_basica']
 const TEAM_FEATURES = [...BASE_FEATURES, 'ensayo_multiple', 'programacion_completa', 'asignacion_integrantes', 'exportar_excel', 'letras_acordes',
   'letras_secciones', 'transposicion_acordes', 'letras_sincronizadas', 'personalizacion']
-/** Los planes iniciales de neon/v37-iglesias.sql: se muestran hasta que Superadmin abra el panel por primera vez. */
+/**
+ * Los planes de neon/v37-iglesias.sql con los precios de la v43 (neon/v43-suscripciones.sql): se muestran hasta
+ * que Superadmin abra el panel por primera vez. Los precios en COP y en USD son valores comerciales fijos
+ * (no se convierten con la tasa de cambio).
+ */
 export const DEFAULT_PUBLIC_PLANS = {
   plans: [
-    { id: 'inicial', name: 'Gosen Inicial', price_month: 39900, price_year: null, max_members: 10, storage_gb: 50, features: BASE_FEATURES },
-    { id: 'equipo', name: 'Gosen Equipo', price_month: 69900, price_year: null, max_members: 25, storage_gb: 150, features: TEAM_FEATURES },
-    { id: 'premium', name: 'Gosen Premium', price_month: 119900, price_year: null, max_members: 25, storage_gb: 300,
+    { id: 'inicial', name: 'Gosen Inicial', price_month: 21000, price_year: 231000, price_month_usd: 5.99, price_year_usd: 66, max_members: 10, storage_gb: 50, features: BASE_FEATURES },
+    { id: 'equipo', name: 'Gosen Equipo', price_month: 35000, price_year: 370000, price_month_usd: 9.99, price_year_usd: 105.6, max_members: 25, storage_gb: 150, features: TEAM_FEATURES },
+    { id: 'premium', name: 'Gosen Premium', price_month: 53000, price_year: 568000, price_month_usd: 14.99, price_year_usd: 162, max_members: 25, storage_gb: 300,
       features: [...TEAM_FEATURES, 'holyrics', 'admin_avanzado', 'config_avanzada', 'soporte_prioritario'] }
   ],
+  trial_days: 5,
+  checkout: false,
   features: [
     ['reproductor', 'Reproductor multitrack'], ['biblioteca', 'Biblioteca de canciones'], ['click_guia', 'Click y guía'], ['mezclador', 'Mezclador'],
     ['repertorios', 'Repertorios'], ['ensayo_individual', 'Ensayo individual'], ['programacion_basica', 'Programación básica'],
@@ -75,6 +88,11 @@ export const DEFAULT_PUBLIC_PLANS = {
 
 const cleanText = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null)
 const cleanCount = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) || Number(v) < 0 ? null : Number(v))
+/** Valor en dólares con 2 decimales (o null). */
+const cleanUsd = (v) => {
+  const n = cleanCount(v)
+  return n === null ? null : Math.round(n * 100) / 100
+}
 
 /** Solo lo que se puede publicar: nombres, precios, límites, funciones y el contacto comercial de Gosen. */
 export function cleanPublicPlans(d) {
@@ -86,6 +104,8 @@ export function cleanPublicPlans(d) {
       name: cleanText(p.name, 60),
       price_month: cleanCount(p.price_month) ?? 0,
       price_year: cleanCount(p.price_year),
+      price_month_usd: cleanUsd(p.price_month_usd),
+      price_year_usd: cleanUsd(p.price_year_usd),
       max_members: cleanCount(p.max_members),
       storage_gb: cleanCount(p.storage_gb),
       features: (Array.isArray(p.features) ? p.features : []).filter((f) => typeof f === 'string' && /^[a-z_]{3,40}$/.test(f))
@@ -97,9 +117,12 @@ export function cleanPublicPlans(d) {
   const c = d.contact || {}
   const whatsapp = cleanText(c.whatsapp, 30)
   const email = cleanText(c.email, 120)
+  const trialDays = cleanCount(d.trial_days)
   return {
     plans,
     features,
+    trial_days: trialDays !== null && trialDays >= 1 && trialDays <= 30 ? Math.round(trialDays) : 5,
+    checkout: d.checkout === true,
     contact: { whatsapp: whatsapp && /^\+?[0-9 ]{7,20}$/.test(whatsapp) ? whatsapp : null, email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null }
   }
 }
@@ -379,8 +402,14 @@ export async function superadminApi(req, env, p, h) {
       const denied = await ping()
       if (denied) return denied
       const u = await h.churchUsage(env, id, true)
-      // Superadmin ve tamaños y nombres, no el contenido: no puede descargar canciones de las iglesias.
-      return json({ bytes: u.bytes, songs: u.songs, top: [...u.items].sort((a, b) => b.size - a.size).slice(0, 100).map((i) => ({ title: i.title || i.name, size: i.size, uploaded: i.uploaded })) })
+      // Superadmin ve cuánto ocupa una iglesia, no qué canciones tiene: ni títulos ni contenido (v43). De la
+      // iglesia interna (la de Gosen) sí ve sus canciones, que son propias.
+      const own = id === INTERNAL
+      return json({
+        bytes: u.bytes,
+        songs: u.songs,
+        top: [...u.items].sort((a, b) => b.size - a.size).slice(0, 100).map((i) => ({ title: own ? i.title || i.name : null, size: i.size, uploaded: i.uploaded }))
+      })
     }
   }
   if (parts[2] === 'invitations' && parts[3] && req.method === 'DELETE') {
@@ -458,6 +487,63 @@ export async function superadminApi(req, env, p, h) {
   if (p === '/api/sa/reset-2fa' && req.method === 'POST') {
     return reply(json, await call('gosen_sa_reset_2fa', { p_sa: sa, p_email: String((await body(req)).email || '') }), () => ({ ok: true }))
   }
+  // --- v43 · Prueba gratuita, canciones demo y cobro ---------------------------------------------------------
+  if (p === '/api/sa/trials' && req.method === 'GET') {
+    const denied = await ping()
+    if (denied) return denied
+    const [codes, trials, demos] = await Promise.all([
+      call('gosen_sa_trial_codes', { p_sa: sa }),
+      call('gosen_sa_trials', { p_sa: sa }),
+      call('gosen_sa_demo_songs', { p_sa: sa })
+    ])
+    for (const r of [codes, trials, demos]) if (r.missing || r.error) return reply(json, r.missing ? { missing: true } : r)
+    // Canciones de la iglesia interna (las de Gosen) para elegir la colección demo.
+    const songs = h.listSongs ? (await h.listSongs(INTERNAL)).map((i) => ({ key: i.key, title: i.title || i.name, artist: i.artist ?? null })) : []
+    return json({ codes: codes.data, trials: trials.data, demos: demos.data, songs })
+  }
+  if (p === '/api/sa/trial-codes' && req.method === 'POST') {
+    const b = await body(req)
+    const r = await call('gosen_sa_create_trial_code', { p_sa: sa, p_days: b.days ? Number(b.days) : null, p_note: b.note ? String(b.note).slice(0, 120) : null })
+    if (r.missing || r.error) return reply(json, r)
+    const row = r.data[0]
+    const link = `${origin}/contratar#${row.code}`
+    const until = new Date(row.expires_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', timeZone: 'America/Bogota' })
+    const text = `Hola. Te regalamos una prueba gratuita de Gosen Tracks para tu iglesia. Actívala aquí: ${link} (o en «Probar gratis» con el código ${row.code}; vence el ${until}).`
+    return json({ id: row.id, code: row.code, expires_at: row.expires_at, link, text, whatsapp: `https://wa.me/?text=${encodeURIComponent(text)}` })
+  }
+  if (parts[2] === 'trial-codes' && parts[3] && req.method === 'DELETE') {
+    if (!UUID.test(parts[3])) return json({ error: 'Código no válido.' }, 400)
+    return reply(json, await call('gosen_sa_revoke_trial_code', { p_sa: sa, p_id: parts[3] }), () => ({ ok: true }))
+  }
+  if (parts[2] === 'trials' && parts[3] && req.method === 'POST') {
+    const id = decodeURIComponent(parts[3])
+    if (!CHURCH_ID.test(id)) return json({ error: 'Iglesia no válida.' }, 400)
+    const b = await body(req)
+    const r = await call('gosen_sa_set_trial', { p_sa: sa, p_church: id, p_ends_at: b.ends_at ? String(b.ends_at) : null })
+    if (!r.missing && !r.error) await h.bumpEpoch(env, id)
+    return reply(json, r, () => ({ ok: true }))
+  }
+  if (p === '/api/sa/demos' && req.method === 'POST') {
+    const denied = await ping()
+    if (denied) return denied
+    const b = await body(req)
+    const key = String(b.key || '')
+    // Solo canciones de la iglesia interna que existan (no archivos auxiliares ni de otras iglesias).
+    if (keyOwner(key) !== INTERNAL || key.includes('/') || !/\.zip$/i.test(key) || !(await env.TRACKS.head(key))) return json({ error: 'Esa canción no es de Gosen o no existe.' }, 400)
+    return reply(json, await call('gosen_sa_set_demo', { p_sa: sa, p_key: key, p_title: b.title ? String(b.title).slice(0, 120) : null, p_active: b.active !== false }), () => ({ ok: true }))
+  }
+  if (p === '/api/sa/billing' && req.method === 'GET') return reply(json, await saBilling(env, call, sa))
+  if (p === '/api/sa/payments' && req.method === 'GET') {
+    const c = new URL(req.url).searchParams.get('church')
+    return reply(json, await call('gosen_sa_payments', { p_sa: sa, p_church: c && CHURCH_ID.test(c) ? c : null }))
+  }
+  if (parts[2] === 'payments' && parts[3] && parts[4] === 'refund' && req.method === 'POST') {
+    const limited = await h.overLimit(env, req, 'superadmin')
+    if (limited) return limited
+    const b = await body(req)
+    return reply(json, await saRefund(env, call, sa, decodeURIComponent(parts[3]), String(b.reason || '')))
+  }
+
   if (p === '/api/sa/backup' && req.method === 'POST') {
     const r = await call('gosen_sa_export', { p_sa: sa })
     if (r.missing || r.error) return reply(json, r)

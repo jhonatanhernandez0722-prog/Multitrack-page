@@ -7,18 +7,24 @@
  * desplegar. Si después cambian, se publica una versión nueva de los documentos (ver documents.js).
  */
 export const OWNER = {
-  /** Nombre o razón social exactos. */
-  name: 'Comunidad Cristiana Gosen Barranquilla',
+  /** Nombre o razón social exactos (persona natural: como en la cédula y el RUT). */
+  name: 'Miguel Ángel Hernández',
   /** NIT (persona jurídica) o identificación del responsable. */
   nit: null,
   /** Dirección de contacto (física). */
   address: null,
-  city: 'Barranquilla',
+  /** Ciudad de la dirección (opcional: si falta, no se muestra). */
+  city: null,
   country: 'Colombia',
   /** Correo para consultas, reclamos y solicitudes sobre datos personales. */
   email: null,
   /** Teléfono (opcional). */
-  phone: null
+  phone: null,
+  /**
+   * Comercio que recibe los pagos con Openpay (titular de esa cuenta). Así aparece el cobro en el extracto
+   * de la tarjeta: se informa al pagar y en los documentos, para que nadie desconozca el cobro.
+   */
+  paymentMerchant: 'ART IN EARS'
 }
 
 /** Datos sin los cuales los documentos no pueden entrar en vigor (Ley 1581 y Decreto 1377, art. 13). */
@@ -28,8 +34,10 @@ export const OWNER_FIELD_LABELS = {
   name: 'nombre o razón social',
   nit: 'NIT o identificación',
   address: 'dirección',
+  city: 'ciudad',
   email: 'correo de contacto para datos personales',
-  phone: 'teléfono'
+  phone: 'teléfono',
+  paymentMerchant: 'comercio que recibe los pagos'
 }
 
 export function missingOwnerFields(owner) {

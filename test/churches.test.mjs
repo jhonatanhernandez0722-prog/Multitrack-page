@@ -272,8 +272,11 @@ console.log('\nPlanes y precios en la página principal (/api/plans, sin cuenta)
   const r0 = await call('GET', '/api/plans', { token: null })
   const d0 = await jsonOf(r0)
   ok(
-    r0.status === 200 && d0.plans.map((p) => `${p.name}:${p.price_month}:${p.max_members}:${p.storage_gb}`).join('|') === 'Gosen Inicial:39900:10:50|Gosen Equipo:69900:25:150|Gosen Premium:119900:25:300',
-    'sin cuenta y antes de que Superadmin abra el panel: los planes iniciales (Inicial $39.900 · Equipo $69.900 · Premium $119.900)'
+    r0.status === 200 &&
+      d0.plans.map((p) => `${p.name}:${p.price_month}:${p.price_year}:${p.price_month_usd}:${p.price_year_usd}:${p.max_members}:${p.storage_gb}`).join('|') ===
+        'Gosen Inicial:21000:231000:5.99:66:10:50|Gosen Equipo:35000:370000:9.99:105.6:25:150|Gosen Premium:53000:568000:14.99:162:25:300' &&
+      d0.trial_days === 5 && d0.checkout === false,
+    'sin cuenta y antes de que Superadmin abra el panel: los planes con los precios de la v43 en COP y USD (Inicial $21.000 · Equipo $35.000 · Premium $53.000), prueba de 5 días y contratación apagada'
   )
   ok(d0.plans[2].features.includes('holyrics') && !d0.plans[0].features.includes('letras_acordes') && d0.features.length === 20, 'con lo que incluye cada uno (20 funciones con nombre)')
   ok(/max-age=300/.test(r0.headers.get('cache-control') || ''), 'se guarda en caché unos minutos (la página carga rápido)')

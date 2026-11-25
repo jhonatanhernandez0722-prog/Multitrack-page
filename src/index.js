@@ -6,9 +6,12 @@ import { CATEGORIES, FAMILIES, guessTrack, isAudioFile } from './catalog.js'
 import { extractSongJson } from './zipMetadata.js'
 import { claimsCurrent, consentState, legalApi, legalPage, legalSummary, neonRpc } from './legal/legal.js'
 import { PRIVACY_JS } from './legal/privacyScript.js'
-import { INTERNAL, CHURCH_PREFIX, brandingPrefix, can, churchOf, churchOfSongKey, keyOwner, planMessage, servicesPrefix, songPrefix, trackSongKey } from './tenancy.js'
+import { INTERNAL, CHURCH_PREFIX, brandingPrefix, can, churchOf, churchOfSongKey, demoSongOf, keyOwner, planMessage, servicesPrefix, songPrefix, trackSongKey } from './tenancy.js'
 import { overLimit } from './limiter.js'
 import { churchApi, publicPlans, superadminApi } from './churches.js'
+import { billingApi, billingPublic, reconcileBilling } from './billing.js'
+import { signupApi } from './autoservicio.js'
+import CONTRATAR_HTML from './contratar.html'
 import SUPERADMIN_HTML from './superadmin.html'
 import JOIN_HTML from './unirse.html'
 import { downloadRedirect, latestRelease } from './appRelease.js'
@@ -349,6 +352,46 @@ async function listAll(env, church = INTERNAL) {
   return items
 }
 
+/**
+ * Canciones demo de una prueba gratuita (claves de la iglesia interna), con la misma forma que el catálogo y
+ * marcadas `demo`: la app las muestra y las toca, pero son de solo lectura. No cuentan en el espacio de la
+ * iglesia en prueba.
+ */
+async function demoItems(env, keys) {
+  const items = []
+  for (const key of keys) {
+    if (churchOfSongKey(key) !== INTERNAL || isAuxiliary(key)) continue
+    const head = await env.TRACKS.head(key)
+    if (!head) continue
+    const [sidecar, cover] = await Promise.all([env.TRACKS.head(METADATA + key), env.TRACKS.head(COVERS + key)])
+    let data = {}
+    try {
+      data = sidecar?.customMetadata?.data ? JSON.parse(sidecar.customMetadata.data) : {}
+    } catch {
+      data = {}
+    }
+    items.push({
+      key,
+      name: head.customMetadata?.name || key,
+      size: head.size + (cover?.size || 0) + (sidecar?.size || 0),
+      uploaded: head.uploaded,
+      cover: !!cover,
+      coverUpdated: cover?.uploaded?.toISOString?.() || null,
+      hasMetadata: !!sidecar,
+      title: data.title ?? null,
+      artist: data.artist ?? null,
+      duration: data.duration ?? null,
+      bpm: data.bpm ?? null,
+      keySignature: data.key ?? null,
+      timeSignature: data.timeSignature ?? null,
+      chartRev: data.chartRev ?? null,
+      rev: `${head.etag}:${sidecar?.etag ?? '-'}`,
+      demo: true
+    })
+  }
+  return items
+}
+
 // --- Espacio usado por iglesia (cuotas) -------------------------------------------------------------------
 const usageCache = new Map()
 
@@ -605,6 +648,10 @@ export default {
     // Enlace de invitación: el código va después de «#» (no llega al servidor ni a sus registros).
     if (p === '/unirse' || p === '/unirse/') return new Response(JOIN_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'referrer-policy': 'no-referrer' } })
     if (p === '/logo.png') return new Response(LOGO, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } })
+    // Contratar un plan o activar la prueba gratuita (el código de prueba va después de «#»).
+    if (p === '/contratar' || p === '/contratar/') {
+      return new Response(CONTRATAR_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'referrer-policy': 'no-referrer', 'x-frame-options': 'DENY' } })
+    }
     // Documentos legales (públicos), preferencias de privacidad de la web y su estado.
     const legal = await legalPage(p, env)
     if (legal) return legal
@@ -672,8 +719,16 @@ export default {
       return room.fetch(new Request(req, { headers }))
     }
 
+    // Cobro (configuración para el navegador y avisos de Openpay) y registro por la web: sin sesión.
+    const billingPub = await billingPublic(req, env, p, json)
+    if (billingPub) return billingPub
+    const signup = await signupApi(req, env, p, json, overLimit)
+    if (signup) return signup
+
     // Superadmin (sus propias comprobaciones: cuenta de Neon + sesión de 2FA en la base).
-    if (p.startsWith('/api/sa/')) return superadminApi(req, env, p, { json, overLimit, churchUsage, contentLog, readContentLog, bumpEpoch, forgetUsage })
+    if (p.startsWith('/api/sa/')) {
+      return superadminApi(req, env, p, { json, overLimit, churchUsage, contentLog, readContentLog, bumpEpoch, forgetUsage, listSongs: (church) => listAll(env, church) })
+    }
 
     const me = await access(req, env)
     if (!me) return json({ error: 'Sin acceso' }, 401)
@@ -681,7 +736,19 @@ export default {
     const church = churchOf(me)
     /** ¿Esta clave es de la iglesia de la sesión? (si no, se responde como si no existiera) */
     const owns = (key) => keyOwner(key) === church
+    /** Para leer (no para cambiar): lo propio o una canción demo de la prueba gratuita. */
+    const canRead = (key) => owns(key) || !!demoSongOf(me, key)
     const planError = (feature) => json({ error: planMessage(me, feature), code: 'plan', feature }, 403)
+
+    // Cobro con la sesión de la cuenta: contratar, «Mi suscripción» y cancelar la renovación.
+    if (p.startsWith('/api/billing/')) {
+      if (p === '/api/billing/checkout') {
+        const limited = await overLimit(env, req, 'checkout')
+        if (limited) return limited
+      }
+      const res = await billingApi(req, env, p, me, bearer, json)
+      if (res) return res
+    }
 
     // Panel de la iglesia: perfil, logo, integrantes, invitaciones, suscripción, almacenamiento y 2FA.
     if (p.startsWith('/api/church') || p.startsWith('/api/2fa') || p === '/api/sessions/others') {
@@ -725,7 +792,7 @@ export default {
     if (p.startsWith('/api/chart/')) {
       const key = decodeURIComponent(p.slice('/api/chart/'.length))
       if (!key || isAuxiliary(key)) return json({ error: 'Canción no válida' }, 400)
-      if (!owns(key)) return json({ error: 'Sin letra' }, 404)
+      if (!owns(key) && !(req.method === 'GET' && demoSongOf(me, key))) return json({ error: 'Sin letra' }, 404)
       if (!can(me, 'letras_acordes')) return planError('letras_acordes')
       if (req.method === 'GET') {
         const sheet = await readSheet(env.TRACKS, key)
@@ -777,12 +844,17 @@ export default {
     if (p === '/api/me')
       return json(me.admin ? { ...me, maxTotalBytes: Number(env.MAX_TOTAL_BYTES), maxFileBytes: Number(env.MAX_FILE_BYTES) } : me)
     if (p === '/api/tracks') {
+      // Prueba terminada: el catálogo queda vacío, así la app quita de los equipos las canciones demo (y las
+      // copias locales de lo subido en la prueba; en la nube se conserva y vuelve al contratar).
+      if (me.subscription?.state === 'prueba_vencida') return json([])
       if (!can(me, 'biblioteca')) return planError('biblioteca')
-      return json(await listAll(env, church))
+      const own = await listAll(env, church)
+      const demos = Array.isArray(me.demos) && me.demos.length ? await demoItems(env, me.demos.filter((k) => demoSongOf(me, k))) : []
+      return json([...own, ...demos])
     }
 
     if (p.startsWith('/api/song/') && req.method === 'GET') {
-      if (!owns(decodeURIComponent(p.slice(10)))) return json({ error: 'No existe' }, 404)
+      if (!canRead(decodeURIComponent(p.slice(10)))) return json({ error: 'No existe' }, 404)
       if (!can(me, 'biblioteca')) return planError('biblioteca')
       try {
         const manifest = await songManifest(env.TRACKS, decodeURIComponent(p.slice(10)))
@@ -793,13 +865,13 @@ export default {
     }
 
     if (p.startsWith('/api/file/') && req.method === 'GET') {
-      if (!owns(decodeURIComponent(p.slice(10)))) return json({ error: 'No existe' }, 404)
+      if (!canRead(decodeURIComponent(p.slice(10)))) return json({ error: 'No existe' }, 404)
       if (!can(me, 'biblioteca')) return planError('biblioteca')
       return serveFile(req, env, decodeURIComponent(p.slice(10)))
     }
 
     if (p.startsWith('/api/cover/') && req.method === 'GET') {
-      if (!owns(decodeURIComponent(p.slice(11)))) return json({ error: 'Sin portada' }, 404)
+      if (!canRead(decodeURIComponent(p.slice(11)))) return json({ error: 'Sin portada' }, 404)
       const obj = await env.TRACKS.get(COVERS + decodeURIComponent(p.slice(11)))
       if (!obj) return json({ error: 'Sin portada' }, 404)
       return new Response(obj.body, {
@@ -1037,5 +1109,10 @@ export default {
       return json({ ok: true })
     }
     return json({ error: 'No encontrado' }, 404)
+  },
+
+  // Una vez al día (wrangler.toml [triggers]): conciliación con Openpay, por si se perdió algún aviso.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(reconcileBilling(env).catch(() => null))
   }
 }

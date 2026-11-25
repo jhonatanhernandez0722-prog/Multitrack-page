@@ -8,6 +8,10 @@ rules = [{ type = "Data", globs = ["**/*.png"], fallthrough = true }]
 routes = [{ pattern = "multitracks.iccgosen.com", custom_domain = true }]
 workers_dev = true
 
+# Una vez al día (6:00 a. m. en Colombia): conciliación con Openpay por si se perdió algún aviso.
+[triggers]
+crons = ["0 11 * * *"]
+
 [[r2_buckets]]
 binding = "TRACKS"
 bucket_name = "gosen-tracks"
@@ -18,6 +22,15 @@ DATA_API_URL = "https://ep-super-hat-b49w78vs.apirest.c-6.us-east-2.aws.neon.tec
 # Límites en bytes. MAX_TOTAL_BYTES = "0" → sin tope (se paga lo que pase de 10 GB).
 MAX_TOTAL_BYTES = "0"
 MAX_FILE_BYTES = "2147483648"
+# Cobro con Openpay (src/billing.js). Mientras falte algo, el pago en línea queda apagado solo.
+# Primero SIEMPRE en pruebas ("sandbox", con las llaves de pruebas de Openpay); "production" solo al salir.
+# Los secretos NO van aquí: npx wrangler secret put OPENPAY_PRIVATE_KEY (y OPENPAY_WEBHOOK_USER,
+# OPENPAY_WEBHOOK_PASSWORD, GOSEN_SYSTEM_PASSWORD).
+OPENPAY_ENV = "sandbox"
+OPENPAY_MERCHANT_ID = ""
+OPENPAY_PUBLIC_KEY = ""
+# Cuenta de sistema que registra los pagos en Neon (la de neon/v43-suscripciones.sql).
+GOSEN_SYSTEM_EMAIL = ""
 
 # App para iPhone (PWA) en /iphone/: archivos estáticos generados con `npm run dist:iphone` en la app.
 # El panel (/) y la API (/api/…) los atiende el Worker.

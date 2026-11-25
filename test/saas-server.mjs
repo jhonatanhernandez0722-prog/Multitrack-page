@@ -47,13 +47,23 @@ const db = {
   invitations: [],
   audit: [],
   twofa: { 'super@gosen.co': false, 'admin@alfa.co': false },
-  saTokens: new Set()
+  saTokens: new Set(),
+  // v43: prueba gratuita, colección demo y cobro.
+  trialCodes: [],
+  // Prueba de punta a punta en /contratar: un código sin usar, reservas y cuentas de Neon Auth.
+  trialSeed: { code: 'AAAABBBBCCCC', reserved: null, church: null, used: false },
+  authUsers: new Map(),
+  verified: new Set(),
+  trials: [{ id: 'iglesia-nueva-9f8e7', name: 'Iglesia Nueva Vida', owner_email: 'nueva@vida.co', trial_started_at: '2026-11-24T10:00:00Z', trial_ends_at: '2026-11-29T10:00:00Z', plan_id: 'prueba', state: 'prueba', converted: false, demos: 3, members: 1 }],
+  demos: [],
+  payments: [{ created_at: '2026-11-24T11:00:00Z', church_id: 'iglesia-alfa-1a2b3', church: 'Iglesia Alfa', env: 'sandbox', provider_tx: 'trpago0001', kind: 'alta', method: 'tarjeta', amount_cop: 35000, status: 'aprobado', card_brand: 'visa', card_last4: '1111', plan_id: 'equipo', period: 'mensual' }]
 }
 const today = () => new Date().toISOString().slice(0, 10)
 const plan = (id) => db.plans.find((p) => p.id === id)
 const stateOf = (c) => {
   if (c.status !== 'activa') return { state: c.status }
   if (c.internal) return { state: 'interna', ends_on: null, days_left: null }
+  if (c.trial_ends_at) return { state: 'prueba', ends_on: c.trial_ends_at.slice(0, 10), days_left: 5, reminder: true, trial_ends_at: c.trial_ends_at }
   const end = db.subs.filter((s) => s.church_id === c.id && s.status === 'pagada').map((s) => s.ends_on).sort().at(-1)
   if (!end) return { state: 'sin_suscripcion' }
   const days = Math.round((Date.parse(end) - Date.parse(today())) / 864e5)
@@ -61,6 +71,14 @@ const stateOf = (c) => {
 }
 const audit = (actor, church, action, target) => db.audit.unshift({ id: db.audit.length + 1, at: new Date().toISOString(), actor_email: actor, actor_role: actor === 'super@gosen.co' ? 'superadmin' : 'admin', church_id: church, action, target })
 const access = (email) => {
+  const t = db.trialSeed
+  if (t.reserved === email && !t.used && !db.members.some((x) => x.email === email)) {
+    if (!db.verified.has(email)) return { allowed: false, admin: false, email, pending: 'verificar-correo', pending_church: t.church }
+    const id = 'iglesia-prueba-1f2e3'
+    db.churches.push({ id, name: t.church, internal: false, status: 'activa', plan_id: 'inicial', trial_ends_at: new Date(Date.now() + 5 * 864e5).toISOString() })
+    db.members.push({ email, church: id, name: null, admin: true })
+    t.used = true
+  }
   const m = db.members.find((x) => x.email === email)
   if (!m) return { allowed: false, admin: false, email, superadmin: email === 'super@gosen.co' }
   const c = db.churches.find((x) => x.id === m.church)
@@ -81,6 +99,17 @@ const ok = (data) => new Response(JSON.stringify(data))
 const fail = (message, status = 400) => new Response(JSON.stringify({ message }), { status })
 
 function rpc(name, email, b) {
+  if (!email && (name === 'gosen_trial_check' || name === 'gosen_trial_redeem')) {
+    const t = db.trialSeed
+    const norm = String(b.p_code || '').toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/^PRB/, '')
+    if (norm !== t.code) return ok({ ok: false, code: 'invalid', error: 'El código no es válido. Revísalo o pide uno nuevo.' })
+    if (t.used) return ok({ ok: false, code: 'usada', error: 'Este código ya se usó.' })
+    if (name === 'gosen_trial_check') return ok({ ok: true, kind: 'prueba', days: 5 })
+    t.reserved = b.p_email
+    t.church = b.p_church
+    return ok({ ok: true, kind: 'prueba', church: b.p_church, days: 5, account_exists: db.authUsers.has(b.p_email) })
+  }
+  if (!email && name === 'gosen_signup_start') return ok({ ok: false, code: 'checkout-off', error: 'La contratación en línea aún no está disponible. Escríbenos para contratar.' })
   const me = access(email)
   const sa = () => email === 'super@gosen.co' && db.saTokens.has(b.p_sa)
   const needSa = () => fail('GOSEN_SA_SESSION: tu sesión de Superadmin venció.')
@@ -233,6 +262,43 @@ function rpc(name, email, b) {
       return ok(db.invitations.filter((i) => i.church_id === me.church?.id))
     case 'gosen_my_subscriptions':
       return ok(db.subs.filter((s) => s.church_id === me.church?.id).map((s) => ({ ...s, plan: plan(s.plan_id).name, has_receipt: !!s.receipt_key })))
+    case 'gosen_sa_trial_codes':
+      return sa() ? ok(db.trialCodes) : needSa()
+    case 'gosen_sa_trials':
+      return sa() ? ok(db.trials) : needSa()
+    case 'gosen_sa_demo_songs':
+      return sa() ? ok(db.demos) : needSa()
+    case 'gosen_sa_create_trial_code': {
+      if (!sa()) return needSa()
+      const row = { id: `33333333-3333-4333-8333-${String(db.trialCodes.length + 1).padStart(12, '0')}`, code: 'PRB-7K3M-Q9WX-2T4D', expires_at: '2026-12-24T00:00:00Z' }
+      db.trialCodes.unshift({ id: row.id, hint: '2T4D', note: b.p_note, created_at: new Date().toISOString(), expires_at: row.expires_at, status: 'pendiente', used_email: null, church: null, church_state: null })
+      return ok([row])
+    }
+    case 'gosen_sa_revoke_trial_code': {
+      if (!sa()) return needSa()
+      const t = db.trialCodes.find((x) => x.id === b.p_id)
+      if (t) t.status = 'anulada'
+      return ok(null)
+    }
+    case 'gosen_sa_set_trial': {
+      if (!sa()) return needSa()
+      const t = db.trials.find((x) => x.id === b.p_church)
+      if (!t) return fail('Esa iglesia no tiene prueba gratuita.')
+      t.trial_ends_at = b.p_ends_at
+      t.state = Date.parse(b.p_ends_at) > Date.now() ? 'prueba' : 'prueba_vencida'
+      return ok(null)
+    }
+    case 'gosen_sa_set_demo': {
+      if (!sa()) return needSa()
+      const d = db.demos.find((x) => x.song_key === b.p_key)
+      if (d) d.active = b.p_active
+      else db.demos.push({ song_key: b.p_key, title: b.p_title, active: b.p_active, in_trials: 0 })
+      return ok(null)
+    }
+    case 'gosen_sa_billing':
+      return sa() ? ok({ subscriptions: [], events: [], checkouts: [] }) : needSa()
+    case 'gosen_sa_payments':
+      return sa() ? ok(db.payments) : needSa()
     default:
       return fail(`Could not find the function public.${name}`, 404)
   }
@@ -246,6 +312,20 @@ globalThis.fetch = async (url, init = {}) => {
     return new Response('{}', { headers: { 'set-cookie': `s=${email}; Path=/`, 'set-auth-jwt': jwtFor(email) } })
   }
   if (u.endsWith('/token')) return new Response(JSON.stringify({ token: jwtFor(String(init.headers?.cookie || '').replace(/^s=/, '')) }))
+  if (u.endsWith('/sign-up/email')) {
+    const { email } = JSON.parse(init.body)
+    if (db.authUsers.has(email)) return new Response('{"message":"User already exists"}', { status: 422 })
+    if (db.trialSeed.reserved !== email) return new Response('{"message":"GOSEN_EMAIL_NOT_ALLOWED"}', { status: 422 })
+    db.authUsers.set(email, true)
+    return new Response('{"user":{}}')
+  }
+  if (u.endsWith('/email-otp/send-verification-otp')) return new Response('{"success":true}')
+  if (u.endsWith('/email-otp/verify-email')) {
+    const { email, otp } = JSON.parse(init.body)
+    if (otp !== '123456') return new Response('{"message":"Invalid OTP"}', { status: 400 })
+    db.verified.add(email)
+    return new Response('{"status":true}')
+  }
   if (u.endsWith('/revoke-other-sessions')) return new Response('{"status":true}')
   const name = u.split('/rpc/')[1]
   if (name) return rpc(name, emailOf(String(init.headers?.authorization || '').replace(/^Bearer /, '')), init.body ? JSON.parse(init.body) : {})
@@ -262,7 +342,7 @@ http
     for await (const c of req) chunks.push(c)
     if (req.url === '/__test/db') {
       res.writeHead(200, { 'content-type': 'application/json' })
-      return res.end(JSON.stringify({ churches: db.churches, subs: db.subs, invitations: db.invitations, plans: db.plans, settings: db.settings, twofa: db.twofa }))
+      return res.end(JSON.stringify({ churches: db.churches, subs: db.subs, invitations: db.invitations, plans: db.plans, settings: db.settings, twofa: db.twofa, trials: db.trials, trialCodes: db.trialCodes, demos: db.demos }))
     }
     if (req.url.startsWith('/fonts/')) {
       try {

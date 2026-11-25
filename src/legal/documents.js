@@ -29,7 +29,7 @@ function helpers(owner) {
     const parts = [
       `<li><strong>Responsable:</strong> ${field('name')}</li>`,
       `<li><strong>NIT o identificación:</strong> ${field('nit')}</li>`,
-      `<li><strong>Dirección:</strong> ${field('address')}, ${field('city')}, ${field('country')}</li>`,
+      `<li><strong>Dirección:</strong> ${field('address')}${owner?.city ? `, ${field('city')}` : ''}, ${field('country')}</li>`,
       `<li><strong>Correo para datos personales:</strong> ${field('email')}</li>`
     ]
     if (owner?.phone) parts.push(`<li><strong>Teléfono:</strong> ${field('phone')}</li>`)
@@ -57,8 +57,8 @@ function termsV1(owner) {
 <section>
 <h2>3. Iglesias, cuentas y roles</h2>
 <ul>
-<li>Gosen crea cada iglesia cliente y entrega a su administrador principal un código de activación. Los administradores de la iglesia invitan a sus integrantes con códigos personales, de un solo uso y con vencimiento.</li>
-<li>Cada cuenta es personal y pertenece a una sola iglesia. Usa tu propio correo, verifícalo y no compartas tu contraseña. Cambiar una cuenta de iglesia solo lo puede hacer Gosen, a pedido de la iglesia.</li>
+<li>Una iglesia se registra en la página de Gosen Tracks (al contratar un plan o con un código de prueba gratuita) o la crea Gosen y entrega a su administrador principal un código de activación. Quien registra la iglesia queda como su administrador principal. Los administradores invitan a sus integrantes con códigos personales, de un solo uso y con vencimiento.</li>
+<li>Cada cuenta es personal y pertenece a una sola iglesia. Para crearla debes ser mayor de 18 años. Usa tu propio correo, verifícalo y no compartas tu contraseña. Cambiar una cuenta de iglesia solo lo puede hacer Gosen, a pedido de la iglesia.</li>
 <li>Los administradores de la iglesia gestionan sus integrantes, invitaciones, roles, servicios y canciones, y consultan su suscripción. Las etiquetas de función (por ejemplo, Consola o Músicos) no dan permisos de administrador.</li>
 <li>Gosen administra la plataforma (iglesias, planes, suscripciones y pagos) con cuentas protegidas con verificación en dos pasos. Gosen no usa ni descarga el contenido de las iglesias; solo ve los datos necesarios para operar el servicio (por ejemplo, cuánto espacio ocupa cada iglesia).</li>
 <li>Si crees que alguien usó tu cuenta sin permiso, cierra la sesión en los demás dispositivos desde la app o el panel y avisa a tu administrador o a Gosen.</li>
@@ -67,10 +67,13 @@ function termsV1(owner) {
 <section>
 <h2>4. Planes y suscripción</h2>
 <ul>
-<li>Gosen ofrece planes (por ejemplo, Inicial, Equipo y Premium) con funciones, número de integrantes y espacio de almacenamiento distintos. Las funciones, los límites y los precios vigentes de cada plan se informan antes de contratar y se pueden consultar en la sección «Mi suscripción».</li>
-<li>La suscripción es mensual o anual y se paga por adelantado por los medios que se acuerden con Gosen (por ejemplo, transferencia o Nequi). Gosen la activa o la renueva cuando verifica el pago, y registra el período, el valor, el medio y la referencia del pago.</li>
-<li>No hay cobros automáticos: cada período se paga y se activa por separado.</li>
+<li>Gosen ofrece planes (por ejemplo, Inicial, Equipo y Premium) con funciones, número de integrantes y espacio de almacenamiento distintos. Las funciones, los límites y los precios vigentes de cada plan se informan en la página de precios antes de contratar y se pueden consultar en la sección «Mi suscripción». El valor que se cobra es el que se muestra en pesos colombianos (COP); el precio en dólares (USD) es una referencia para quien está fuera de Colombia.</li>
+<li><strong>Prueba gratuita.</strong> Con un código de prueba que entrega Gosen, una iglesia puede usar todas las funciones durante 5 días (o los que se indiquen al activarla), sin tarjeta y sin costo. Cada código sirve una sola vez y cada correo puede tener una sola prueba. La prueba incluye 3 canciones de demostración, que solo se pueden escuchar dentro de la plataforma mientras dura la prueba: no se pueden descargar, copiar ni usar fuera de ella. Al terminar la prueba se suspenden las funciones de la nube; lo que la iglesia haya subido se conserva al menos 30 días y, si no contrata un plan, Gosen puede eliminarlo después de ese plazo.</li>
+<li><strong>Pago en línea con renovación automática.</strong> La suscripción es mensual o anual y se paga por adelantado con tarjeta, a través de la pasarela Openpay (BBVA). El cobro lo recibe el comercio «${field('paymentMerchant')}», titular de la cuenta de Openpay, y así aparece en el extracto de la tarjeta. Al pagar, autorizas expresamente que se cobre el mismo valor al comienzo de cada período siguiente, hasta que canceles la renovación. Gosen no recibe ni guarda los datos completos de la tarjeta.</li>
+<li>Puedes cancelar la renovación automática en cualquier momento, sin penalidad, desde «Mi suscripción» (o escribiendo a ${field('email')}): no se hace ningún cobro más y el servicio sigue hasta el último día del período pagado. Si un cobro de renovación no se puede hacer, Openpay lo reintenta; mientras tanto la suscripción queda en período de gracia y, si no se paga, se suspenden las funciones de la nube.</li>
+<li>Gosen también puede acordar con una iglesia pagos por otros medios (por ejemplo, transferencia o Nequi). En ese caso no hay renovación automática: Gosen activa o renueva cada período cuando verifica el pago, y registra el período, el valor, el medio y la referencia.</li>
 <li>Antes del vencimiento, la plataforma avisa. Si el pago no se renueva, hay un período de gracia; al terminar, se suspenden las funciones de la nube del plan (por ejemplo, descargar canciones, compartir servicios o el ensayo múltiple). Las canciones ya guardadas en los equipos siguen sonando.</li>
+<li>Si un precio cambia, el nuevo valor se aplica a las contrataciones nuevas. Para una suscripción con renovación automática, Gosen avisa antes de aplicarlo y puedes cancelar la renovación si no estás de acuerdo.</li>
 <li>Al vencer o suspenderse una suscripción, los datos de la iglesia no se borran automáticamente: se conservan y vuelven a estar disponibles al renovar. La iglesia puede pedir su eliminación (ver la sección 9).</li>
 <li>Si una iglesia supera el espacio o el número de integrantes de su plan, no podrá subir más canciones ni sumar integrantes hasta liberar espacio o cambiar de plan.</li>
 <li>Las condiciones de cancelación, retracto y reembolso están en la ${link('reembolsos', 'política de reembolsos, devoluciones y cancelaciones')}.</li>
@@ -105,7 +108,7 @@ function termsV1(owner) {
 </section>
 <section>
 <h2>9. Terminación</h2>
-<p>La iglesia puede dejar de usar Gosen Tracks en cualquier momento: basta con no renovar. Puede pedir la eliminación de sus canciones y datos escribiendo a ${field('email')}; Gosen la hace dentro de los plazos de la ley de protección de datos, salvo lo que deba conservar por obligación legal (por ejemplo, los registros de pagos). Gosen puede suspender una iglesia o una cuenta que incumpla estos términos, informando el motivo.</p>
+<p>La iglesia puede dejar de usar Gosen Tracks en cualquier momento: basta con cancelar la renovación automática en «Mi suscripción» o no renovar. Puede pedir la eliminación de sus canciones y datos escribiendo a ${field('email')}; Gosen la hace dentro de los plazos de la ley de protección de datos, salvo lo que deba conservar por obligación legal (por ejemplo, los registros de pagos). Gosen puede suspender una iglesia o una cuenta que incumpla estos términos, informando el motivo.</p>
 </section>
 <section>
 <h2>10. Cambios en estos términos</h2>
@@ -150,11 +153,13 @@ ${contact()}
 <tr><td>Invitaciones</td><td>Dar acceso con un código personal. El código no se guarda: solo una huella que no permite recuperarlo, y el correo de quien lo usó.</td><td>Solo al unirte con un código.</td></tr>
 <tr><td>Verificación en dos pasos</td><td>Proteger las cuentas de administración (obligatoria para Gosen y recomendada para administradores). Se guarda la clave de la app de autenticación y la huella de los códigos de recuperación.</td><td>Solo si la activas.</td></tr>
 <tr><td>Contacto de la iglesia</td><td>Nombre, teléfono y correo de la persona de contacto de cada iglesia cliente, para administrar la suscripción y avisar los vencimientos.</td><td>Solo para iglesias clientes.</td></tr>
-<tr><td>Suscripción y pagos</td><td>Plan, período, valor, medio de pago, referencia y, si se envía, el comprobante, para activar y renovar la suscripción y atender reclamos.</td><td>Solo para iglesias clientes.</td></tr>
+<tr><td>Suscripción y pagos</td><td>Plan, período, valor, medio de pago, referencia y, si se envía, el comprobante, para activar y renovar la suscripción y atender reclamos. En los pagos con tarjeta: el estado y el número de la transacción, la marca y los últimos 4 dígitos de la tarjeta (nunca el número completo, la fecha ni el código de seguridad, que van directo a Openpay).</td><td>Solo para iglesias clientes.</td></tr>
+<tr><td>Evidencia de la contratación</td><td>Al pagar en línea: qué aceptaste (versiones de los documentos y la autorización del cobro automático), la fecha y hora, la dirección IP y el navegador desde los que pagaste. Sirve para demostrar la contratación ante un reclamo o un contracargo.</td><td>Solo al contratar en línea.</td></tr>
+<tr><td>Prueba gratuita</td><td>El código de prueba que usaste (solo su huella) y una huella de tu correo (no el correo) para que cada correo tenga una sola prueba.</td><td>Solo si activas una prueba.</td></tr>
 <tr><td>Registro de acciones y de aceptaciones</td><td>Saber quién hizo cambios importantes (por ejemplo, subir o borrar canciones, invitar o cambiar de plan) y demostrar qué versión de los documentos se aceptó o revocó.</td><td>Sí, cuando ocurren.</td></tr>
 </tbody>
 </table>
-<p>No pedimos documentos de identidad, fecha de nacimiento ni dirección de las personas, y no guardamos datos de tarjetas. Tampoco guardamos en nuestras bases de datos tu dirección IP ni los datos de tu navegador. Nuestros proveedores de nube procesan los datos técnicos de cada conexión (como la dirección IP) para entregar el servicio, protegerlo y limitar los intentos de acceso.</p>
+<p>No pedimos documentos de identidad, fecha de nacimiento ni dirección de las personas, y no guardamos los datos de las tarjetas. Fuera de la evidencia de una contratación en línea, no guardamos en nuestras bases de datos tu dirección IP ni los datos de tu navegador. Nuestros proveedores de nube procesan los datos técnicos de cada conexión (como la dirección IP) para entregar el servicio, protegerlo y limitar los intentos de acceso.</p>
 <p>En tu dispositivo, la aplicación guarda tu sesión, tus ajustes y las canciones preparadas para funcionar sin internet. Los detalles están en la ${link('cookies', 'política de cookies')}.</p>
 </section>
 <section>
@@ -172,6 +177,8 @@ ${contact()}
 <ul>
 <li><strong>Neon</strong> (Neon Inc.): base de datos y autenticación de cuentas (incluidos los correos de verificación y de recuperación de contraseña), alojadas en Amazon Web Services en Estados Unidos (región us-east-2).</li>
 <li><strong>Cloudflare</strong> (Cloudflare, Inc.): alojamiento de la página, la nube de canciones, los comprobantes de pago y los servicios, y la conexión en tiempo real del ensayo.</li>
+<li><strong>Openpay</strong> (pasarela de pagos del Grupo BBVA): procesa los pagos con tarjeta. Los datos de la tarjeta se escriben en su formulario y van directamente a Openpay, que además usa una herramienta antifraude con datos del dispositivo desde el que se paga.</li>
+<li><strong>«${field('paymentMerchant')}»</strong>, titular de la cuenta de Openpay con la que se cobran las suscripciones: en su panel de Openpay ve los datos de cada pago (correo de quien paga, valor, fecha y estado), solo para administrar los cobros.</li>
 </ul>
 <p>Como estos proveedores están fuera de Colombia, el uso de sus servicios implica una transmisión internacional de datos a encargados del tratamiento, que se hace solo para las finalidades de esta política.</p>
 <p>Dentro de tu iglesia, tus compañeros ven tu nombre, tu función y tus asignaciones, y sus administradores ven además tu correo. Ninguna otra iglesia ve tus datos. Gosen ve los datos necesarios para operar la plataforma, administrar las suscripciones y atender solicitudes.</p>
@@ -201,7 +208,8 @@ ${contact()}
 <ul>
 <li><strong>Cuenta</strong> (correo, nombre, iglesia, rol, función): mientras seas integrante. Si pides la supresión, o tu iglesia te retira y lo pides, se elimina.</li>
 <li><strong>Datos de una iglesia</strong> (canciones, servicios, programación): mientras la iglesia sea cliente. Si la suscripción vence, no se borran automáticamente; la iglesia puede pedir su eliminación.</li>
-<li><strong>Suscripciones y pagos</strong>: el tiempo que exijan las normas contables y tributarias aplicables.</li>
+<li><strong>Suscripciones y pagos</strong> (incluida la evidencia de cada contratación en línea): el tiempo que exijan las normas contables y tributarias aplicables, y el necesario para atender reclamos y contracargos.</li>
+<li><strong>Prueba gratuita</strong>: la huella del correo que usó una prueba, mientras exista la plataforma (solo para evitar pruebas repetidas). Lo que una iglesia sube durante una prueba que no se convierte en suscripción se conserva al menos 30 días después de terminar la prueba.</li>
 <li><strong>Invitaciones</strong>: la huella del código y quién la usó, mientras exista la iglesia.</li>
 <li><strong>Registro de aceptaciones y de acciones</strong>: mientras exista la cuenta y luego por el tiempo necesario para atender reclamaciones (hasta 5 años). Después se anonimiza.</li>
 <li><strong>Sesión del panel en el navegador</strong>: 2 horas, o hasta que salgas.</li>
@@ -239,6 +247,7 @@ function cookiesV1(owner) {
 <p>La página de invitación (/unirse) muestra tu código sin enviarlo al servidor: el código va después del símbolo «#» del enlace, una parte que el navegador no envía.</p>
 <p>La aplicación para iPhone (en /iphone/) guarda en el dispositivo tu sesión, tus ajustes y las canciones preparadas para tocar sin internet. Es necesario para que la aplicación funcione y no se usa para otra cosa.</p>
 <p>Nuestro proveedor de alojamiento, Cloudflare, puede usar cookies técnicas de seguridad (por ejemplo, para distinguir tráfico automatizado) cuando su protección lo requiere. Son estrictamente necesarias para proteger el servicio.</p>
+<p>En la página de pago (/contratar), al llegar al paso del pago con tarjeta se cargan el formulario de Openpay y su herramienta antifraude, desde los servidores de Openpay. Esa herramienta reúne datos técnicos del dispositivo (por ejemplo, un identificador de la sesión) para prevenir fraudes con tarjetas. Son necesarios para pagar con tarjeta y no se usan para publicidad.</p>
 </section>
 <section>
 <h2>2. Tus opciones</h2>
@@ -259,35 +268,46 @@ function refundsV1(owner) {
   return `
 <section>
 <h2>1. Qué se paga</h2>
-<p>Las iglesias clientes pagan una suscripción mensual o anual a Gosen Tracks, un servicio digital (la plataforma, la nube de sus canciones y las funciones de su plan). Los precios vigentes se informan antes de contratar. El pago se hace por adelantado y de forma manual, por los medios acordados con Gosen (por ejemplo, transferencia o Nequi); Gosen activa el período cuando verifica el pago. No hay cobros automáticos ni renovaciones automáticas.</p>
+<p>Las iglesias clientes pagan una suscripción mensual o anual a Gosen Tracks, un servicio digital (la plataforma, la nube de sus canciones y las funciones de su plan). Los precios vigentes se informan en la página de precios antes de contratar, en pesos colombianos (COP).</p>
+<ul>
+<li><strong>Pago en línea con tarjeta</strong>, a través de Openpay (BBVA). El cobro lo recibe el comercio «${field('paymentMerchant')}» y así aparece en el extracto. La suscripción se renueva automáticamente al comienzo de cada período por el mismo valor, hasta que canceles la renovación.</li>
+<li><strong>Pago por otros medios acordados con Gosen</strong> (por ejemplo, transferencia o Nequi): sin renovación automática; cada período se paga y se activa por separado.</li>
+</ul>
 <p>La propia iglesia de Gosen y sus integrantes no pagan por usar la plataforma.</p>
 </section>
 <section>
-<h2>2. Cancelación</h2>
+<h2>2. Prueba gratuita antes de pagar</h2>
+<p>Con un código de prueba, tu iglesia puede usar todas las funciones durante 5 días (o los que se indiquen al activarla), sin tarjeta y sin costo, para conocer la plataforma y decidir antes de pagar. La prueba no se cobra y no se convierte sola en una suscripción.</p>
+</section>
+<section>
+<h2>3. Cancelación</h2>
 <ul>
-<li>Puedes cancelar cuando quieras: basta con no renovar. El servicio sigue activo hasta el último día del período pagado.</li>
-<li>Al terminar el período (y el de gracia), se suspenden las funciones de la nube; tus datos no se borran automáticamente y vuelven a estar disponibles si renuevas. Puedes pedir su eliminación (ver los ${link('terminos', 'términos')}).</li>
-<li>Si cancelas antes de que termine un período pagado, no hay devolución proporcional de los días restantes, salvo en los casos de las secciones 3 y 4, que reconoce la ley.</li>
+<li>Puedes cancelar la renovación automática cuando quieras, sin penalidad, desde «Mi suscripción» (o escribiendo a ${field('email')}). No se hace ningún cobro más y el servicio sigue activo hasta el último día del período pagado.</li>
+<li>Al terminar el período (y el de gracia), se suspenden las funciones de la nube; tus datos no se borran automáticamente y vuelven a estar disponibles si contratas de nuevo. Puedes pedir su eliminación (ver los ${link('terminos', 'términos')}).</li>
 </ul>
 </section>
 <section>
-<h2>3. Derecho de retracto</h2>
-<p>Cuando la contratación se hace a distancia (por ejemplo, por WhatsApp y transferencia) y existe una relación de consumo, la ley reconoce el derecho de retracto: puedes desistir dentro de los 5 días hábiles siguientes a la contratación (artículo 47 de la Ley 1480 de 2011). En ese caso, Gosen devuelve el dinero pagado en un plazo máximo de 15 días calendario desde que ejerces el retracto.</p>
-<p>La ley excluye el retracto, entre otros, en los servicios cuya prestación ya comenzó con el acuerdo del consumidor. Si al activar tu suscripción empiezas a usar el servicio, Gosen te lo informará antes de activarla para que decidas.</p>
+<h2>4. Sin reembolsos por cambio de opinión</h2>
+<p>Como puedes probar la plataforma gratis antes de pagar, una vez pagado un período no se devuelve el dinero por cambio de opinión, por no usar el servicio, porque no cumplió tus expectativas personales ni por los días que falten al cancelar. Esta regla no limita los derechos de las secciones 5 y 6, que reconoce la ley y que no se pierden por ninguna condición de estos documentos.</p>
 </section>
 <section>
-<h2>4. Cobros equivocados, pagos duplicados y servicio no prestado</h2>
+<h2>5. Derecho de retracto</h2>
+<p>En las compras a distancia (por ejemplo, por internet) existe el derecho de retracto: desistir dentro de los 5 días hábiles siguientes a la contratación (artículo 47 de la Ley 1480 de 2011). Cuando procede, Gosen devuelve el dinero en un plazo máximo de 15 días calendario desde que ejerces el retracto.</p>
+<p>La misma ley excluye el retracto en los servicios cuya prestación ya comenzó con el acuerdo del consumidor. Al pagar en línea, una casilla aparte te pide confirmar que quieres que el servicio empiece apenas se confirme el pago y que entiendes que, por eso, no aplica el retracto. Si el plan no llegó a activarse, puedes ejercer el retracto dentro del plazo.</p>
+</section>
+<section>
+<h2>6. Cobros equivocados, no reconocidos y servicio no prestado</h2>
 <ul>
-<li><strong>Pago duplicado o por un valor mayor al acordado</strong>: se devuelve la diferencia.</li>
-<li><strong>Cobro que no reconoces</strong>: si recibiste un cobro que dice ser de Gosen Tracks y no lo autorizaste, avísanos de inmediato.</li>
+<li><strong>Pago duplicado o por un valor mayor al informado</strong>: se devuelve la diferencia.</li>
+<li><strong>Cobro que no reconoces o que no autorizaste</strong>: avísanos de inmediato. El cobro aparece a nombre de «${field('paymentMerchant')}»; si no lo hiciste tú, lo revisamos y, si corresponde, lo devolvemos.</li>
 <li><strong>Servicio no prestado</strong>: si por una falla atribuible a Gosen no puedes usar el servicio contratado durante un tiempo importante, Gosen compensa ese tiempo con días adicionales o, si lo prefieres, con la devolución proporcional.</li>
-<li>Cuando el pago se haya hecho por un medio electrónico y la ley lo permita, también puedes pedir la reversión del pago (artículo 51 de la Ley 1480 de 2011 y Decreto 587 de 2016).</li>
+<li><strong>Reversión del pago</strong>: si pagaste con tarjeta u otro medio electrónico, puedes pedirla en los casos de la ley (fraude, operación no solicitada, servicio no recibido o defectuoso), dentro de los 5 días hábiles siguientes a conocer el hecho (artículo 51 de la Ley 1480 de 2011 y Decreto 587 de 2016).</li>
 </ul>
 </section>
 <section>
-<h2>5. Cómo pedirlo</h2>
-<p>Escribe a ${field('email')} indicando: la iglesia, el nombre de quien pagó, la fecha, el valor, el medio y la referencia del pago, y el motivo (retracto, cobro duplicado, servicio no prestado u otro), con el comprobante si lo tienes.</p>
-<p>Gosen responde en un plazo máximo de 15 días hábiles. Si la solicitud procede, hace la devolución por el mismo medio de pago o por el que se acuerde, en los plazos que fija la ley cuando los hay (por ejemplo, 15 días calendario en el retracto) y, en los demás casos, en la fecha que se acuerde al aprobarla.</p>
+<h2>7. Cómo pedirlo</h2>
+<p>Escribe a ${field('email')} indicando: la iglesia, el nombre de quien pagó, la fecha, el valor y la referencia del pago (o los últimos 4 dígitos de la tarjeta), y el motivo, con el comprobante si lo tienes.</p>
+<p>Gosen responde en un plazo máximo de 15 días hábiles. Si la solicitud procede, la devolución se hace por el mismo medio de pago (en los pagos con tarjeta, a la misma tarjeta, a través de Openpay) o por el que se acuerde, en los plazos que fija la ley cuando los hay (por ejemplo, 15 días calendario en el retracto) y, en los demás casos, en la fecha que se acuerde al aprobarla.</p>
 <p>Estos derechos no se pierden por ninguna condición de estos documentos. Si no estás de acuerdo con la respuesta, puedes acudir a la Superintendencia de Industria y Comercio.</p>
 </section>`
 }

@@ -116,7 +116,15 @@ console.log('Documentos legales (públicos, con versiones)')
   const priv = await (await call(liveEnv, 'GET', '/legal/privacidad', { token: null })).text()
   ok(['Ley Estatutaria 1581 de 2012', 'Decreto 1377 de 2013', 'datos@iglesia.test', '10 días hábiles', '15 días hábiles', 'Superintendencia de Industria y Comercio', 'dato sensible', 'Neon', 'Cloudflare', 'Suscripción y pagos', 'Ninguna otra iglesia ve tus datos'].every((x) => priv.includes(x)), 'la política de privacidad trae responsable, normas, derechos, plazos, datos sensibles, encargados, pagos y aislamiento entre iglesias')
   const refunds = await (await call(liveEnv, 'GET', '/legal/reembolsos', { token: null })).text()
-  ok(/suscripción mensual o anual/.test(refunds) && /No hay cobros automáticos/.test(refunds) && /artículo 47 de la Ley 1480/.test(refunds) && /15 días calendario/.test(refunds) && /Pago duplicado/.test(refunds) && /artículo 51/.test(refunds) && !/no se hacen reembolsos/i.test(refunds), 'reembolsos: suscripción sin renovación automática, cancelación, retracto (devolución en 15 días), cobros duplicados y reversión (sin «no se hacen reembolsos»)')
+  ok(
+    /suscripción mensual o anual/.test(refunds) && /se renueva automáticamente/.test(refunds) && /Prueba gratuita/.test(refunds) && /cambio de opinión/.test(refunds) &&
+      /artículo 47 de la Ley 1480/.test(refunds) && /15 días calendario/.test(refunds) && /Pago duplicado/.test(refunds) && /artículo 51/.test(refunds) &&
+      /ART IN EARS/.test(refunds) && /sin penalidad/.test(refunds) && !/no se hacen reembolsos/i.test(refunds) && !/en ningún caso/i.test(refunds),
+    'reembolsos: prueba gratuita antes de pagar, renovación automática que se cancela sin penalidad, sin reembolso por cambio de opinión PERO con retracto (15 días), cobros duplicados o no reconocidos y reversión; dice quién cobra (ART IN EARS); nunca «no se hacen reembolsos» ni «en ningún caso»'
+  )
+  const terms2 = await (await call(liveEnv, 'GET', '/legal/terminos', { token: null })).text()
+  ok(/Prueba gratuita/.test(terms2) && /renovación automática/.test(terms2) && /Openpay/.test(terms2) && /ART IN EARS/.test(terms2) && /mayor de 18 años/.test(terms2), 'términos: prueba gratuita, pago en línea con renovación automática (Openpay, cobra ART IN EARS) y cuentas solo para mayores de 18')
+  ok(/Openpay/.test(priv) && /ART IN EARS/.test(priv) && /Evidencia de la contratación/.test(priv) && /últimos 4 dígitos/.test(priv), 'privacidad: Openpay y el comercio que cobra como encargados, la evidencia de la contratación y solo los 4 últimos dígitos de la tarjeta')
 }
 
 // --- 2. Web sin terceros ni datos de más -----------------------------------------------------------------

@@ -477,7 +477,7 @@
       <div class="meter"><div id="mFree" class="free"></div><div id="mOver" class="over"></div></div>
       <div class="legend">
         <span id="meterText" class="muted small"></span>
-        <span class="muted small">Gratis hasta 10 GB · luego $0.015 por GB al mes · las descargas no se cobran</span>
+        <span class="muted small" id="costNote"></span>
       </div>
     </section>
 
@@ -570,6 +570,16 @@
       <div class="meter"><div id="subMeter" class="free"></div></div>
       <div class="legend"><span id="subStorage" class="muted small"></span><a class="btn small" id="contactBtn" target="_blank" rel="noopener">Escribir a Gosen</a></div>
       <ul class="feature-list" id="featureList"></ul>
+    </section>
+    <section class="card view-subscription" id="billingCard">
+      <div class="card-head"><h2>Pago en línea</h2><span id="billState" class="chip"></span></div>
+      <p class="muted small" id="billText"></p>
+      <p class="muted small" id="billMerchant"></p>
+      <div class="row" style="gap: 8px; flex-wrap: wrap">
+        <a class="btn primary hide" id="billBuy" href="/contratar">Contratar un plan</a>
+        <button class="btn danger hide" type="button" id="billCancel">Cancelar la renovación automática</button>
+      </div>
+      <div class="table-scroll" id="billPayBox"><table class="data-table"><thead><tr><th>Fecha</th><th>Valor</th><th>Estado</th><th>Tarjeta</th></tr></thead><tbody id="billPays"></tbody></table></div>
     </section>
     <section class="card view-subscription">
       <div class="card-head"><h2>Historial de pagos</h2></div>
@@ -999,6 +1009,7 @@
       ? `${fmtGB(used)} de ${FREE_GB} GB gratis`
       : `${FREE_GB} GB gratis + ${(usedGB - FREE_GB).toFixed(2)} GB de pago`
     const quota = churchInfo && churchInfo.limits && churchInfo.limits.storage_bytes
+    $('costNote').textContent = churchInfo && churchInfo.church && !churchInfo.church.internal ? '' : `Gratis hasta ${FREE_GB} GB · luego $${PRICE_GB} por GB al mes · las descargas no se cobran`
     if (churchInfo && churchInfo.church && !churchInfo.church.internal) {
       // Iglesia cliente: lo que cuenta es la cuota de su plan.
       $('cost').textContent = churchInfo.plan ? churchInfo.plan.name.replace(/^Gosen /, '') : '—'
@@ -1023,7 +1034,9 @@
     letras_sincronizadas: 'Letras sincronizadas con el reproductor', personalizacion: 'Personalización de la iglesia', holyrics: 'Holyrics Connect',
     admin_avanzado: 'Herramientas avanzadas de administración', config_avanzada: 'Mayor capacidad de configuración', soporte_prioritario: 'Soporte prioritario'
   }
-  const STATES = { interna: 'Interna', activa: 'Activa', gracia: 'En período de gracia', vencida: 'Vencida', sin_suscripcion: 'Sin activar', suspendida: 'Suspendida', archivada: 'Archivada' }
+  const STATES = { interna: 'Interna', activa: 'Activa', gracia: 'En período de gracia', vencida: 'Vencida', sin_suscripcion: 'Sin activar', suspendida: 'Suspendida', archivada: 'Archivada', prueba: 'Prueba gratuita', prueba_vencida: 'Prueba terminada' }
+  const BILL = { activa: 'Renovación automática', pendiente: 'Confirmando el pago', fallida: 'No se pudo cobrar', cancelada: 'Sin renovación', vencida: 'Vencida' }
+  const PAYST = { aprobado: 'Aprobado', rechazado: 'Rechazado', pendiente: 'Pendiente', cancelado: 'Cancelado', reembolsado: 'Reembolsado', contracargo: 'Contracargo' }
   const can = (f) => !churchInfo || !Array.isArray(churchInfo.features) || churchInfo.features.includes(f)
   const money = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(n) || 0)
   const fdate = (d) => (d ? new Date(String(d).length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
@@ -1208,6 +1221,45 @@
     } catch (err) { alert(err.message) }
   }
 
+  /** Pago en línea (Openpay): estado de la renovación automática, la tarjeta y los pagos; contratar o cancelar. */
+  async function loadBilling(c, st) {
+    const card = $('billingCard')
+    if (c.church && c.church.internal) return card.classList.add('hide')
+    let b = null
+    try { b = await neonApi('/api/billing/status') } catch (err) { b = null }
+    if (!b) return card.classList.add('hide')
+    card.classList.remove('hide')
+    const sub = b.subscription
+    $('billState').textContent = sub ? BILL[sub.status] || sub.status : 'Sin pago en línea'
+    $('billState').className = 'chip' + (sub && sub.status === 'activa' && !sub.cancel_at_period_end ? ' on' : sub && ['fallida'].includes(sub.status) ? ' bad' : '')
+    $('billText').textContent = sub
+      ? `${sub.plan_name} · ${money(sub.amount_cop)} ${sub.period === 'anual' ? 'al año' : 'al mes'}` +
+        (sub.card_brand ? ` · tarjeta ${sub.card_brand} terminada en ${sub.card_last4 || '····'}` : '') +
+        (sub.cancel_at_period_end || sub.status === 'cancelada' ? ` · No se renueva: el servicio sigue hasta el ${sub.period_end ? fdate(sub.period_end) : 'final de lo pagado'}.` : sub.period_end ? ` · Próximo cobro: ${fdate(sub.period_end)}.` : '')
+      : b.online ? 'Contrata o renueva tu plan con tarjeta: se cobra hoy y se renueva automáticamente hasta que lo canceles.' : 'El pago en línea estará disponible pronto. Mientras tanto, escribe a Gosen para contratar o renovar.'
+    $('billMerchant').textContent = b.merchantLabel ? `El cobro lo hace «${b.merchantLabel}» a través de Openpay: así aparece en el extracto de la tarjeta.` : ''
+    const active = sub && ['activa', 'pendiente', 'fallida'].includes(sub.status) && !sub.cancel_at_period_end
+    const buy = $('billBuy')
+    buy.classList.toggle('hide', !b.online || !!active)
+    buy.href = '/contratar?plan=' + encodeURIComponent(c.plan && !c.plan.trial && c.plan.id !== 'prueba' ? c.plan.id : 'equipo') + '&periodo=mensual'
+    buy.textContent = st === 'activa' || st === 'gracia' ? 'Renovar o cambiar de plan' : 'Contratar un plan'
+    $('billCancel').classList.toggle('hide', !active)
+    $('billCancel').onclick = async () => {
+      if (!confirm('¿Cancelar la renovación automática? No se harán más cobros; el servicio sigue hasta el final de lo que ya pagaste.')) return
+      try {
+        const r = await neonApi('/api/billing/cancel', { method: 'POST', body: '{}' })
+        alert(r.until ? `Renovación cancelada. Tu plan sigue activo hasta el ${fdate(r.until)}.` : 'Renovación cancelada.')
+        loadSubscription()
+      } catch (err) { alert(err.message) }
+    }
+    $('billPayBox').classList.toggle('hide', !(b.payments && b.payments.length))
+    $('billPays').replaceChildren(...(b.payments || []).map((x) => {
+      const tr = document.createElement('tr')
+      tr.append(cell(new Date(x.created_at).toLocaleString('es-CO')), cell(money(x.amount_cop)), cell(PAYST[x.status] || x.status), cell(x.card_brand ? `${x.card_brand} ····${x.card_last4 || ''}` : x.method))
+      return tr
+    }))
+  }
+
   async function loadSubscription() {
     churchInfo = await neonApi('/api/church').catch(() => churchInfo)
     const c = churchInfo || {}
@@ -1221,17 +1273,27 @@
     $('subSeats').textContent = lim.members ? `${c.members ?? '—'} / ${lim.members}` : String(c.members ?? '—')
     const used = c.usage ? c.usage.bytes : 0
     $('subMeter').style.width = lim.storage_bytes ? Math.min(100, (used / lim.storage_bytes) * 100) + '%' : '0%'
-    $('subStorage').textContent = lim.storage_bytes ? `Almacenamiento: ${fmtGB(used)} de ${fmtGB(lim.storage_bytes)}` : `Almacenamiento: ${fmtGB(used)} (sin límite)`
+    $('subStorage').textContent = lim.storage_bytes
+      ? `Almacenamiento: ${fmtGB(used)} de ${fmtGB(lim.storage_bytes)} · ${fmtGB(Math.max(0, lim.storage_bytes - used))} disponibles (${Math.min(100, Math.round((used / lim.storage_bytes) * 100))} % ocupado)`
+      : `Almacenamiento: ${fmtGB(used)} (sin límite)`
     const link = contactLink(st === 'vencida' || st === 'gracia' ? 'Quiero renovar la suscripción.' : 'Quiero información sobre los planes.')
     $('contactBtn').classList.toggle('hide', !link)
     if (link) $('contactBtn').href = link
     $('contactBtn').textContent = st === 'vencida' || st === 'gracia' ? 'Renovar con Gosen' : 'Escribir a Gosen'
     const banner = $('subBanner')
     const days = c.subscription && c.subscription.days_left
-    if (st === 'gracia' || st === 'vencida' || st === 'suspendida' || (st === 'activa' && c.subscription && c.subscription.reminder)) {
-      banner.textContent = st === 'activa' ? `Tu suscripción vence en ${days} día(s). Renueva con tiempo para no perder funciones.` : st === 'gracia' ? 'Tu suscripción venció: estás en el período de gracia. Renueva para no perder las funciones de la nube.' : st === 'suspendida' ? 'La cuenta de tu iglesia está suspendida. Escribe a Gosen.' : 'Tu suscripción venció. Tus canciones y datos se conservan; renueva para volver a usar la nube.'
+    if (['gracia', 'vencida', 'suspendida', 'prueba', 'prueba_vencida', 'sin_suscripcion'].includes(st) || (st === 'activa' && c.subscription && c.subscription.reminder)) {
+      banner.textContent =
+        st === 'activa' ? `Tu suscripción vence en ${days} día(s). Renueva con tiempo para no perder funciones.`
+        : st === 'gracia' ? 'Tu suscripción venció: estás en el período de gracia. Renueva para no perder las funciones de la nube.'
+        : st === 'suspendida' ? 'La cuenta de tu iglesia está suspendida. Escribe a Gosen.'
+        : st === 'prueba' ? `Estás en la prueba gratuita: te quedan ${days} día(s). Contrata un plan para seguir sin interrupciones (lo que subas se conserva).`
+        : st === 'prueba_vencida' ? 'Tu prueba gratuita terminó. Contrata un plan para volver a usar la nube: lo que subiste se conserva.'
+        : st === 'sin_suscripcion' ? 'Tu iglesia todavía no tiene un plan activo. Termina la contratación para usar la nube.'
+        : 'Tu suscripción venció. Tus canciones y datos se conservan; renueva para volver a usar la nube.'
       banner.classList.remove('hide')
     } else banner.classList.add('hide')
+    await loadBilling(c, st)
     const on = new Set(Array.isArray(c.features) ? c.features : Object.keys(FEATURES))
     $('featureList').replaceChildren(...Object.entries(FEATURES).map(([id, label]) => {
       const li = document.createElement('li')

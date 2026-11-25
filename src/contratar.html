@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="no-referrer" />
+<title>Contratar Gosen Tracks</title>
+<link rel="icon" href="/logo.png" />
+<link rel="stylesheet" href="/fonts/fonts.css" />
+<script>
+  ;(function () {
+    var t = null
+    try { t = localStorage.getItem('gosen.web.theme') } catch (e) {}
+    if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    document.documentElement.dataset.theme = t
+  })()
+</script>
+<script src="/web/privacidad.js" defer></script>
+<style>
+  :root, :root[data-theme='light'] { color-scheme: light; --bg: #f5f4f9; --panel: #fff; --line: #e6e3ef; --text: #16141f; --text-2: #4d4960; --text-3: #6e6a85; --accent: #6b3cf6; --accent-soft: #f0ebff; --accent-tx: #5a2ee0; --ok: #12805c; --ok-soft: #e3f6ee; --bad: #c0262d; --bad-soft: #fdecec; }
+  :root[data-theme='dark'] { color-scheme: dark; --bg: #0a0910; --panel: #15131f; --line: #262236; --text: #f1eff8; --text-2: #b5b0c8; --text-3: #8a85a0; --accent: #7b52ff; --accent-soft: rgba(123, 82, 255, 0.16); --accent-tx: #c4b5fd; --ok: #4ade80; --ok-soft: rgba(74, 222, 128, 0.12); --bad: #f87171; --bad-soft: rgba(248, 113, 113, 0.12); }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: start center; padding: 28px 16px; background: radial-gradient(700px 420px at 50% 0%, var(--accent-soft), transparent 65%), var(--bg); color: var(--text); font: 16px/1.55 'Barlow', 'Segoe UI', system-ui, sans-serif; }
+  main { width: min(560px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 28px clamp(18px, 5vw, 32px); box-shadow: 0 30px 60px -40px rgba(20, 10, 60, 0.5); }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: inherit; text-decoration: none; }
+  .brand img { width: 34px; height: 34px; border-radius: 9px; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 18px 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 18px; margin: 18px 0 8px; }
+  p { margin: 0 0 12px; color: var(--text-2); }
+  a { color: var(--accent-tx); }
+  label.field { display: block; margin: 12px 0 0; font-weight: 600; font-size: 14px; }
+  input[type='text'], input[type='email'], input[type='password'], input[type='tel'], select {
+    width: 100%; margin-top: 6px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: 16px 'Barlow', sans-serif;
+  }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; min-width: 0; }
+  .btn { font: 600 15px 'Barlow', sans-serif; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 11px 16px; border-radius: 11px; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; width: 100%; margin-top: 16px; }
+  .btn:disabled { opacity: 0.55; cursor: progress; }
+  .link { background: none; border: 0; padding: 0; color: var(--accent-tx); font: inherit; text-decoration: underline; cursor: pointer; }
+  .check { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 0; font-size: 14.5px; color: var(--text-2); }
+  .check input { width: 19px; height: 19px; margin-top: 2px; flex: none; accent-color: var(--accent); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 3px; }
+  .seg button { border: 0; background: none; color: var(--text-2); font: 600 14px 'Barlow', sans-serif; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+  .seg button[aria-pressed='true'] { background: var(--accent); color: #fff; }
+  .summary { margin: 14px 0; padding: 14px 16px; border-radius: 14px; background: var(--accent-soft); }
+  .summary b { color: var(--text); }
+  .price { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+  .muted { color: var(--text-3); font-size: 14px; }
+  .note { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); color: var(--text-2); font-size: 14px; margin: 12px 0; }
+  .msg { padding: 12px 14px; border-radius: 12px; margin: 12px 0 0; font-size: 14.5px; }
+  .msg.err { background: var(--bad-soft); color: var(--bad); }
+  .msg.ok { background: var(--ok-soft); color: var(--ok); }
+  .plans { display: grid; gap: 8px; margin-top: 10px; }
+  .plan-opt { display: flex; justify-content: space-between; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; }
+  .plan-opt input { accent-color: var(--accent); }
+  .plan-opt.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .dl { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .dl a { text-decoration: none; }
+  footer { margin-top: 20px; font-size: 13px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  footer a, footer button { color: var(--text-3); background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="/"><img src="/logo.png" alt="" /> Gosen Tracks</a>
+  <h1 id="title">Contrata Gosen Tracks</h1>
+  <p id="lead">Crea la cuenta de tu iglesia y elige tu plan.</p>
+
+  <!-- Plan y período (contratación) -->
+  <section id="stepPlan" hidden>
+    <div class="seg" role="group" aria-label="Forma de pago">
+      <button type="button" data-period="mensual" aria-pressed="true">Mensual</button>
+      <button type="button" data-period="anual" aria-pressed="false">Anual</button>
+    </div>
+    <div class="plans" id="planList"></div>
+    <div class="summary" id="planSummary"></div>
+    <div class="note" id="offline" hidden></div>
+  </section>
+
+  <!-- Cuenta (prueba o contratación) -->
+  <section id="stepAccount" hidden>
+    <h2 id="accountTitle">Crea tu cuenta</h2>
+    <form id="accountForm" novalidate>
+      <label class="field" id="codeField" hidden>Código de prueba
+        <input type="text" id="code" autocomplete="off" placeholder="PRB-XXXX-XXXX-XXXX" maxlength="24" />
+      </label>
+      <label class="field">Nombre de tu iglesia
+        <input type="text" id="church" autocomplete="organization" maxlength="80" />
+      </label>
+      <label class="field">Tu correo
+        <input type="email" id="email" autocomplete="email" maxlength="254" />
+      </label>
+      <label class="field">Contraseña (mínimo 8 caracteres)
+        <input type="password" id="password" autocomplete="new-password" maxlength="128" />
+      </label>
+      <label class="check"><input type="checkbox" id="accTerms" /> <span>Acepto los <a href="/legal/terminos" target="_blank" rel="noopener">términos y condiciones</a>.</span></label>
+      <label class="check"><input type="checkbox" id="accPrivacy" /> <span>Acepto la <a href="/legal/privacidad" target="_blank" rel="noopener">política de privacidad</a> y autorizo el tratamiento de mis datos.</span></label>
+      <button class="btn primary" type="submit" id="accountBtn">Crear cuenta</button>
+      <p class="muted" style="margin-top: 12px">¿Ya tienes cuenta? <button type="button" class="link" id="toLogin">Entra con tu contraseña</button></p>
+    </form>
+  </section>
+
+  <!-- Entrar con una cuenta que ya existe -->
+  <section id="stepLogin" hidden>
+    <h2>Entra con tu cuenta</h2>
+    <form id="loginForm" novalidate>
+      <label class="field">Correo<input type="email" id="loginEmail" autocomplete="email" maxlength="254" /></label>
+      <label class="field">Contraseña<input type="password" id="loginPassword" autocomplete="current-password" maxlength="128" /></label>
+      <button class="btn primary" type="submit" id="loginBtn">Entrar</button>
+      <p class="muted" style="margin-top: 12px"><button type="button" class="link" id="toAccount">Volver a crear cuenta</button></p>
+    </form>
+  </section>
+
+  <!-- Verificar el correo -->
+  <section id="stepVerify" hidden>
+    <h2>Verifica tu correo</h2>
+    <p>Te enviamos un código a <b id="verifyEmail"></b>. Escríbelo aquí (revisa también la carpeta de spam).</p>
+    <form id="verifyForm" novalidate>
+      <label class="field">Código<input type="text" id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="12" /></label>
+      <button class="btn primary" type="submit" id="verifyBtn">Verificar</button>
+      <p class="muted" style="margin-top: 12px"><button type="button" class="link" id="resend">Enviar otro código</button></p>
+    </form>
+  </section>
+
+  <!-- Pago -->
+  <section id="stepPay" hidden>
+    <h2>Pago con tarjeta</h2>
+    <div class="summary" id="paySummary"></div>
+    <p class="note" id="merchantNote"></p>
+    <form id="payForm" novalidate>
+      <label class="field">Nombre como aparece en la tarjeta<input type="text" id="holder" autocomplete="cc-name" maxlength="80" /></label>
+      <label class="field">Número de la tarjeta<input type="text" id="cardNumber" inputmode="numeric" autocomplete="cc-number" maxlength="23" /></label>
+      <div class="row">
+        <label class="field">Mes<input type="text" id="expMonth" inputmode="numeric" autocomplete="cc-exp-month" placeholder="MM" maxlength="2" /></label>
+        <label class="field">Año<input type="text" id="expYear" inputmode="numeric" autocomplete="cc-exp-year" placeholder="AA" maxlength="2" /></label>
+        <label class="field">Código (CVV)<input type="password" id="cvv" inputmode="numeric" autocomplete="cc-csc" maxlength="4" /></label>
+      </div>
+      <input type="hidden" id="deviceIdHiddenFieldName" name="deviceIdHiddenFieldName" />
+      <label class="check"><input type="checkbox" id="payTerms" /> <span>Acepto los <a href="/legal/terminos" target="_blank" rel="noopener">términos y condiciones</a> y la <a href="/legal/reembolsos" target="_blank" rel="noopener">política de reembolsos</a>.</span></label>
+      <label class="check"><input type="checkbox" id="payPrivacy" /> <span>Acepto la <a href="/legal/privacidad" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
+      <label class="check"><input type="checkbox" id="payAuto" /> <span id="autoText"></span></label>
+      <button class="btn primary" type="submit" id="payBtn">Pagar</button>
+      <p class="muted" style="margin-top: 10px">Los datos de tu tarjeta van directo a Openpay (BBVA). Gosen Tracks nunca los recibe ni los guarda.</p>
+    </form>
+  </section>
+
+  <!-- Listo -->
+  <section id="stepDone" hidden>
+    <div class="msg ok" id="doneMsg"></div>
+    <h2>Descarga Gosen Tracks</h2>
+    <p>Entra en la app con tu correo y tu contraseña.</p>
+    <div class="dl">
+      <a class="btn" href="/descargar/windows">Windows</a>
+      <a class="btn" href="/descargar/mac">Mac</a>
+      <a class="btn" href="/descargar/android">Android</a>
+      <a class="btn" href="/iphone/">iPhone</a>
+    </div>
+    <p>Para subir tus canciones y administrar tu iglesia: <a href="/admin">panel de tu iglesia</a>.</p>
+  </section>
+
+  <div class="msg err" id="error" role="alert" hidden></div>
+  <footer><a href="/#precios">Precios</a><a href="/legal/terminos">Términos</a><a href="/legal/privacidad">Privacidad</a><a href="/legal/reembolsos">Reembolsos</a><button type="button" data-privacy-settings>Configurar cookies</button></footer>
+</main>
+<script>
+  ;(function () {
+    'use strict'
+    var $ = function (id) { return document.getElementById(id) }
+    var params = new URLSearchParams(location.search)
+    var hashCode = decodeURIComponent((location.hash || '').slice(1)).toUpperCase().replace(/\s+/g, '')
+    var trial = params.has('prueba') || /^PRB-/.test(hashCode)
+    var S = { plans: null, legal: null, config: null, plan: params.get('plan') || 'equipo', period: params.get('periodo') === 'anual' ? 'anual' : 'mensual', email: '', password: '', jwt: null, cookies: null, access: null }
+
+    var cop = function (n) { return '$' + Number(n || 0).toLocaleString('es-CO') + ' COP' }
+    var usd = function (n) { return n === null || n === undefined ? '' : 'US$' + Number(n).toFixed(2) }
+    var steps = ['stepPlan', 'stepAccount', 'stepLogin', 'stepVerify', 'stepPay', 'stepDone']
+    function show() {
+      var visible = Array.prototype.slice.call(arguments)
+      steps.forEach(function (s) { $(s).hidden = visible.indexOf(s) < 0 })
+      hideError()
+    }
+    function error(msg) { var e = $('error'); e.textContent = msg; e.hidden = false; e.scrollIntoView({ block: 'nearest' }) }
+    function hideError() { $('error').hidden = true }
+    function busy(btn, on, label) { btn.disabled = on; if (label) btn.textContent = label }
+
+    async function api(path, body, jwt, method) {
+      var headers = { 'content-type': 'application/json' }
+      if (jwt) headers.authorization = 'Bearer ' + jwt
+      var r = await fetch(path, { method: method || (body ? 'POST' : 'GET'), headers: headers, body: body ? JSON.stringify(body) : undefined })
+      var data = null
+      try { data = await r.json() } catch (e) { data = null }
+      return { status: r.status, ok: r.ok, data: data || {} }
+    }
+    function uuid() {
+      if (crypto.randomUUID) return crypto.randomUUID()
+      var b = crypto.getRandomValues(new Uint8Array(16)); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128
+      var h = Array.prototype.map.call(b, function (x) { return x.toString(16).padStart(2, '0') }).join('')
+      return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20)
+    }
+
+    function plan() { return (S.plans && S.plans.plans || []).find(function (p) { return p.id === S.plan }) || null }
+    function amount(p) { return p ? (S.period === 'anual' ? p.price_year : p.price_month) : null }
+    function amountUsd(p) { return p ? (S.period === 'anual' ? p.price_year_usd : p.price_month_usd) : null }
+    function savings(p) {
+      if (!p || !p.price_year || !p.price_month) return ''
+      var s = p.price_month * 12 - p.price_year
+      return s > 0 ? 'Ahorras ' + cop(s) + ' frente a 12 pagos mensuales.' : ''
+    }
+
+    function renderPlans() {
+      var list = (S.plans && S.plans.plans) || []
+      if (!plan() && list.length) S.plan = list[0].id
+      $('planList').innerHTML = ''
+      list.forEach(function (p) {
+        var label = document.createElement('label')
+        label.className = 'plan-opt' + (p.id === S.plan ? ' sel' : '')
+        var price = S.period === 'anual' ? p.price_year : p.price_month
+        label.innerHTML = '<span><input type="radio" name="plan" /> <b></b></span><span class="muted"></span>'
+        label.querySelector('b').textContent = p.name
+        label.querySelector('.muted').textContent = price ? cop(price) + (S.period === 'anual' ? ' / año' : ' / mes') : 'Sin precio anual'
+        var radio = label.querySelector('input')
+        radio.checked = p.id === S.plan
+        radio.onchange = function () { S.plan = p.id; renderPlans() }
+        $('planList').appendChild(label)
+      })
+      document.querySelectorAll('[data-period]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.period === S.period)) })
+      var p = plan()
+      var a = amount(p)
+      $('planSummary').innerHTML = ''
+      if (p && a) {
+        var box = $('planSummary')
+        var line = document.createElement('div'); line.className = 'price'; line.textContent = cop(a) + (S.period === 'anual' ? ' al año' : ' al mes'); box.appendChild(line)
+        var ref = amountUsd(p)
+        if (ref) { var u = document.createElement('div'); u.className = 'muted'; u.textContent = 'Precio internacional de referencia: ' + usd(ref) + '. El cobro se hace en pesos colombianos (COP).'; box.appendChild(u) }
+        if (S.period === 'anual') { var sv = document.createElement('div'); sv.textContent = savings(p); box.appendChild(sv) }
+        var lim = document.createElement('div'); lim.className = 'muted'
+        lim.textContent = (p.max_members ? 'Hasta ' + p.max_members + ' integrantes' : 'Integrantes sin límite') + ' · ' + (p.storage_gb ? p.storage_gb + ' GB de almacenamiento' : 'almacenamiento sin límite')
+        box.appendChild(lim)
+      }
+    }
+
+    function legalDoc(id) { return ((S.legal && S.legal.documents) || []).find(function (d) { return d.id === id }) || null }
+    /** Registra la aceptación (solo si los documentos ya están en vigor; mientras sean borrador no se registra). */
+    async function recordConsent(channel) {
+      if (!S.legal || !S.legal.active || !S.jwt) return
+      var accept = ['terminos', 'privacidad'].map(legalDoc).filter(Boolean).map(function (d) { return { document: d.id, version: d.version, sha256: d.sha256 } })
+      await api('/api/legal/accept', { operation: uuid(), channel: channel, accept: accept }, S.jwt).catch(function () { return null })
+    }
+
+    async function login(email, password) {
+      var r = await api('/api/login', { email: email, password: password })
+      if (!r.ok) throw new Error(r.data.error || 'No se pudo entrar.')
+      S.jwt = r.data.jwt
+      S.cookies = r.data.cookies
+      S.email = email
+    }
+    async function freshJwt() {
+      if (!S.cookies) return S.jwt
+      var r = await api('/api/refresh', { cookies: S.cookies })
+      if (r.ok && r.data.jwt) S.jwt = r.data.jwt
+      return S.jwt
+    }
+
+    var PENDING = {
+      'verificar-correo': 'Todavía falta verificar tu correo.',
+      'sin-cupo-iglesias': 'Por ahora no hay cupo para iglesias nuevas. Escríbenos y te avisamos apenas haya.',
+      'prueba-usada': 'Este correo ya usó su prueba gratuita. Puedes contratar un plan.',
+      'sin-cupo': 'La iglesia no tiene cupos libres en su plan.'
+    }
+
+    /** Después de entrar: la base crea la iglesia (prueba o contratación) y se sigue al paso que toca. */
+    async function afterLogin(channel) {
+      var r = await api('/api/signup/access', {}, S.jwt)
+      if (!r.ok) throw new Error(r.data.error || 'No se pudo comprobar tu cuenta.')
+      var a = r.data
+      S.access = a
+      if (!a.allowed) throw new Error(PENDING[a.pending] || 'Tu cuenta todavía no pertenece a ninguna iglesia. Usa un código de prueba o elige un plan.')
+      if (channel) await recordConsent(channel)
+      var state = a.subscription && a.subscription.state
+      if (trial) {
+        if (state === 'prueba') return done('Tu prueba gratuita de «' + a.church.name + '» está activa hasta el ' + longDate(a.subscription.trial_ends_at) + '.')
+        if (state === 'activa' || state === 'interna') return done('Tu iglesia ya tiene un plan activo.')
+      }
+      if (!a.admin) throw new Error('Solo el administrador de la iglesia puede contratar. Pídeselo a quien administra «' + a.church.name + '».')
+      if (a.church && a.church.internal) throw new Error('Esta cuenta es de la iglesia de Gosen: no necesita contratar.')
+      return toPay()
+    }
+    function longDate(iso) {
+      try { return new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Bogota' }) } catch (e) { return iso }
+    }
+    function done(text) { $('doneMsg').textContent = text; show('stepDone'); $('title').textContent = '¡Listo!'; $('lead').textContent = '' }
+
+    // --- Pago con Openpay.js (la tarjeta va directo a Openpay: aquí solo se recibe un token) ---------------
+    var openpayReady = null
+    function loadScript(src) {
+      return new Promise(function (ok, fail) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = function () { fail(new Error('No se pudo cargar el formulario de pago.')) }; document.head.appendChild(s) })
+    }
+    function setupOpenpay() {
+      openpayReady = openpayReady || (async function () {
+        var c = S.config
+        await loadScript(c.jsBase + '/openpay.v1.min.js')
+        await loadScript(c.jsBase + '/openpay-data.v1.min.js')
+        window.OpenPay.setId(c.merchant)
+        window.OpenPay.setApiKey(c.publicKey)
+        window.OpenPay.setSandboxMode(!!c.sandbox)
+        return window.OpenPay.deviceData.setup('payForm', 'deviceIdHiddenFieldName')
+      })()
+      return openpayReady
+    }
+    function toPay() {
+      var p = plan()
+      var a = amount(p)
+      if (!S.config || !S.config.ready || !(S.plans && S.plans.checkout)) {
+        show('stepPlan')
+        return error('El pago en línea aún no está disponible. Escríbenos para contratar.')
+      }
+      if (!p || !a) { show('stepPlan', 'stepAccount'); return error('Elige un plan.') }
+      var box = $('paySummary')
+      box.innerHTML = ''
+      var t = document.createElement('div'); t.innerHTML = '<b></b>'; t.querySelector('b').textContent = p.name + (S.access && S.access.church ? ' · ' + S.access.church.name : ''); box.appendChild(t)
+      var pr = document.createElement('div'); pr.className = 'price'; pr.textContent = cop(a) + (S.period === 'anual' ? ' al año' : ' al mes'); box.appendChild(pr)
+      var r = document.createElement('div'); r.className = 'muted'
+      r.textContent = 'Se cobra hoy y se renueva automáticamente cada ' + (S.period === 'anual' ? 'año' : 'mes') + ' por el mismo valor, hasta que canceles la renovación (desde «Mi suscripción», cuando quieras).'
+      box.appendChild(r)
+      var label = S.config.merchantLabel
+      $('merchantNote').textContent = label
+        ? 'El cobro lo hace «' + label + '» a través de Openpay (BBVA). Así aparecerá en el extracto de tu tarjeta.'
+        : 'El cobro se hace a través de Openpay (BBVA).'
+      $('autoText').textContent = 'Autorizo el cobro automático de ' + cop(a) + ' cada ' + (S.period === 'anual' ? 'año' : 'mes') + ' a esta tarjeta hasta que cancele. Pido que el servicio empiece apenas se confirme el pago; por eso, una vez empezado, no aplica el derecho de retracto (art. 47 de la Ley 1480 de 2011). Conservo los demás derechos de la política de reembolsos.'
+      show('stepPay')
+      $('title').textContent = 'Pago'
+      $('lead').textContent = ''
+      setupOpenpay().catch(function (e) { error(e.message) })
+    }
+
+    async function waitActive() {
+      for (var i = 0; i < 20; i++) {
+        await new Promise(function (r) { setTimeout(r, 3000) })
+        var r = await api('/api/billing/status', null, await freshJwt())
+        if (r.ok && r.data.state && r.data.state.state === 'activa') return r.data
+      }
+      return null
+    }
+
+    // --- Arranque ----------------------------------------------------------------------------------------
+    async function start() {
+      var res = await Promise.all([api('/api/plans'), api('/api/legal'), api('/api/billing/config')])
+      S.plans = res[0].data
+      S.legal = res[1].data
+      S.config = res[2].data
+      if (trial) {
+        $('title').textContent = 'Prueba gratis Gosen Tracks'
+        $('lead').textContent = 'Tu iglesia puede probar todas las funciones durante ' + ((S.plans && S.plans.trial_days) || 5) + ' días, sin tarjeta. Necesitas un código de prueba.'
+        $('codeField').hidden = false
+        $('accountTitle').textContent = 'Activa tu prueba'
+        $('accountBtn').textContent = 'Activar prueba'
+        if (/^PRB-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(hashCode)) $('code').value = hashCode
+        show('stepAccount')
+        return
+      }
+      renderPlans()
+      var online = S.config && S.config.ready && S.plans && S.plans.checkout
+      if (!online) {
+        var c = (S.plans && S.plans.contact) || {}
+        var off = $('offline')
+        off.hidden = false
+        off.textContent = 'La contratación en línea estará disponible muy pronto.' + (c.whatsapp ? ' Escríbenos por WhatsApp al +' + String(c.whatsapp).replace(/[^0-9]/g, '') + '.' : c.email ? ' Escríbenos a ' + c.email + '.' : '')
+        show('stepPlan')
+        return
+      }
+      show('stepPlan', 'stepAccount')
+    }
+
+    document.querySelectorAll('[data-period]').forEach(function (b) {
+      b.onclick = function () { S.period = b.dataset.period; renderPlans() }
+    })
+    $('toLogin').onclick = function () { trial ? show('stepLogin') : show('stepPlan', 'stepLogin') }
+    $('toAccount').onclick = function () { trial ? show('stepAccount') : show('stepPlan', 'stepAccount') }
+
+    $('accountForm').onsubmit = async function (ev) {
+      ev.preventDefault()
+      hideError()
+      var email = $('email').value.trim().toLowerCase()
+      var password = $('password').value
+      var church = $('church').value.trim()
+      if (!$('accTerms').checked || !$('accPrivacy').checked) return error('Para continuar, marca las dos casillas (términos y privacidad).')
+      if (church.length < 2) return error('Escribe el nombre de tu iglesia.')
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return error('Escribe un correo válido.')
+      if (password.length < 8) return error('La contraseña debe tener al menos 8 caracteres.')
+      var btn = $('accountBtn')
+      busy(btn, true)
+      try {
+        var r = trial
+          ? await api('/api/signup/trial', { code: $('code').value.trim(), email: email, church: church })
+          : await api('/api/signup/start', { email: email, church: church, plan: S.plan, period: S.period })
+        if (!r.ok || r.data.ok === false) throw new Error(r.data.error || 'No se pudo continuar.')
+        S.email = email
+        S.password = password
+        if (r.data.account_exists) {
+          $('loginEmail').value = email
+          show('stepLogin')
+          return error('Ese correo ya tiene cuenta: entra con tu contraseña para continuar.')
+        }
+        var c = await api('/api/signup/account', { email: email, password: password })
+        if (!c.ok) {
+          if (c.data.code === 'exists') { $('loginEmail').value = email; show('stepLogin'); return error(c.data.error) }
+          throw new Error(c.data.error || 'No se pudo crear la cuenta.')
+        }
+        if (c.data.verify) {
+          $('verifyEmail').textContent = email
+          show('stepVerify')
+          return
+        }
+        await login(email, password)
+        await afterLogin('registro-web')
+      } catch (e) {
+        error(e.message)
+      } finally {
+        busy(btn, false)
+      }
+    }
+
+    $('verifyForm').onsubmit = async function (ev) {
+      ev.preventDefault()
+      hideError()
+      var btn = $('verifyBtn')
+      busy(btn, true)
+      try {
+        var r = await api('/api/signup/verify', { email: S.email, otp: $('otp').value.trim() })
+        if (!r.ok) throw new Error(r.data.error || 'El código no es correcto.')
+        await login(S.email, S.password)
+        S.password = ''
+        await afterLogin('registro-web')
+      } catch (e) {
+        error(e.message)
+      } finally {
+        busy(btn, false)
+      }
+    }
+    $('resend').onclick = async function () {
+      var r = await api('/api/signup/otp', { email: S.email })
+      r.ok ? (hideError(), alert('Te enviamos otro código.')) : error(r.data.error || 'No se pudo enviar el código.')
+    }
+
+    $('loginForm').onsubmit = async function (ev) {
+      ev.preventDefault()
+      hideError()
+      var btn = $('loginBtn')
+      busy(btn, true)
+      try {
+        await login($('loginEmail').value.trim().toLowerCase(), $('loginPassword').value)
+        await afterLogin(null)
+      } catch (e) {
+        error(e.message)
+      } finally {
+        busy(btn, false)
+      }
+    }
+
+    $('payForm').onsubmit = async function (ev) {
+      ev.preventDefault()
+      hideError()
+      if (!$('payTerms').checked || !$('payPrivacy').checked || !$('payAuto').checked) return error('Para pagar, marca las tres casillas.')
+      var number = $('cardNumber').value.replace(/\D/g, '')
+      if (number.length < 13) return error('Escribe el número completo de la tarjeta.')
+      var btn = $('payBtn')
+      busy(btn, true, 'Procesando…')
+      try {
+        var device = await setupOpenpay()
+        var token = await new Promise(function (ok, fail) {
+          window.OpenPay.token.create(
+            { card_number: number, holder_name: $('holder').value.trim(), expiration_month: $('expMonth').value.trim().padStart(2, '0'), expiration_year: $('expYear').value.trim(), cvv2: $('cvv').value.trim() },
+            function (res) { ok(res.data.id) },
+            function (res) { fail(new Error((res && res.data && res.data.description) || 'Revisa los datos de la tarjeta.')) }
+          )
+        })
+        // Lo que se ve al pagar queda registrado: casillas en el registro de aceptaciones y en la contratación.
+        await recordConsent('contratacion-web')
+        var accept = { terminos: (legalDoc('terminos') || {}).version || true, privacidad: (legalDoc('privacidad') || {}).version || true, cobro_automatico: true }
+        var r = await api('/api/billing/checkout', { plan: S.plan, period: S.period, token: token, device_session_id: device || $('deviceIdHiddenFieldName').value, accept: accept }, await freshJwt())
+        if (!r.ok) throw new Error(r.data.error || 'No se pudo completar el pago.')
+        if (r.data.status === 'aprobado') return done('¡Pago aprobado! El plan de tu iglesia está activo' + (r.data.ends_on ? ' hasta el ' + longDate(r.data.ends_on) : '') + '.')
+        if (r.data.status === 'rechazado') throw new Error('El pago fue rechazado. Prueba con otra tarjeta o comunícate con tu banco.')
+        busy(btn, true, 'Confirmando el pago…')
+        var st = await waitActive()
+        if (st) return done('¡Pago confirmado! El plan de tu iglesia está activo.')
+        done('Recibimos tu pago y lo estamos confirmando con el banco. En unos minutos tu plan quedará activo: lo verás en «Mi suscripción».')
+      } catch (e) {
+        error(e.message)
+      } finally {
+        busy(btn, false, 'Pagar')
+        $('cvv').value = ''
+      }
+    }
+
+    start().catch(function () { error('No se pudo cargar la página. Revisa tu conexión e intenta de nuevo.') })
+  })()
+</script>
+</body>
+</html>

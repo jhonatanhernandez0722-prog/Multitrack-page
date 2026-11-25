@@ -1,6 +1,7 @@
 # Cumplimiento legal, privacidad y consentimiento — Gosen Tracks (web)
 
-Documento de trabajo del responsable (Comunidad Cristiana Gosen Barranquilla). Resume qué datos trata
+Documento de trabajo del responsable (Miguel Ángel Hernández, persona natural; decisión del propietario del
+24 de noviembre de 2026, antes figuraba la Comunidad Cristiana Gosen Barranquilla). Resume qué datos trata
 la plataforma, qué normas colombianas aplican, qué se implementó y qué falta confirmar.
 
 **No es una certificación de cumplimiento.** Es un análisis técnico con base en las normas citadas.
@@ -11,6 +12,35 @@ Fecha del análisis: 18 de noviembre de 2026.
 **Actualización (v37, plataforma multiiglesia):** Gosen Tracks pasó a ofrecerse a varias iglesias con planes
 de pago (Inicial, Equipo y Premium), pagos manuales y suscripciones mensuales o anuales. Los documentos
 (todavía en borrador) se reescribieron para ese modelo. Los puntos nuevos están en las secciones 3, 5 y 7.
+
+**Actualización (v43, 24 de noviembre de 2026): autoservicio, prueba gratuita y pago en línea con Openpay.**
+
+- **Quién vende y quién cobra:** vende Miguel Ángel Hernández (responsable), y el pago lo recibe el
+  comercio «ART IN EARS», titular de la cuenta de Openpay. Así aparece en el extracto. Se informa en los
+  términos, la política de reembolsos, la de privacidad y en la página de pago, para que nadie desconozca
+  el cobro.
+- **Prueba gratuita de 5 días** con código único:
+  - una prueba por correo (se guarda solo la huella del correo);
+  - 3 canciones demo de solo lectura, que deben ser propias de Gosén o con permiso para mostrarlas a otras
+    iglesias.
+- **Pago en línea con tarjeta:**
+  - renovación automática mensual o anual, autorizada con una casilla aparte;
+  - se cancela sin penalidad desde «Mi suscripción»;
+  - Openpay recibe la tarjeta directamente y Gosén guarda solo la marca y los últimos 4 dígitos;
+  - queda la evidencia de cada contratación: versiones aceptadas, autorización, IP, navegador, fecha y hora.
+- **Política de reembolsos:**
+  - no hay reembolso por cambio de opinión, falta de uso o expectativas personales;
+  - se mantienen las excepciones de la ley: retracto (con la excepción del servicio iniciado con acuerdo
+    expreso), cobros duplicados o no reconocidos, reversión del pago (art. 51) y fallas del servicio;
+  - nunca dice «no se hacen reembolsos» ni «en ningún caso».
+- **Casillas:**
+  - términos y privacidad, separadas y desmarcadas, al crear la cuenta en la web (`registro-web`) y en la
+    app (`registro-app`), y otra vez al pagar (`contratacion-web`);
+  - más la del cobro automático.
+- **Pendiente:**
+  - los datos de Miguel Ángel Hernández (identificación, dirección, correo y teléfono);
+  - confirmar que la cuenta de Openpay está a su nombre (o el de su establecimiento);
+  - revisión de un abogado (consumidor y datos) y de un contador (facturación electrónica e IVA).
 
 ---
 
@@ -238,8 +268,9 @@ iglesia pueden descargarlos.
    - dirección;
    - correo para datos personales;
    - teléfono (opcional).
-2. **¿La Comunidad es una persona jurídica?** Por ejemplo, una entidad religiosa con personería
-   jurídica. Esto determina quién figura como responsable y cómo se identifica.
+2. **(Resuelto el 24-11-2026)** El responsable y vendedor es **Miguel Ángel Hernández** (persona natural).
+   Falta su identificación exacta (cédula y NIT con dígito de verificación, como en el RUT), dirección,
+   correo y teléfono. Confirmar también que la cuenta de Openpay (comercio «ART IN EARS») está a su nombre.
 3. **Activos totales frente a 100.000 UVT**, para confirmar que no aplica la inscripción en el RNBD.
 4. **Contratos o cláusulas de transmisión internacional** con Neon y Cloudflare. Sus términos o
    acuerdos de procesamiento de datos (DPA) pueden servir; revisar si bastan.
@@ -248,8 +279,7 @@ iglesia pueden descargarlos.
    lit. d).
 7. **Licencias** de los proveedores de multitracks frente a las descargas de los administradores.
 8. **Persona o área que atiende** las consultas y reclamos de datos (Decreto 1377, art. 23), para ponerla en la política.
-10. **(v37) Quién vende las suscripciones.** ¿Es la Comunidad Cristiana Gosen Barranquilla, una persona o
-    una empresa? De eso dependen:
+10. **(v37, resuelto el 24-11-2026: Miguel Ángel Hernández)** Quién vende las suscripciones. De eso dependen:
     - quién figura en los documentos;
     - la facturación electrónica;
     - el régimen tributario de los pagos.

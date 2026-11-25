@@ -24,7 +24,7 @@ const SYSTEM = 'system/'
 export const ANCHORS = SYSTEM + 'consent-anchors/'
 /** Marca de retiro de una aceptación (por huella del correo): invalida las sesiones del panel anteriores. */
 export const REVOKED = SYSTEM + 'legal-revoked/'
-export const CHANNELS = ['panel-web:inicio-sesion', 'panel-web:nueva-version', 'panel-web:retiro']
+export const CHANNELS = ['panel-web:inicio-sesion', 'panel-web:nueva-version', 'panel-web:retiro', 'registro-web', 'contratacion-web', 'registro-app']
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])

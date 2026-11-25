@@ -92,6 +92,10 @@
   .state.activa, .state.interna { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
   .state.gracia, .state.sin_suscripcion { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
   .state.vencida, .state.suspendida, .state.archivada { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+  .state.prueba { background: var(--accent-soft, color-mix(in srgb, var(--ok) 10%, transparent)); color: var(--accent-tx, var(--ok)); }
+  .state.prueba_vencida, .state.rechazado, .state.fallida, .state.cancelada { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+  .state.aprobado { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+  .state.pendiente, .state.reembolsado, .state.contracargo { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
   .bar { height: 6px; border-radius: 999px; background: var(--panel-3); overflow: hidden; min-width: 80px; }
   .bar > i { display: block; height: 100%; background: var(--accent); }
   .slots { font: 700 15px var(--font-label); letter-spacing: 0.06em; }
@@ -169,6 +173,8 @@
     <button role="tab" data-tab="churches" aria-selected="true">Iglesias</button>
     <button role="tab" data-tab="payments" aria-selected="false">Pagos y vencimientos</button>
     <button role="tab" data-tab="plans" aria-selected="false">Planes</button>
+    <button role="tab" data-tab="trials" aria-selected="false">Pruebas y demo</button>
+    <button role="tab" data-tab="billing" aria-selected="false">Cobro en línea</button>
     <button role="tab" data-tab="settings" aria-selected="false">Ajustes y seguridad</button>
     <button role="tab" data-tab="audit" aria-selected="false">Registro</button>
   </nav>
@@ -208,10 +214,68 @@
       <div id="planCards" style="display: grid; gap: 14px"></div>
     </section>
 
+    <section data-panel="trials" class="card hide">
+      <div class="card-head"><h2>Códigos de prueba gratuita</h2><span class="muted small">Cada código sirve una sola vez. Se muestra solo al crearlo.</span></div>
+      <form id="trialForm" class="row" style="flex-wrap: wrap; gap: 8px">
+        <input id="t_note" class="input" style="flex: 2; min-width: 200px" maxlength="120" placeholder="Para quién es (por ejemplo, Iglesia Vida Nueva)" />
+        <input id="t_days" class="input" style="width: 140px" type="number" min="1" max="365" placeholder="Días para usarlo" />
+        <button class="btn primary" type="submit">Crear código</button>
+      </form>
+      <div id="trialResult" class="alert ok hide" style="margin-top: 10px"></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Código</th><th>Para</th><th>Creado</th><th>Vence</th><th>Estado</th><th>Usado por</th><th>Iglesia</th><th></th></tr></thead>
+        <tbody id="trialCodeRows"></tbody>
+      </table></div>
+    </section>
+    <section data-panel="trials" class="card hide">
+      <div class="card-head"><h2>Pruebas</h2><span class="muted small">El plazo corre en el servidor: cambiar de equipo o de sesión no lo reinicia.</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Iglesia</th><th>Dueño</th><th>Empezó</th><th>Termina</th><th>Estado</th><th>Compró</th><th>Integrantes</th><th></th></tr></thead>
+        <tbody id="trialRows"></tbody>
+      </table></div>
+    </section>
+    <section data-panel="trials" class="card hide">
+      <div class="card-head"><h2>Colección demo</h2><span class="muted small">Cada prueba ve 3 al azar (siempre las mismas). Marca solo canciones propias de Gosen o con permiso para mostrarlas a otras iglesias.</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Demo</th><th>Canción de Gosen</th><th>Artista</th><th>En pruebas</th></tr></thead>
+        <tbody id="demoRows"></tbody>
+      </table></div>
+    </section>
+
+    <section data-panel="billing" class="card hide">
+      <div class="card-head"><h2>Cobro en línea (Openpay)</h2><span class="grow"></span><button class="btn" type="button" id="billingReload">Actualizar</button></div>
+      <div id="billingConfig" class="small"></div>
+    </section>
+    <section data-panel="billing" class="card hide">
+      <div class="card-head"><h2>Pagos</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Iglesia</th><th>Valor</th><th>Estado</th><th>Tarjeta</th><th>Plan</th><th>Transacción</th><th></th></tr></thead>
+        <tbody id="opPayRows"></tbody>
+      </table></div>
+    </section>
+    <section data-panel="billing" class="card hide">
+      <div class="card-head"><h2>Suscripciones con renovación automática</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Iglesia</th><th>Plan</th><th>Valor</th><th>Estado</th><th>Renueva</th><th>Tarjeta</th><th>Entorno</th></tr></thead>
+        <tbody id="opSubRows"></tbody>
+      </table></div>
+    </section>
+    <section data-panel="billing" class="card hide">
+      <div class="card-head"><h2>Contrataciones y avisos de Openpay</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Iglesia</th><th>Quién</th><th>Plan</th><th>Valor</th><th>Estado</th><th>Detalle</th></tr></thead>
+        <tbody id="opCheckoutRows"></tbody>
+      </table></div>
+      <div class="table-wrap" style="margin-top: 12px"><table>
+        <thead><tr><th>Recibido</th><th>Aviso</th><th>Transacción</th><th>Resultado</th></tr></thead>
+        <tbody id="opEventRows"></tbody>
+      </table></div>
+    </section>
+
     <section data-panel="settings" class="card hide">
       <div class="card-head"><h2>Ajustes</h2></div>
       <form id="settingsForm" class="grid">
-        <div><label class="lbl" for="s_max">Cupo de iglesias comerciales</label><input id="s_max" class="input" type="number" min="0" max="100" /></div>
+        <div><label class="lbl" for="s_max">Cupo de iglesias (en prueba o al día)</label><input id="s_max" class="input" type="number" min="0" max="10000" /></div>
         <div><label class="lbl" for="s_grace">Días de gracia tras vencer</label><input id="s_grace" class="input" type="number" min="0" max="60" /></div>
         <div><label class="lbl" for="s_rem">Avisar desde (días antes)</label><input id="s_rem" class="input" type="number" min="0" max="60" /></div>
         <div><label class="lbl" for="s_inv">Invitación: días por defecto</label><input id="s_inv" class="input" type="number" min="1" max="30" /></div>
@@ -219,6 +283,10 @@
         <div><label class="lbl" for="s_wa">WhatsApp de Gosen (solo números, con país)</label><input id="s_wa" class="input" inputmode="numeric" placeholder="573001234567" /></div>
         <div><label class="lbl" for="s_mail">Correo comercial de Gosen</label><input id="s_mail" class="input" type="email" /></div>
         <div><label class="lbl" for="s_verify">Verificación de correo para invitaciones</label><select id="s_verify" class="input"><option value="true">Obligatoria</option><option value="false">No exigir (solo si Neon Auth no envía códigos)</option></select></div>
+        <div><label class="lbl" for="s_checkout">Contratación en línea (Openpay)</label><select id="s_checkout" class="input"><option value="false">Apagada</option><option value="true">Activa</option></select></div>
+        <div><label class="lbl" for="s_trial">Días de la prueba gratuita</label><input id="s_trial" class="input" type="number" min="1" max="30" /></div>
+        <div><label class="lbl" for="s_trialcode">Código de prueba: días para usarlo</label><input id="s_trialcode" class="input" type="number" min="1" max="365" /></div>
+        <div><label class="lbl" for="s_signups">Contrataciones nuevas por hora (freno)</label><input id="s_signups" class="input" type="number" min="1" max="1000" /></div>
         <div style="grid-column: 1 / -1"><button class="btn primary" type="submit">Guardar ajustes</button></div>
       </form>
     </section>
@@ -356,7 +424,10 @@
   const $ = (id) => document.getElementById(id)
   const enc = encodeURIComponent
   const KEY = 'gosen.sa.session'
-  const STATES = { interna: 'Interna', activa: 'Activa', gracia: 'En gracia', vencida: 'Vencida', sin_suscripcion: 'Sin pago', suspendida: 'Suspendida', archivada: 'Archivada' }
+  const STATES = { interna: 'Interna', activa: 'Activa', gracia: 'En gracia', vencida: 'Vencida', sin_suscripcion: 'Sin pago', suspendida: 'Suspendida', archivada: 'Archivada', prueba: 'En prueba', prueba_vencida: 'Prueba vencida' }
+  const PAY = { aprobado: 'Aprobado', rechazado: 'Rechazado', pendiente: 'Pendiente', cancelado: 'Cancelado', reembolsado: 'Reembolsado', contracargo: 'Contracargo' }
+  const SUBST = { activa: 'Activa', pendiente: 'Pendiente', fallida: 'Cobro fallido', cancelada: 'Cancelada', vencida: 'Vencida' }
+  const ORIGIN = { prueba: 'Prueba gratuita', autoservicio: 'Contratada en la web' }
   const KINDS = { alta: 'Alta', renovacion: 'Renovación', cambio_plan: 'Cambio de plan', cortesia: 'Cortesía' }
   const ROLES = { admin: 'Administrador', member: 'Integrante' }
   const INV = { pendiente: 'Pendiente', reservada: 'En uso', usada: 'Usada', vencida: 'Vencida', anulada: 'Anulada', bloqueada: 'Bloqueada' }
@@ -498,7 +569,7 @@
 
   // --- Datos y vistas ------------------------------------------------------------------------------------
   let data = null
-  const commercialPlans = () => (data.plans || []).filter((p) => !p.is_internal)
+  const commercialPlans = () => (data.plans || []).filter((p) => !p.is_internal && !p.is_trial)
   const planName = (id) => (data.plans || []).find((p) => p.id === id)?.name || id
   function flash(text, ok = true) {
     const m = $('msg')
@@ -526,7 +597,7 @@
       const lim = c.limits || {}
       const pct = lim.storage_bytes && c.usage ? Math.min(100, (c.usage.bytes / lim.storage_bytes) * 100) : 0
       return h('tr', { class: 'clickable', tabindex: '0', onclick: () => openChurch(c.id), onkeydown: (e) => e.key === 'Enter' && openChurch(c.id) },
-        h('td', null, h('strong', null, c.name), c.internal ? h('div', { class: 'muted small' }, 'Interna · no ocupa cupo') : h('div', { class: 'muted small mono' }, c.id)),
+        h('td', null, h('strong', null, c.name), c.internal ? h('div', { class: 'muted small' }, 'Interna · no ocupa cupo') : h('div', { class: 'muted small mono' }, c.id), ORIGIN[c.origin] ? h('div', { class: 'muted small' }, ORIGIN[c.origin]) : null),
         h('td', null, planName(c.plan_id)),
         h('td', null, stateChip(c.subscription && c.subscription.state)),
         h('td', null, c.subscription && c.subscription.ends_on ? date(c.subscription.ends_on) : '—'),
@@ -545,7 +616,7 @@
     $('cTitle').textContent = current.name
     const chip = stateChip(current.subscription && current.subscription.state)
     $('cState').replaceWith(Object.assign(chip, { id: 'cState' }))
-    $('c_plan').replaceChildren(...data.plans.filter((p) => p.is_internal === current.internal).map((p) => h('option', { value: p.id }, `${p.name}${p.is_internal ? '' : ' · ' + money(p.price_month_cop) + '/mes'}`)))
+    $('c_plan').replaceChildren(...data.plans.filter((p) => p.is_internal === current.internal && (!p.is_trial || p.id === current.plan_id)).map((p) => h('option', { value: p.id }, `${p.name}${p.is_internal || p.is_trial ? '' : ' · ' + money(p.price_month_cop) + '/mes'}`)))
     $('c_name').value = current.name
     $('c_plan').value = current.plan_id
     $('c_members').value = current.max_members_override ?? ''
@@ -659,7 +730,8 @@
     const d = await api(`/api/sa/churches/${enc(current.id)}/storage`)
     const lim = current.limits && current.limits.storage_bytes
     $('stoSummary').textContent = `${gb(d.bytes)} usados${lim ? ' de ' + gb(lim) : ''} · ${d.songs} canciones`
-    $('stoRows').replaceChildren(...d.top.map((t) => h('tr', null, h('td', null, t.title), h('td', null, gb(t.size)), h('td', null, date(t.uploaded)))))
+    // De las iglesias clientes solo se ve cuánto ocupa cada archivo, no qué canción es (v43).
+    $('stoRows').replaceChildren(...d.top.map((t) => h('tr', null, h('td', null, t.title || h('span', { class: 'muted' }, 'Privada')), h('td', null, gb(t.size)), h('td', null, date(t.uploaded)))))
   }
 
   // Nueva iglesia.
@@ -757,11 +829,13 @@
       const field = (id, label, value, type = 'number') => h('div', null, h('label', { class: 'lbl', for: id }, label), h('input', { id, class: 'input', type, value: value ?? '' }))
       const uid = 'pl_' + p.id + '_'
       f.append(
-        h('div', { class: 'card-head' }, h('h3', null, p.name), p.is_internal ? h('span', { class: 'state interna' }, 'Interno') : null, h('span', { class: 'grow' })),
+        h('div', { class: 'card-head' }, h('h3', null, p.name), p.is_internal ? h('span', { class: 'state interna' }, 'Interno') : null, p.is_trial ? h('span', { class: 'state prueba' }, 'Prueba gratuita · no se vende') : null, h('span', { class: 'grow' })),
         h('div', { class: 'grid' },
           field(uid + 'name', 'Nombre', p.name, 'text'),
           field(uid + 'pm', 'Precio mensual (COP)', p.price_month_cop),
           field(uid + 'py', 'Precio anual (COP, vacío = 12 meses)', p.price_year_cop),
+          field(uid + 'um', 'Precio mensual (USD, referencia)', p.price_month_usd),
+          field(uid + 'uy', 'Precio anual (USD, referencia)', p.price_year_usd),
           field(uid + 'mm', 'Integrantes (vacío = sin límite)', p.max_members),
           field(uid + 'gb', 'Almacenamiento GB (vacío = sin límite)', p.storage_gb)),
         h('div', { class: 'features', style: 'margin:12px 0' }, ...data.features.map((x) =>
@@ -772,6 +846,7 @@
         try {
           await api('/api/sa/plans', { json: {
             id: p.id, name: $(uid + 'name').value, price_month_cop: Number($(uid + 'pm').value) || 0, price_year_cop: $(uid + 'py').value,
+            price_month_usd: $(uid + 'um').value, price_year_usd: $(uid + 'uy').value,
             max_members: $(uid + 'mm').value, storage_gb: $(uid + 'gb').value, active: $(uid + 'active').checked, sort: p.sort,
             features: [...f.querySelectorAll('.features input:checked')].map((i) => i.value) } })
           flash(`Plan «${$(uid + 'name').value}» guardado.`)
@@ -793,6 +868,10 @@
     $('s_wa').value = st.contact_whatsapp || ''
     $('s_mail').value = st.contact_email || ''
     $('s_verify').value = String(st.require_email_verification !== false)
+    $('s_checkout').value = String(st.checkout_enabled === true)
+    $('s_trial').value = st.trial_days ?? 5
+    $('s_trialcode').value = st.trial_code_days ?? 30
+    $('s_signups').value = st.signups_per_hour ?? 30
   }
   $('settingsForm').onsubmit = async (ev) => {
     ev.preventDefault()
@@ -801,7 +880,9 @@
       max_commercial_churches: Number($('s_max').value), grace_days: Number($('s_grace').value), reminder_days: Number($('s_rem').value),
       invite_days_default: Number($('s_inv').value), invite_days_max: Number($('s_invmax').value),
       contact_whatsapp: $('s_wa').value.replace(/\D/g, '') || null, contact_email: $('s_mail').value.trim() || null,
-      require_email_verification: $('s_verify').value === 'true'
+      require_email_verification: $('s_verify').value === 'true',
+      checkout_enabled: $('s_checkout').value === 'true', trial_days: Number($('s_trial').value), trial_code_days: Number($('s_trialcode').value),
+      signups_per_hour: Number($('s_signups').value)
     }
     try {
       for (const [key, value] of Object.entries(want)) if (JSON.stringify(st[key] ?? null) !== JSON.stringify(value)) await api('/api/sa/settings', { json: { key, value } })
@@ -827,6 +908,86 @@
     } catch (err) { alert(err.message) }
   }
 
+  // --- v43 · Pruebas gratuitas, colección demo y cobro en línea ---------------------------------------------
+  const dateTimeOrDash = (v) => (v ? dateTime(v) : '—')
+  async function loadTrials() {
+    const d = await api('/api/sa/trials')
+    $('trialCodeRows').replaceChildren(...d.codes.map((t) => h('tr', null,
+      h('td', { class: 'mono' }, 'PRB-…' + t.hint), h('td', null, t.note || '—'), h('td', null, date(t.created_at)), h('td', null, date(t.expires_at)),
+      h('td', null, INV[t.status] || t.status), h('td', null, t.used_email || '—'), h('td', null, t.church || '—', t.church_state ? h('div', null, stateChip(t.church_state)) : null),
+      h('td', null, ['pendiente', 'reservada'].includes(t.status) ? h('button', { class: 'btn small danger', type: 'button', onclick: async () => { if (!confirm('¿Anular este código?')) return; await api('/api/sa/trial-codes/' + t.id, { method: 'DELETE' }); loadTrials() } }, 'Anular') : null))))
+    const moveTrial = async (c, endsAt, msg) => {
+      try { await api('/api/sa/trials/' + enc(c.id), { json: { ends_at: endsAt } }); flash(msg); await loadTrials() } catch (err) { alert(err.message) }
+    }
+    $('trialRows').replaceChildren(...d.trials.map((c) => h('tr', null,
+      h('td', null, h('strong', null, c.name), h('div', { class: 'muted small mono' }, c.id)), h('td', null, c.owner_email || '—'),
+      h('td', null, dateTimeOrDash(c.trial_started_at)), h('td', null, dateTimeOrDash(c.trial_ends_at)), h('td', null, stateChip(c.state)),
+      h('td', null, c.converted ? 'Sí' : 'No'), h('td', null, String(c.members ?? 0)),
+      h('td', null, c.converted ? null : h('div', { class: 'row' },
+        h('button', { class: 'btn small', type: 'button', onclick: () => moveTrial(c, new Date(Math.max(Date.now(), new Date(c.trial_ends_at).getTime()) + 3 * 864e5).toISOString(), 'Prueba alargada 3 días.') }, '+3 días'),
+        c.state === 'prueba' ? h('button', { class: 'btn small danger', type: 'button', onclick: () => confirm('¿Terminar esta prueba ahora?') && moveTrial(c, new Date().toISOString(), 'Prueba terminada.') }, 'Terminar') : null)))))
+    const active = new Map(d.demos.map((x) => [x.song_key, x]))
+    $('demoRows').replaceChildren(...d.songs.map((song) => {
+      const cur = active.get(song.key)
+      const box = h('input', { type: 'checkbox', checked: !!(cur && cur.active), 'aria-label': 'Demo: ' + song.title })
+      box.onchange = async () => {
+        try { await api('/api/sa/demos', { json: { key: song.key, title: song.title, active: box.checked } }); flash(box.checked ? `«${song.title}» es demo.` : `«${song.title}» ya no es demo.`) } catch (err) { box.checked = !box.checked; alert(err.message) }
+      }
+      return h('tr', null, h('td', null, box), h('td', null, song.title), h('td', null, song.artist || '—'), h('td', null, String(cur ? cur.in_trials : 0)))
+    }))
+  }
+  $('trialForm').onsubmit = async (ev) => {
+    ev.preventDefault()
+    try {
+      const d = await api('/api/sa/trial-codes', { json: { note: $('t_note').value, days: Number($('t_days').value) || null } })
+      const box = $('trialResult')
+      box.classList.remove('hide')
+      box.replaceChildren(
+        h('div', null, 'Código (se muestra solo ahora): ', h('strong', { class: 'mono' }, d.code)),
+        h('div', { class: 'row', style: 'margin-top:8px' },
+          h('button', { class: 'btn small', type: 'button', onclick: () => navigator.clipboard.writeText(d.text) }, 'Copiar mensaje'),
+          h('a', { class: 'btn small primary', href: d.whatsapp, target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => navigator.clipboard.writeText(d.link) }, 'Copiar enlace')))
+      $('trialForm').reset()
+      loadTrials()
+    } catch (err) { alert(err.message) }
+  }
+  async function loadBilling() {
+    const d = await api('/api/sa/billing')
+    const c = d.config || {}
+    const lines = [
+      h('p', null, 'Entorno: ', h('strong', null, c.mode === 'production' ? 'Producción (cobros reales)' : 'Pruebas (sandbox, sin cobros reales)'), ' · ',
+        c.ready ? h('span', { class: 'state activa' }, 'Configurado') : h('span', { class: 'state vencida' }, 'Falta configurar')),
+      c.merchantLabel ? h('p', null, 'Los clientes ven el cobro a nombre de ', h('strong', null, c.merchantLabel), ' (así aparece en su extracto).') : null,
+      !c.ready && c.missing && c.missing.length ? h('p', null, 'Falta en Cloudflare: ', h('span', { class: 'mono' }, c.missing.join(' · '))) : null,
+      d.verification ? h('p', null, 'Código para verificar el aviso en el panel de Openpay: ', h('strong', { class: 'mono' }, d.verification.code), ` (recibido ${dateTime(d.verification.at)})`) : h('p', { class: 'muted' }, 'Openpay todavía no ha enviado el código de verificación del aviso (llega al configurar el webhook en su panel).'),
+      h('p', { class: 'muted' }, 'Dirección del aviso para Openpay: ', h('span', { class: 'mono' }, location.origin + '/api/billing/openpay'), ' (con el usuario y la contraseña guardados en Cloudflare).')
+    ]
+    $('billingConfig').replaceChildren(...lines.filter(Boolean))
+    const pays = await api('/api/sa/payments')
+    $('opPayRows').replaceChildren(...pays.map((x) => h('tr', null,
+      h('td', null, dateTime(x.created_at)), h('td', null, x.church), h('td', null, money(x.amount_cop)),
+      h('td', null, h('span', { class: 'state ' + x.status, title: x.error_message || '' }, PAY[x.status] || x.status)),
+      h('td', null, x.card_brand ? `${x.card_brand} ·${x.card_last4 || ''}` : x.method), h('td', null, planName(x.plan_id) + (x.period ? ' · ' + x.period : '')),
+      h('td', { class: 'mono small' }, x.provider_tx + (x.env === 'sandbox' ? ' (pruebas)' : '')),
+      h('td', null, x.status === 'aprobado' ? h('button', { class: 'btn small danger', type: 'button', onclick: async () => {
+        const reason = prompt('Motivo del reembolso (por ejemplo, retracto dentro de los 5 días hábiles, cobro duplicado o falla del servicio):')
+        if (!reason) return
+        if (!confirm(`¿Reembolsar ${money(x.amount_cop)} a ${x.church}? Se anula el período que activó ese pago.`)) return
+        try { await api(`/api/sa/payments/${enc(x.provider_tx)}/refund`, { json: { reason } }); flash('Reembolso hecho.'); loadBilling() } catch (err) { alert(err.message) }
+      } }, 'Reembolsar') : null))))
+    $('opSubRows').replaceChildren(...d.subscriptions.map((x) => h('tr', null,
+      h('td', null, x.church), h('td', null, planName(x.plan_id) + ' · ' + x.period), h('td', null, money(x.amount_cop)),
+      h('td', null, h('span', { class: 'state ' + x.status }, SUBST[x.status] || x.status), x.cancel_at_period_end ? h('div', { class: 'muted small' }, 'No se renueva') : null),
+      h('td', null, x.period_end ? date(x.period_end) : '—'), h('td', null, x.card_brand ? `${x.card_brand} ·${x.card_last4 || ''}` : '—'), h('td', null, x.env === 'sandbox' ? 'Pruebas' : 'Producción'))))
+    $('opCheckoutRows').replaceChildren(...d.checkouts.map((x) => h('tr', null,
+      h('td', null, dateTime(x.created_at)), h('td', null, x.church), h('td', null, x.email), h('td', null, planName(x.plan_id) + ' · ' + x.period),
+      h('td', null, money(x.amount_cop)), h('td', null, h('span', { class: 'state ' + x.status }, x.status)), h('td', { class: 'small' }, x.error_message || ''))))
+    $('opEventRows').replaceChildren(...d.events.map((x) => h('tr', null,
+      h('td', null, dateTime(x.received_at)), h('td', { class: 'mono small' }, x.type), h('td', { class: 'mono small' }, x.provider_tx || '—'), h('td', { class: 'small' }, x.result || 'sin terminar (Openpay lo reintenta)'))))
+  }
+  $('billingReload').onclick = () => loadBilling().catch((err) => alert(err.message))
+
   // Registro.
   function renderAuditFilter() {
     $('auditChurch').replaceChildren(h('option', { value: '' }, 'Todas las iglesias'), ...data.churches.map((c) => h('option', { value: c.id }, c.name)))
@@ -849,6 +1010,8 @@
     for (const x of document.querySelectorAll('nav.tabs [data-tab]')) x.setAttribute('aria-selected', String(x === b))
     for (const p of document.querySelectorAll('[data-panel]')) p.classList.toggle('hide', p.dataset.panel !== b.dataset.tab)
     if (b.dataset.tab === 'audit') loadAudit()
+    if (b.dataset.tab === 'trials') loadTrials().catch((err) => flash(err.message, false))
+    if (b.dataset.tab === 'billing') loadBilling().catch((err) => flash(err.message, false))
   }))
   $('themeBtn').onclick = () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'

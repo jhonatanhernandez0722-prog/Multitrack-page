@@ -90,13 +90,25 @@ export const FEATURE_LABELS = {
   soporte_prioritario: 'Soporte prioritario'
 }
 
+/**
+ * Canción demo que la sesión puede ver y tocar (solo lectura) durante su prueba gratuita: la clave de la
+ * canción (también para sus pistas `tracks/<clave>/…`), o null. Las demo son de la iglesia interna y la
+ * base las entrega en `me.demos` solo mientras la prueba sigue activa.
+ */
+export function demoSongOf(me, key) {
+  if (!Array.isArray(me?.demos) || !me.demos.length || typeof key !== 'string' || key.includes('..')) return null
+  const song = key.startsWith('tracks/') ? trackSongKey(key) : key
+  return churchOfSongKey(song) === INTERNAL && me.demos.includes(song) ? song : null
+}
+
 /** Mensaje claro cuando la suscripción no está al día o el plan no incluye la función. */
 export function planMessage(me, feature) {
   const state = me?.subscription?.state
-  if (state && !['activa', 'gracia', 'interna'].includes(state)) {
-    return state === 'suspendida' || state === 'archivada'
-      ? 'La cuenta de tu iglesia está suspendida. Escribe a Gosen para reactivarla.'
-      : 'La suscripción de tu iglesia no está al día. Escribe a Gosen para renovarla (tus datos se conservan).'
+  if (state && !['activa', 'gracia', 'interna', 'prueba'].includes(state)) {
+    if (state === 'suspendida' || state === 'archivada') return 'La cuenta de tu iglesia está suspendida. Escribe a Gosen para reactivarla.'
+    if (state === 'prueba_vencida') return 'La prueba gratuita de tu iglesia terminó. Contrata un plan para seguir usando la nube (tus datos se conservan).'
+    if (state === 'sin_suscripcion') return 'Tu iglesia todavía no tiene un plan activo. Termina la contratación para usar la nube.'
+    return 'La suscripción de tu iglesia no está al día. Renuévala para seguir usando la nube (tus datos se conservan).'
   }
   return `«${FEATURE_LABELS[feature] || feature}» no está incluido en el plan de tu iglesia${me?.plan?.name ? ` (${me.plan.name})` : ''}. Puedes consultar la actualización con Gosen.`
 }
