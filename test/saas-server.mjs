@@ -304,7 +304,7 @@ function rpc(name, email, b) {
   }
 }
 
-const env = { TRACKS: new FakeBucket(), AUTH_URL: 'https://ep-x.neonauth.test.neon.tech/neondb/auth', DATA_API_URL: 'https://ep-x.apirest.test.neon.tech/neondb/rest/v1', MAX_TOTAL_BYTES: '0', MAX_FILE_BYTES: '2147483648' }
+const env = { TRACKS: new FakeBucket(), AUTH_URL: 'https://ep-x.neonauth.test.neon.tech/neondb/auth', DATA_API_URL: 'https://ep-x.apirest.test.neon.tech/neondb/rest/v1', MAX_TOTAL_BYTES: '0', MAX_FILE_BYTES: '2147483648', LEGAL_PREVIEW: JSON.stringify({ owner: { email: null } }) }
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url)
   if (u.endsWith('/sign-in/email')) {

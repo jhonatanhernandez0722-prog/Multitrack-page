@@ -23,7 +23,8 @@ const env = {
   DATA_API_URL: 'https://ep-x.apirest.test.neon.tech/neondb/rest/v1',
   MAX_TOTAL_BYTES: '0',
   MAX_FILE_BYTES: '2147483648',
-  ...(process.env.GOSEN_LEGAL_PREVIEW ? { LEGAL_PREVIEW: process.env.GOSEN_LEGAL_PREVIEW } : {})
+  // Sin vista previa, los documentos se usan como borrador (estas pruebas no son de lo legal: ver legal-ui).
+  LEGAL_PREVIEW: process.env.GOSEN_LEGAL_PREVIEW || JSON.stringify({ owner: { email: null } })
 }
 // Registro de aceptaciones simulado (mismas respuestas que las funciones de sql/legal-consentimientos.sql).
 const consents = []

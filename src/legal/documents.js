@@ -18,7 +18,7 @@ import { OWNER_FIELD_LABELS } from './owner.js'
  * Fecha de entrada en vigor de la versión 1.0. Queda en null hasta completar los datos del
  * responsable (src/legal/owner.js): mientras tanto los documentos son un borrador.
  */
-export const EFFECTIVE_1_0 = null
+export const EFFECTIVE_1_0 = '2026-11-25'
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 

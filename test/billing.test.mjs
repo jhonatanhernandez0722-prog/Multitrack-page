@@ -56,6 +56,7 @@ function openpay(method, path, body) {
   op.log.push(`${method} ${path}`)
   const m = (re) => re.exec(path)
   let x
+  if (method === 'GET' && path === '') return opReply({ id: MERCHANT, name: 'ART IN EARS', status: 'active' })
   if (method === 'POST' && path === '/customers') {
     const id = `cus${++seq}aaaa`
     op.customers.set(id, body)
@@ -406,6 +407,8 @@ console.log('\nSuperadmin: pruebas, demo y cobro')
   ok((await sa('POST', '/api/sa/demos', { key: DEMO, title: 'Canción Demo' })).status === 200 && db.demos.includes(DEMO), 'marca una canción de Gosen como demo')
   const bill = await jsonOf(await sa('GET', '/api/sa/billing'))
   ok(bill.config?.ready === true && bill.verification?.code === 'AbC123' && !JSON.stringify(bill).includes('sk_') && !JSON.stringify(bill).includes('una-clave'), 've el estado del cobro y el código de verificación del aviso, sin ningún secreto')
+  const test = await jsonOf(await sa('POST', '/api/sa/billing/test', {}))
+  ok(test.ok && test.name === 'ART IN EARS' && test.status === 'active', 'Superadmin prueba la conexión con Openpay sin cobrar (consulta el comercio con la llave secreta)')
   const charge = [...op.charges.values()][0]
   const refund = await sa('POST', `/api/sa/payments/${charge.id}/refund`, { reason: 'Retracto dentro de los 5 días' })
   ok(refund.status === 200 && charge.status === 'refunded' && db.applied.at(-1).p_charge.status === 'refunded', 'reembolso: se pide a Openpay y se aplica lo que responde (anula el período)')

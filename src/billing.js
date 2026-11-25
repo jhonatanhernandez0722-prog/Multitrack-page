@@ -410,6 +410,21 @@ export async function saBilling(env, call, sa) {
   return { data: { ...r.data, config: { mode: cfg.mode, ready: cfg.ready, missing: cfg.missing, merchantLabel: cfg.merchantLabel }, verification } }
 }
 
+/**
+ * Prueba la conexión con Openpay sin cobrar nada: consulta los datos del comercio con la llave secreta.
+ * Si responde, la llave secreta guardada en Cloudflare corresponde a ese comercio y entorno.
+ */
+export async function saTestOpenpay(env) {
+  const cfg = billingConfig(env)
+  if (!cfg.ready) return { error: `Falta configurar: ${cfg.missing.join(' · ')}` }
+  try {
+    const m = await op(env, 'GET', '')
+    return { data: { ok: true, mode: cfg.mode, merchant: m?.id ?? cfg.merchant, name: m?.name ?? null, status: m?.status ?? null } }
+  } catch (err) {
+    return { error: err.status === 401 ? 'Openpay rechazó la llave secreta: revisa que sea la de este comercio y de este entorno (producción o pruebas).' : err.message }
+  }
+}
+
 /** Reembolso pedido por Superadmin: se registra quién y por qué, se pide a Openpay y se aplica lo que responda. */
 export async function saRefund(env, call, sa, tx, reason) {
   const cfg = billingConfig(env)

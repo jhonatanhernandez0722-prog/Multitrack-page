@@ -43,7 +43,7 @@
  */
 import { neonRpc } from './legal/legal.js'
 import { INTERNAL, brandingPrefix, can, churchOf, keyOwner, planMessage } from './tenancy.js'
-import { saBilling, saRefund } from './billing.js'
+import { saBilling, saRefund, saTestOpenpay } from './billing.js'
 
 const SQL_MISSING = 'Falta ejecutar neon/v37-iglesias.sql en Neon (SQL Editor).'
 const LOGO_MAX = 1024 * 1024
@@ -533,6 +533,11 @@ export async function superadminApi(req, env, p, h) {
     return reply(json, await call('gosen_sa_set_demo', { p_sa: sa, p_key: key, p_title: b.title ? String(b.title).slice(0, 120) : null, p_active: b.active !== false }), () => ({ ok: true }))
   }
   if (p === '/api/sa/billing' && req.method === 'GET') return reply(json, await saBilling(env, call, sa))
+  if (p === '/api/sa/billing/test' && req.method === 'POST') {
+    const denied = await ping()
+    if (denied) return denied
+    return reply(json, await saTestOpenpay(env))
+  }
   if (p === '/api/sa/payments' && req.method === 'GET') {
     const c = new URL(req.url).searchParams.get('church')
     return reply(json, await call('gosen_sa_payments', { p_sa: sa, p_church: c && CHURCH_ID.test(c) ? c : null }))

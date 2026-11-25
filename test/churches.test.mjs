@@ -110,6 +110,8 @@ const env = {
   DATA_API_URL: 'https://a.apirest.test/neondb/rest/v1',
   MAX_TOTAL_BYTES: '0',
   MAX_FILE_BYTES: '2147483648',
+  // Estas pruebas no son de los documentos legales (ver legal.test.mjs): se usan como borrador.
+  LEGAL_PREVIEW: JSON.stringify({ owner: { email: null } }),
   REHEARSAL: { idFromName: (n) => (roomNames.push(n), n), get: () => ({ fetch: async () => new Response('sala') }) },
   LIMITER: (() => {
     const rooms = new Map()

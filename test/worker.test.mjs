@@ -27,7 +27,9 @@ const env = {
   AUTH_URL: 'https://ep-x.neonauth.test.neon.tech/neondb/auth',
   DATA_API_URL: 'https://ep-x.apirest.test.neon.tech/neondb/rest/v1',
   MAX_TOTAL_BYTES: '0',
-  MAX_FILE_BYTES: '2147483648'
+  MAX_FILE_BYTES: '2147483648',
+  // Estas pruebas no son de los documentos legales (ver legal.test.mjs): se usan como borrador.
+  LEGAL_PREVIEW: JSON.stringify({ owner: { email: null } })
 }
 let isAdmin = true
 /** Control en vivo: función e iglesia de la cuenta (solo en esa prueba). */

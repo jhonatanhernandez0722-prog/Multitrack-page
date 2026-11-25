@@ -961,7 +961,17 @@
       c.merchantLabel ? h('p', null, 'Los clientes ven el cobro a nombre de ', h('strong', null, c.merchantLabel), ' (así aparece en su extracto).') : null,
       !c.ready && c.missing && c.missing.length ? h('p', null, 'Falta en Cloudflare: ', h('span', { class: 'mono' }, c.missing.join(' · '))) : null,
       d.verification ? h('p', null, 'Código para verificar el aviso en el panel de Openpay: ', h('strong', { class: 'mono' }, d.verification.code), ` (recibido ${dateTime(d.verification.at)})`) : h('p', { class: 'muted' }, 'Openpay todavía no ha enviado el código de verificación del aviso (llega al configurar el webhook en su panel).'),
-      h('p', { class: 'muted' }, 'Dirección del aviso para Openpay: ', h('span', { class: 'mono' }, location.origin + '/api/billing/openpay'), ' (con el usuario y la contraseña guardados en Cloudflare).')
+      h('p', { class: 'muted' }, 'Dirección del aviso para Openpay: ', h('span', { class: 'mono' }, location.origin + '/api/billing/openpay'), ' (con el usuario y la contraseña guardados en Cloudflare).'),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn', type: 'button', id: 'opTestBtn', onclick: async () => {
+          const out = $('opTestOut')
+          out.textContent = 'Consultando a Openpay…'
+          try {
+            const r = await api('/api/sa/billing/test', { json: {} })
+            out.textContent = `Conectado con Openpay (${r.mode === 'production' ? 'producción' : 'pruebas'}): comercio «${r.name || r.merchant}», estado ${r.status || '—'}. No se cobró nada.`
+          } catch (err) { out.textContent = 'No se pudo conectar: ' + err.message }
+        } }, 'Probar conexión con Openpay'),
+        h('span', { class: 'small', id: 'opTestOut' }))
     ]
     $('billingConfig').replaceChildren(...lines.filter(Boolean))
     const pays = await api('/api/sa/payments')
