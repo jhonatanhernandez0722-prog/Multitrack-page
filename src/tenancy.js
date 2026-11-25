@@ -92,13 +92,14 @@ export const FEATURE_LABELS = {
 
 /**
  * Canción demo que la sesión puede ver y tocar (solo lectura) durante su prueba gratuita: la clave de la
- * canción (también para sus pistas `tracks/<clave>/…`), o null. Las demo son de la iglesia interna y la
- * base las entrega en `me.demos` solo mientras la prueba sigue activa.
+ * canción (también para sus pistas `tracks/<clave>/…`), o null. Las demo son de la iglesia de las canciones
+ * demo (v44) o de la interna; solo Superadmin las marca (y el Worker valida de qué iglesia son), y la base
+ * las entrega en `me.demos` solo mientras la prueba sigue activa.
  */
 export function demoSongOf(me, key) {
   if (!Array.isArray(me?.demos) || !me.demos.length || typeof key !== 'string' || key.includes('..')) return null
   const song = key.startsWith('tracks/') ? trackSongKey(key) : key
-  return churchOfSongKey(song) === INTERNAL && me.demos.includes(song) ? song : null
+  return churchOfSongKey(song) && me.demos.includes(song) ? song : null
 }
 
 /** Mensaje claro cuando la suscripción no está al día o el plan no incluye la función. */

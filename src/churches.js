@@ -497,9 +497,11 @@ export async function superadminApi(req, env, p, h) {
       call('gosen_sa_demo_songs', { p_sa: sa })
     ])
     for (const r of [codes, trials, demos]) if (r.missing || r.error) return reply(json, r.missing ? { missing: true } : r)
-    // Canciones de la iglesia interna (las de Gosen) para elegir la colección demo.
-    const songs = h.listSongs ? (await h.listSongs(INTERNAL)).map((i) => ({ key: i.key, title: i.title || i.name, artist: i.artist ?? null })) : []
-    return json({ codes: codes.data, trials: trials.data, demos: demos.data, songs })
+    // Canciones para elegir la colección demo: las de la iglesia de las demos (v44) o, si no hay, las de Gosen.
+    const dc = await call('gosen_sa_demo_church', { p_sa: sa })
+    const demoChurch = !dc.missing && !dc.error && typeof dc.data === 'string' && CHURCH_ID.test(dc.data) ? dc.data : null
+    const songs = h.listSongs ? (await h.listSongs(demoChurch || INTERNAL)).map((i) => ({ key: i.key, title: i.title || i.name, artist: i.artist ?? null })) : []
+    return json({ codes: codes.data, trials: trials.data, demos: demos.data, songs, demo_church: demoChurch })
   }
   if (p === '/api/sa/trial-codes' && req.method === 'POST') {
     const b = await body(req)
@@ -528,8 +530,14 @@ export async function superadminApi(req, env, p, h) {
     if (denied) return denied
     const b = await body(req)
     const key = String(b.key || '')
-    // Solo canciones de la iglesia interna que existan (no archivos auxiliares ni de otras iglesias).
-    if (keyOwner(key) !== INTERNAL || key.includes('/') || !/\.zip$/i.test(key) || !(await env.TRACKS.head(key))) return json({ error: 'Esa canción no es de Gosen o no existe.' }, 400)
+    // Solo canciones de la iglesia de las demos (v44) o, si no hay, de la interna; nunca de una iglesia cliente.
+    const dc = await call('gosen_sa_demo_church', { p_sa: sa })
+    const demoChurch = !dc.missing && !dc.error && typeof dc.data === 'string' && CHURCH_ID.test(dc.data) ? dc.data : null
+    const allowed = demoChurch || INTERNAL
+    const rest = demoChurch ? key.slice(`c/${demoChurch}/`.length) : key
+    if (keyOwner(key) !== allowed || (demoChurch && !key.startsWith(`c/${demoChurch}/`)) || rest.includes('/') || !/\.zip$/i.test(key) || !(await env.TRACKS.head(key))) {
+      return json({ error: demoChurch ? 'Esa canción no es de la iglesia de las canciones demo o no existe.' : 'Esa canción no es de Gosen o no existe.' }, 400)
+    }
     return reply(json, await call('gosen_sa_set_demo', { p_sa: sa, p_key: key, p_title: b.title ? String(b.title).slice(0, 120) : null, p_active: b.active !== false }), () => ({ ok: true }))
   }
   if (p === '/api/sa/billing' && req.method === 'GET') return reply(json, await saBilling(env, call, sa))

@@ -186,6 +186,8 @@ function neon(name, auth, b) {
       return saOk ? reply([{ id: PRUEBA, state: 'prueba' }]) : needSa()
     case 'gosen_sa_create_trial_code':
       return saOk ? reply([{ id: '22222222-2222-4222-8222-222222222222', code: 'PRB-AB12-CD34-EF56', expires_at: '2026-12-24T00:00:00Z' }]) : needSa()
+    case 'gosen_sa_demo_church':
+      return saOk ? reply(db.demoChurch ?? null) : needSa()
     case 'gosen_sa_set_demo':
       if (!saOk) return needSa()
       db.demos.push(b.p_key)
@@ -276,6 +278,11 @@ await bucket.put(`metadata/${DEMO}`, JSON.stringify({ title: 'Canción Demo', ch
 await bucket.put(`covers/${DEMO}`, new Uint8Array([1, 2, 3]), { httpMetadata: { contentType: 'image/png' } })
 await bucket.put(`tracks/${DEMO}/voz.m4a`, audio(7))
 await bucket.put('11-Privada.zip', zip('Privada'), { customMetadata: { name: 'Privada.zip' } })
+// v44: iglesia solo para las canciones demo.
+const DEMOS = 'canciones-demo-ab12c'
+const DEMO2 = `c/${DEMOS}/20-Demo2.zip`
+await bucket.put(DEMO2, zip('Demo2'), { customMetadata: { name: 'Demo2.zip' } })
+ACCOUNTS['jwt-prueba2'] = acc('otra@vida.co', true, 'iglesia-otra-7a7a7', 'prueba', ALL, [DEMO2])
 await bucket.put(`c/${BETA}/3-Beta.zip`, zip('Beta'), { customMetadata: { name: 'Beta.zip' } })
 
 // --- Configuración y página --------------------------------------------------------------------------
@@ -390,6 +397,9 @@ console.log('\nCanciones demo (solo lectura, solo durante la prueba)')
   ok((await call('DELETE', `/api/tracks/${enc(DEMO)}`, { token: 'jwt-prueba' })).status !== 200 && !!(await bucket.head(DEMO)), 'ni borrarla')
   ok((await call('GET', `/api/file/${enc('11-Privada.zip')}`, { token: 'jwt-prueba' })).status === 404, 'otra canción de Gosen (no demo) no se puede pedir')
   ok((await call('GET', `/api/song/${enc(DEMO)}`, { token: 'jwt-beta' })).status === 404 && !(await jsonOf(await call('GET', '/api/tracks', { token: 'jwt-beta' }))).some((i) => i.demo), 'una iglesia que no está en prueba no ve ni toca la demo')
+  const list2 = await jsonOf(await call('GET', '/api/tracks', { token: 'jwt-prueba2' }))
+  ok(list2.some((i) => i.key === DEMO2 && i.demo) && (await call('GET', `/api/song/${enc(DEMO2)}`, { token: 'jwt-prueba2' })).status === 200, 'una demo de la iglesia de las demos también se ve y se toca durante la prueba')
+  ok((await call('GET', `/api/song/${enc(DEMO2)}`, { token: 'jwt-beta' })).status === 404, 'y nadie más la puede pedir')
   const ended = await call('GET', '/api/tracks', { token: 'jwt-vencida' })
   ok(ended.status === 200 && (await jsonOf(ended)).length === 0, 'prueba vencida: catálogo vacío (la app quita las demo de los equipos)')
 }
@@ -405,6 +415,12 @@ console.log('\nSuperadmin: pruebas, demo y cobro')
   ok(code.code === 'PRB-AB12-CD34-EF56' && code.link === 'https://gosen.test/contratar#PRB-AB12-CD34-EF56' && /prueba gratuita/.test(code.text), 'crea un código de prueba con su enlace (el código va después de «#») y el texto para WhatsApp')
   ok((await sa('POST', '/api/sa/demos', { key: `c/${BETA}/3-Beta.zip`, title: 'x' })).status === 400 && (await sa('POST', '/api/sa/demos', { key: 'no-existe.zip' })).status === 400, 'no puede marcar como demo una canción de otra iglesia ni una que no existe')
   ok((await sa('POST', '/api/sa/demos', { key: DEMO, title: 'Canción Demo' })).status === 200 && db.demos.includes(DEMO), 'marca una canción de Gosen como demo')
+  // v44: con una iglesia solo para las demos, se eligen sus canciones (y ya no las de Gosen).
+  db.demoChurch = DEMOS
+  const t2 = await jsonOf(await sa('GET', '/api/sa/trials'))
+  ok(t2.demo_church === DEMOS && t2.songs.length === 1 && t2.songs[0].key === DEMO2, 'con la iglesia de las demos elegida, se listan solo sus canciones (no las de la biblioteca de Gosen)')
+  ok((await sa('POST', '/api/sa/demos', { key: DEMO, title: 'x' })).status === 400 && (await sa('POST', '/api/sa/demos', { key: DEMO2, title: 'Demo 2' })).status === 200, 'solo se marcan canciones de esa iglesia')
+  db.demoChurch = null
   const bill = await jsonOf(await sa('GET', '/api/sa/billing'))
   ok(bill.config?.ready === true && bill.verification?.code === 'AbC123' && !JSON.stringify(bill).includes('sk_') && !JSON.stringify(bill).includes('una-clave'), 've el estado del cobro y el código de verificación del aviso, sin ningún secreto')
   const test = await jsonOf(await sa('POST', '/api/sa/billing/test', {}))

@@ -235,7 +235,7 @@
       </table></div>
     </section>
     <section data-panel="trials" class="card hide">
-      <div class="card-head"><h2>Colección demo</h2><span class="muted small">Cada prueba ve 3 al azar (siempre las mismas). Marca solo canciones propias de Gosen o con permiso para mostrarlas a otras iglesias.</span></div>
+      <div class="card-head"><h2>Colección demo</h2><span class="muted small" id="demoHint">Cada prueba ve 3 al azar (siempre las mismas). Marca solo canciones propias o con permiso para mostrarlas a otras iglesias.</span></div>
       <div class="table-wrap"><table>
         <thead><tr><th>Demo</th><th>Canción de Gosen</th><th>Artista</th><th>En pruebas</th></tr></thead>
         <tbody id="demoRows"></tbody>
@@ -287,6 +287,7 @@
         <div><label class="lbl" for="s_trial">Días de la prueba gratuita</label><input id="s_trial" class="input" type="number" min="1" max="30" /></div>
         <div><label class="lbl" for="s_trialcode">Código de prueba: días para usarlo</label><input id="s_trialcode" class="input" type="number" min="1" max="365" /></div>
         <div><label class="lbl" for="s_signups">Contrataciones nuevas por hora (freno)</label><input id="s_signups" class="input" type="number" min="1" max="1000" /></div>
+        <div><label class="lbl" for="s_demo">Iglesia de las canciones demo</label><select id="s_demo" class="input"></select></div>
         <div style="grid-column: 1 / -1"><button class="btn primary" type="submit">Guardar ajustes</button></div>
       </form>
     </section>
@@ -872,6 +873,8 @@
     $('s_trial').value = st.trial_days ?? 5
     $('s_trialcode').value = st.trial_code_days ?? 30
     $('s_signups').value = st.signups_per_hour ?? 30
+    $('s_demo').replaceChildren(h('option', { value: '' }, 'Ninguna (se usan canciones de Gosen)'), ...data.churches.filter((c) => !c.internal).map((c) => h('option', { value: c.id }, c.name)))
+    $('s_demo').value = st.demo_church || ''
   }
   $('settingsForm').onsubmit = async (ev) => {
     ev.preventDefault()
@@ -882,7 +885,7 @@
       contact_whatsapp: $('s_wa').value.replace(/\D/g, '') || null, contact_email: $('s_mail').value.trim() || null,
       require_email_verification: $('s_verify').value === 'true',
       checkout_enabled: $('s_checkout').value === 'true', trial_days: Number($('s_trial').value), trial_code_days: Number($('s_trialcode').value),
-      signups_per_hour: Number($('s_signups').value)
+      signups_per_hour: Number($('s_signups').value), demo_church: $('s_demo').value || null
     }
     try {
       for (const [key, value] of Object.entries(want)) if (JSON.stringify(st[key] ?? null) !== JSON.stringify(value)) await api('/api/sa/settings', { json: { key, value } })
@@ -926,6 +929,9 @@
       h('td', null, c.converted ? null : h('div', { class: 'row' },
         h('button', { class: 'btn small', type: 'button', onclick: () => moveTrial(c, new Date(Math.max(Date.now(), new Date(c.trial_ends_at).getTime()) + 3 * 864e5).toISOString(), 'Prueba alargada 3 días.') }, '+3 días'),
         c.state === 'prueba' ? h('button', { class: 'btn small danger', type: 'button', onclick: () => confirm('¿Terminar esta prueba ahora?') && moveTrial(c, new Date().toISOString(), 'Prueba terminada.') }, 'Terminar') : null)))))
+    $('demoHint').textContent = d.demo_church
+      ? `Canciones de la iglesia de las demos («${(data.churches.find((c) => c.id === d.demo_church) || {}).name || d.demo_church}»). Cada prueba ve 3 al azar (siempre las mismas).`
+      : 'Todavía no elegiste una iglesia de canciones demo (Ajustes): se muestran las de Gosen. Mejor crea una iglesia solo para las demos y súbelas ahí.'
     const active = new Map(d.demos.map((x) => [x.song_key, x]))
     $('demoRows').replaceChildren(...d.songs.map((song) => {
       const cur = active.get(song.key)

@@ -360,7 +360,7 @@ async function listAll(env, church = INTERNAL) {
 async function demoItems(env, keys) {
   const items = []
   for (const key of keys) {
-    if (churchOfSongKey(key) !== INTERNAL || isAuxiliary(key)) continue
+    if (!churchOfSongKey(key) || isAuxiliary(key)) continue
     const head = await env.TRACKS.head(key)
     if (!head) continue
     const [sidecar, cover] = await Promise.all([env.TRACKS.head(METADATA + key), env.TRACKS.head(COVERS + key)])
