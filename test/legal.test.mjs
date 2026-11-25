@@ -74,7 +74,7 @@ globalThis.fetch = async (url, init = {}) => {
 const TODAY = new Date().toISOString().slice(0, 10)
 const COMPLETE = { name: 'Comunidad Cristiana Gosen Barranquilla', nit: '900.000.000-1', address: 'Calle 1 # 2-3', email: 'datos@iglesia.test' }
 const bucket = new FakeBucket()
-const draftEnv = { TRACKS: bucket, AUTH_URL: 'https://a.neonauth.test/neondb/auth', DATA_API_URL: 'https://a.apirest.test/neondb/rest/v1', MAX_TOTAL_BYTES: '0', MAX_FILE_BYTES: '2147483648' }
+const draftEnv = { TRACKS: bucket, AUTH_URL: 'https://a.neonauth.test/neondb/auth', DATA_API_URL: 'https://a.apirest.test/neondb/rest/v1', MAX_TOTAL_BYTES: '0', MAX_FILE_BYTES: '2147483648', LEGAL_PREVIEW: JSON.stringify({ owner: { email: null } }) }
 const liveEnv = { ...draftEnv, LEGAL_PREVIEW: JSON.stringify({ owner: COMPLETE, effective: TODAY }) }
 
 const call = async (env, method, path, { body, token = 'jwt-admin' } = {}) =>
@@ -98,7 +98,7 @@ console.log('Documentos legales (públicos, con versiones)')
   const idx = await call(draftEnv, 'GET', '/legal', { token: null })
   const html = await idx.text()
   ok(idx.status === 200 && ['terminos', 'privacidad', 'cookies', 'reembolsos'].every((d) => html.includes(`href="/legal/${d}"`)), 'índice con los 4 documentos, sin iniciar sesión')
-  ok(/Borrador/.test(html) && true, 'mientras faltan datos del responsable, se publica como BORRADOR y dice qué falta')
+  ok(/Borrador/.test(html) && /correo de contacto/.test(html), 'mientras faltan datos del responsable, se publica como BORRADOR y dice qué falta')
   for (const d of ['terminos', 'privacidad', 'cookies', 'reembolsos']) {
     const r = await call(draftEnv, 'GET', `/legal/${d}`, { token: null })
     const t = await r.text()
